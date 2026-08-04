@@ -1,0 +1,77 @@
+import Database from 'better-sqlite3';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+
+const SCHEMA_VERSION = 1;
+
+const MIGRATIONS: Record<number, string> = {
+  1: `
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      password_hash TEXT NOT NULL,
+      is_admin INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS groups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS group_members (
+      group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      PRIMARY KEY (group_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS module_grants (
+      group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+      module_id TEXT NOT NULL,
+      can_read INTEGER NOT NULL DEFAULT 0,
+      can_write INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (group_id, module_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      token TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      csrf_token TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      expires_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+
+    CREATE TABLE IF NOT EXISTS module_data (
+      module_id TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value TEXT NOT NULL,
+      PRIMARY KEY (module_id, key)
+    );
+  `,
+};
+
+function migrate(db: Database.Database): void {
+  const current = db.pragma('user_version', { simple: true }) as number;
+  for (let version = current + 1; version <= SCHEMA_VERSION; version++) {
+    const sql = MIGRATIONS[version];
+    if (sql === undefined) throw new Error(`Missing migration for schema version ${version}`);
+    db.transaction(() => db.exec(sql))();
+    db.pragma(`user_version = ${version}`);
+  }
+}
+
+export function openDb(dbPath: string): Database.Database {
+  if (dbPath !== ':memory:') {
+    mkdirSync(dirname(dbPath), { recursive: true });
+  }
+  const db = new Database(dbPath);
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
+  db.pragma('busy_timeout = 5000');
+  migrate(db);
+  return db;
+}

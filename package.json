@@ -1,0 +1,29 @@
+{
+  "name": "perepelkin-home",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Domo — модульное веб-приложение для дома",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "modules/*"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "npm run build -w @perepelkin-home/core && npm run build -w @perepelkin-home/server && npm run build -w @perepelkin-home/web",
+    "dev": "npm run build -w @perepelkin-home/core && concurrently -n server,web -c auto \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "npm run dev -w @perepelkin-home/server",
+    "dev:web": "npm run dev -w @perepelkin-home/web",
+    "seed": "npm run seed -w @perepelkin-home/server",
+    "typecheck": "npm run typecheck -w @perepelkin-home/core -w @perepelkin-home/server -w @perepelkin-home/web",
+    "test": "npm run test -w @perepelkin-home/core -w @perepelkin-home/server"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "concurrently": "^10",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "@perepelkin-home/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "typecheck": "tsc -p tsconfig.json",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@perepelkin-home/core": "*",
+    "@fontsource/manrope": "^5",
+    "@fontsource/spectral": "^5",
+    "@fontsource/spectral": "^5.3.0",
+    "react": "^19",
+    "react-dom": "^19",
+    "react-router-dom": "^7"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6",
+    "typescript": "^5",
+    "vite": "^8"
+  }
+}

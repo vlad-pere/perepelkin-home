@@ -1,0 +1,230 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { Client, createAdmin, createTestWorld, type TestWorld } from './helpers.js';
+
+let world: TestWorld;
+
+beforeEach(async () => {
+  world = await createTestWorld();
+  await createAdmin(world);
+  world.core.registerModule({ id: 'notes', name: 'Заметки', description: 'Общие заметки' });
+  world.core.registerModule({ id: 'games', name: 'Игры', description: 'Игры для гостей' });
+});
+
+afterEach(async () => {
+  await world.close();
+});
+
+async function adminClient(): Promise<Client> {
+  const client = new Client(world.app);
+  await client.login('admin', 'secret123');
+  return client;
+}
+
+async function createMemberClient(username: string, password = 'secret123'): Promise<{ client: Client; userId: number }> {
+  const admin = await adminClient();
+  const res = await admin.inject('POST', '/api/admin/users', { username, password });
+  expect(res.statusCode).toBe(201);
+  const userId = res.json().user.id;
+  admin.resetAuth();
+
+  const client = new Client(world.app);
+  await client.login(username, password);
+  return { client, userId };
+}
+
+describe('пользователи', () => {
+  it('список пользователей не содержит хеши паролей', async () => {
+    const client = await adminClient();
+    const res = await client.inject('GET', '/api/admin/users');
+    expect(res.statusCode).toBe(200);
+    const users = res.json().users;
+    expect(users.length).toBe(1);
+    expect(users[0].username).toBe('admin');
+    expect(users[0]).not.toHaveProperty('password_hash');
+    expect(Array.isArray(users[0].groups)).toBe(true);
+  });
+
+  it('создаёт пользователя и отклоняет дубликат без учёта регистра', async () => {
+    const client = await adminClient();
+    const created = await client.inject('POST', '/api/admin/users', { username: 'sveta', password: 'secret123' });
+    expect(created.statusCode).toBe(201);
+
+    const dup = await client.inject('POST', '/api/admin/users', { username: 'Sveta', password: 'secret123' });
+    expect(dup.statusCode).toBe(409);
+    expect(dup.json().error.code).toBe('CONFLICT');
+  });
+
+  it('отклоняет слабый пароль', async () => {
+    const client = await adminClient();
+    const res = await client.inject('POST', '/api/admin/users', { username: 'sveta', password: 'short' });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('не даёт удалить собственный аккаунт', async () => {
+    const client = await adminClient();
+    const adminId = world.core.users.getByUsername('admin')!.id;
+    const res = await client.inject('DELETE', `/api/admin/users/${adminId}`);
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('не даёт снять с себя права администратора', async () => {
+    const client = await adminClient();
+    const adminId = world.core.users.getByUsername('admin')!.id;
+    const res = await client.inject('PATCH', `/api/admin/users/${adminId}`, { isAdmin: false });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('удаляет пользователя вместе с сессиями', async () => {
+    const { client, userId } = await createMemberClient('sveta');
+    const admin = await adminClient();
+    const del = await admin.inject('DELETE', `/api/admin/users/${userId}`);
+    expect(del.statusCode).toBe(204);
+
+    const me = await client.inject('GET', '/api/auth/me');
+    expect(me.statusCode).toBe(401);
+  });
+});
+
+describe('группы и доступ к модулям', () => {
+  it('создаёт группу, добавляет участника и показывает её в /me', async () => {
+    const { userId } = await createMemberClient('sveta');
+    const admin = await adminClient();
+
+    const groupRes = await admin.inject('POST', '/api/admin/groups', { name: 'Семья' });
+    expect(groupRes.statusCode).toBe(201);
+    const groupId = groupRes.json().group.id;
+
+    const add = await admin.inject('POST', `/api/admin/groups/${groupId}/members`, { user_id: userId });
+    expect(add.statusCode).toBe(204);
+
+    const member = new Client(world.app);
+    await member.login('sveta', 'secret123');
+    const me = await member.inject('GET', '/api/auth/me');
+    expect(me.statusCode).toBe(200);
+    expect(me.json().groups.map((g: { name: string }) => g.name)).toContain('Семья');
+  });
+
+  it('выдаёт права на модуль группе — пользователь видит модуль с корректными правами', async () => {
+    const { userId } = await createMemberClient('sveta');
+    const admin = await adminClient();
+
+    const groupRes = await admin.inject('POST', '/api/admin/groups', { name: 'Семья' });
+    const groupId = groupRes.json().group.id;
+    await admin.inject('POST', `/api/admin/groups/${groupId}/members`, { user_id: userId });
+
+    const grant = await admin.inject('PUT', '/api/admin/modules/notes/grants', {
+      group_id: groupId,
+      can_read: true,
+      can_write: false,
+    });
+    expect(grant.statusCode).toBe(204);
+
+    const member = new Client(world.app);
+    await member.login('sveta', 'secret123');
+    const me = await member.inject('GET', '/api/auth/me');
+    expect(me.statusCode).toBe(200);
+    const body = me.json();
+    const notes = body.modules.find((m: { id: string }) => m.id === 'notes');
+    expect(notes).toBeDefined();
+    expect(notes.canRead).toBe(true);
+    expect(notes.canWrite).toBe(false);
+    expect(body.modules.find((m: { id: string }) => m.id === 'games')).toBeUndefined();
+  });
+
+  it('не показывает модуль пользователю без выданного доступа', async () => {
+    await createMemberClient('sveta');
+    const member = new Client(world.app);
+    await member.login('sveta', 'secret123');
+    const me = await member.inject('GET', '/api/auth/me');
+    expect(me.json().modules).toEqual([]);
+  });
+
+  it('админ видит все модули с полными правами', async () => {
+    const admin = await adminClient();
+    const me = await admin.inject('GET', '/api/auth/me');
+    const modules = me.json().modules;
+    expect(modules.map((m: { id: string }) => m.id).sort()).toEqual(['games', 'notes']);
+    for (const m of modules) {
+      expect(m.canRead).toBe(true);
+      expect(m.canWrite).toBe(true);
+    }
+  });
+
+  it('отклоняет грант для неизвестного модуля и неизвестной группы', async () => {
+    const admin = await adminClient();
+    const groupRes = await admin.inject('POST', '/api/admin/groups', { name: 'Семья' });
+    const groupId = groupRes.json().group.id;
+
+    const badModule = await admin.inject('PUT', '/api/admin/modules/ghost/grants', {
+      group_id: groupId,
+      can_read: true,
+      can_write: false,
+    });
+    expect(badModule.statusCode).toBe(404);
+
+    const badGroup = await admin.inject('PUT', '/api/admin/modules/notes/grants', {
+      group_id: 9999,
+      can_read: true,
+      can_write: false,
+    });
+    expect(badGroup.statusCode).toBe(404);
+  });
+
+  it('отзывает грант — модуль исчезает из /me', async () => {
+    const { userId } = await createMemberClient('sveta');
+    const admin = await adminClient();
+    const groupRes = await admin.inject('POST', '/api/admin/groups', { name: 'Семья' });
+    const groupId = groupRes.json().group.id;
+    await admin.inject('POST', `/api/admin/groups/${groupId}/members`, { user_id: userId });
+    await admin.inject('PUT', '/api/admin/modules/notes/grants', { group_id: groupId, can_read: true, can_write: false });
+
+    const remove = await admin.inject('DELETE', `/api/admin/modules/notes/grants/${groupId}`);
+    expect(remove.statusCode).toBe(204);
+
+    const member = new Client(world.app);
+    await member.login('sveta', 'secret123');
+    const me = await member.inject('GET', '/api/auth/me');
+    expect(me.json().modules).toEqual([]);
+  });
+
+  it('список модулей администратора показывает выдачу по группам', async () => {
+    const admin = await adminClient();
+    const groupRes = await admin.inject('POST', '/api/admin/groups', { name: 'Семья' });
+    const groupId = groupRes.json().group.id;
+    await admin.inject('PUT', '/api/admin/modules/notes/grants', { group_id: groupId, can_read: true, can_write: true });
+
+    const res = await admin.inject('GET', '/api/admin/modules');
+    expect(res.statusCode).toBe(200);
+    const notes = res.json().modules.find((m: { id: string }) => m.id === 'notes');
+    expect(notes.grants).toEqual([{ groupId, canRead: true, canWrite: true }]);
+  });
+
+  it('удаление группы снимает её членство и права', async () => {
+    const { userId } = await createMemberClient('sveta');
+    const admin = await adminClient();
+    const groupRes = await admin.inject('POST', '/api/admin/groups', { name: 'Семья' });
+    const groupId = groupRes.json().group.id;
+    await admin.inject('POST', `/api/admin/groups/${groupId}/members`, { user_id: userId });
+    await admin.inject('PUT', '/api/admin/modules/notes/grants', { group_id: groupId, can_read: true, can_write: false });
+
+    const del = await admin.inject('DELETE', `/api/admin/groups/${groupId}`);
+    expect(del.statusCode).toBe(204);
+
+    const member = new Client(world.app);
+    await member.login('sveta', 'secret123');
+    const me = await member.inject('GET', '/api/auth/me');
+    expect(me.json().groups).toEqual([]);
+    expect(me.json().modules).toEqual([]);
+  });
+});
+
+describe('core.store', () => {
+  it('изолирует данные модуля по ключам', () => {
+    const notesStore = world.core.store('notes');
+    const gamesStore = world.core.store('games');
+    notesStore.set('title', 'Дом');
+    expect(notesStore.get('title')).toBe('Дом');
+    expect(gamesStore.get('title')).toBeUndefined();
+    expect(() => world.core.store('ghost')).toThrow(/unknown module/i);
+  });
+});

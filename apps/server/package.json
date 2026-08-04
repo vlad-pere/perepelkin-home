@@ -1,0 +1,32 @@
+{
+  "name": "@perepelkin-home/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "seed": "tsx src/seed.ts"
+  },
+  "dependencies": {
+    "@perepelkin-home/core": "*",
+    "@fastify/cookie": "^11",
+    "@fastify/helmet": "^13",
+    "@fastify/rate-limit": "^11",
+    "@fastify/static": "^10",
+    "bcryptjs": "^3",
+    "better-sqlite3": "^13",
+    "fastify": "^5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7",
+    "@types/node": "^24",
+    "tsx": "^4",
+    "typescript": "^5",
+    "vitest": "^4"
+  }
+}
