@@ -225,7 +225,11 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
                       aria-label={row.title}
                     />
                   ) : (
-                    <span className={`todo-dot${row.done ? ' on' : ''}`} aria-hidden="true" />
+                    <span
+                      className={`todo-dot${row.done ? ' on' : ''}`}
+                      role="img"
+                      aria-label={row.done ? 'Выполнено' : 'Не выполнено'}
+                    />
                   )}
                   <div className="todo-row-body">
                     <span className="todo-row-title">{row.title}</span>
