@@ -10,6 +10,7 @@ COPY apps/web/package.json apps/web/package.json
 COPY packages/core/package.json packages/core/package.json
 COPY modules/admin/package.json modules/admin/package.json
 COPY modules/maintenance/package.json modules/maintenance/package.json
+COPY modules/todo/package.json modules/todo/package.json
 # --ignore-scripts: в дереве нет пакетов с нужными lifecycle-скриптами,
 # а better-sqlite3/esbuild используют prebuilds/optionalDependencies,
 # node-gyp-сборка в образе не требуется.
@@ -29,6 +30,7 @@ COPY apps/web/package.json apps/web/package.json
 COPY packages/core/package.json packages/core/package.json
 COPY modules/admin/package.json modules/admin/package.json
 COPY modules/maintenance/package.json modules/maintenance/package.json
+COPY modules/todo/package.json modules/todo/package.json
 RUN npm ci --omit=dev --ignore-scripts
 
 COPY --from=build /app/packages/core/dist packages/core/dist
@@ -36,6 +38,7 @@ COPY --from=build /app/apps/server/dist apps/server/dist
 COPY --from=build /app/apps/web/dist apps/web/dist
 COPY --from=build /app/modules/admin/dist modules/admin/dist
 COPY modules/maintenance/manifest.json modules/maintenance/manifest.json
+COPY modules/todo/manifest.json modules/todo/manifest.json
 
 # Сервер импортирует admin-модуль через workspace-симлинк node_modules.
 # Делаем его реальным каталогом, чтобы хост-маунт ./modules не подменил
