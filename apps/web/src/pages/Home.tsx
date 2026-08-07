@@ -5,29 +5,15 @@ import { Topbar } from '../components/Topbar';
 
 export function HomePage() {
   const { me } = useAuth();
-  const user = me?.user;
-  const groups = me?.groups ?? [];
   const modules = me?.modules ?? [];
-  const username = user?.username ?? '';
 
   return (
     <div className="shell">
-      <Topbar>
-        {user?.isAdmin && (
-          <Link className="btn-ghost" to="/admin">
-            Управление
-          </Link>
-        )}
-      </Topbar>
+      <Topbar />
 
       <main className="home">
-        <h1 className="home-title">Привет, {username}.</h1>
-
         {modules.length > 0 ? (
           <>
-            <p className="home-sub">
-              {modules.length} {plural(modules.length, 'модуль', 'модуля', 'модулей')} тебе доступно.
-            </p>
             <ul className="module-list">
               {modules.map((m) => (
                 <ModuleRow key={m.id} module={m} />
@@ -66,12 +52,4 @@ function ModuleRow({ module }: { module: ModuleAccess }) {
       </Link>
     </li>
   );
-}
-
-function plural(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
-  return many;
 }

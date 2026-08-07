@@ -26,9 +26,8 @@ export function LoginPage() {
   return (
     <main className="auth">
       <form className="auth-card" onSubmit={onSubmit}>
-        <p className="auth-eyebrow">личное пространство дома</p>
+        <p className="auth-eyebrow">личное пространство</p>
         <h1 className="auth-title">Дом Перепелкиных</h1>
-        <p className="auth-subtitle">Модули для дома — доступ только для своих.</p>
 
         {error && (
           <p className="auth-error" role="alert">
@@ -64,8 +63,6 @@ export function LoginPage() {
           {pending ? 'Входим…' : 'Войти'}
         </button>
       </form>
-
-      <p className="auth-foot">Доступ выдаёт администратор</p>
     </main>
   );
 }

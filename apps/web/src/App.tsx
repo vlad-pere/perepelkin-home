@@ -1,10 +1,11 @@
-import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { AdminPage } from '@perepelkin-home/module-admin/ui';
 import { AuthProvider, useAuth } from './auth';
 import { api } from './api';
 import { Topbar } from './components/Topbar';
 import { LoginPage } from './pages/Login';
 import { HomePage } from './pages/Home';
+import { ProfilePage } from './pages/Profile';
 import { Splash } from './components/Splash';
 import { ModuleUnavailable, resolveModuleUi } from './modules/registry';
 
@@ -28,16 +29,18 @@ function Root() {
         element={
           isAdmin ? (
             <div className="shell">
-              <Topbar>
-                <Link className="btn-ghost" to="/">
-                  На главную
-                </Link>
-              </Topbar>
+              <Topbar />
               <AdminPage api={api} currentUserId={me!.user.id} />
             </div>
           ) : (
             <Navigate to="/" replace />
           )
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          status === 'authenticated' ? <ProfilePage /> : <Navigate to="/login" replace />
         }
       />
       <Route
@@ -64,11 +67,7 @@ function ModulePage() {
   const Ui = resolveModuleUi(module.id, module.kind);
   return (
     <div className="shell">
-      <Topbar>
-        <Link className="btn-ghost" to="/">
-          На главную
-        </Link>
-      </Topbar>
+      <Topbar />
       {Ui ? (
         <Ui
           moduleId={module.id}
