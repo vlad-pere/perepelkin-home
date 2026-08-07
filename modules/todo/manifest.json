@@ -1,0 +1,19 @@
+{
+  "id": "todo",
+  "name": "Список дел",
+  "description": "Общий список дел: по дому, по переезду, куда угодно.",
+  "kind": "simple",
+  "entities": [
+    {
+      "name": "task",
+      "label": "Дело",
+      "fields": [
+        { "name": "title", "label": "Дело", "type": "text", "required": true },
+        { "name": "note", "label": "Заметка", "type": "textarea" },
+        { "name": "when", "label": "Дата", "type": "date" },
+        { "name": "done", "label": "Сделано", "type": "boolean" }
+      ],
+      "defaultSort": { "field": "done", "direction": "asc" }
+    }
+  ]
+}
