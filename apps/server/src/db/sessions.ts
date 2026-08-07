@@ -86,6 +86,10 @@ export function deleteSession(db: Database.Database, token: string): void {
   deleteStmt(db, token);
 }
 
+export function deleteSessionsForUser(db: Database.Database, userId: number): void {
+  db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
+}
+
 export function deleteExpiredSessions(db: Database.Database, now: number = Date.now()): void {
   db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(now);
 }

@@ -1,6 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Client, createAdmin, createTestWorld, type TestWorld } from './helpers.js';
 import { SESSION_COOKIE } from '../src/constants.js';
+import { mountModule } from '../src/modules/host.js';
+import type { ModuleManifest } from '@perepelkin-home/core';
+
+const simpleManifest: ModuleManifest = {
+  id: 'maintenance',
+  name: 'Обслуживание вещей',
+  description: 'График обслуживания',
+  kind: 'simple',
+  entities: [
+    {
+      name: 'item',
+      label: 'Вещь',
+      fields: [
+        { name: 'title', label: 'Название', type: 'text', required: true },
+        { name: 'nextDue', label: 'Следующее обслуживание', type: 'date' },
+      ],
+      defaultSort: { field: 'nextDue', direction: 'asc' },
+    },
+  ],
+};
 
 let world: TestWorld;
 
@@ -133,6 +153,44 @@ describe('сессия', () => {
     } finally {
       await expired.close();
     }
+  });
+});
+
+describe('метаданные модулей в /me', () => {
+  it('для admin возвращает kind=code и route=/admin', async () => {
+    const client = new Client(world.app);
+    await client.login('admin', 'secret123');
+
+    const me = await client.inject('GET', '/api/auth/me');
+    expect(me.statusCode).toBe(200);
+    const admin = (me.json() as { modules: Array<{ id: string; kind: string; route: string }> }).modules.find(
+      (m) => m.id === 'admin',
+    );
+    expect(admin).toBeDefined();
+    expect(admin?.kind).toBe('code');
+    expect(admin?.route).toBe('/admin');
+  });
+
+  it('для простого модуля возвращает kind=simple и route=/m/<id>', async () => {
+    await world.core.users.create({ username: 'member', password: 'secret123' });
+    await mountModule(world.app, { db: world.db, core: world.core, manifest: simpleManifest });
+
+    const user = world.core.users.getByUsername('member')!;
+    const group = world.core.groups.create({ name: 'family' });
+    world.core.groups.addMember(group.id, user.id);
+    world.core.grants.set(group.id, 'maintenance', { canRead: true, canWrite: true });
+
+    const client = new Client(world.app);
+    await client.login('member', 'secret123');
+
+    const me = await client.inject('GET', '/api/auth/me');
+    expect(me.statusCode).toBe(200);
+    const maintenance = (
+      me.json() as { modules: Array<{ id: string; kind: string; route: string }> }
+    ).modules.find((m) => m.id === 'maintenance');
+    expect(maintenance).toBeDefined();
+    expect(maintenance?.kind).toBe('simple');
+    expect(maintenance?.route).toBe('/m/maintenance');
   });
 });
 

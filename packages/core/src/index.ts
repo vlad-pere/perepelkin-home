@@ -14,6 +14,19 @@ export type {
 export { can } from './permissions.js';
 export type { CanOptions } from './permissions.js';
 
+export { validateManifest, ManifestError } from './manifest.js';
+export type {
+  ModuleManifest,
+  ManifestEntity,
+  ManifestField,
+  ManifestEntitySort,
+  ModuleKind,
+  FieldType,
+  SortDirection,
+} from './manifest.js';
+
+export type { CoreApi, GroupListEntry } from './api.js';
+
 export {
   registerModule,
   isModuleRegistered,

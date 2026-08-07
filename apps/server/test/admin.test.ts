@@ -85,6 +85,59 @@ describe('пользователи', () => {
   });
 });
 
+describe('инвалидация сессий при изменении учётных данных', () => {
+  it('сброс пароля инвалидирует все сессии пользователя и пускает только с новым паролем', async () => {
+    const { client, userId } = await createMemberClient('sveta');
+    const second = new Client(world.app);
+    await second.login('sveta', 'secret123');
+
+    const admin = await adminClient();
+    const reset = await admin.inject('PATCH', `/api/admin/users/${userId}`, { password: 'newpass123' });
+    expect(reset.statusCode).toBe(200);
+
+    const me1 = await client.inject('GET', '/api/auth/me');
+    expect(me1.statusCode).toBe(401);
+    const me2 = await second.inject('GET', '/api/auth/me');
+    expect(me2.statusCode).toBe(401);
+
+    const oldLogin = await client.login('sveta', 'secret123');
+    expect(oldLogin.statusCode).toBe(401);
+
+    const fresh = new Client(world.app);
+    const login = await fresh.login('sveta', 'newpass123');
+    expect(login.statusCode).toBe(200);
+    const me = await fresh.inject('GET', '/api/auth/me');
+    expect(me.statusCode).toBe(200);
+  });
+
+  it('снятие прав администратора инвалидирует сессии пользователя', async () => {
+    const boss = await world.core.users.create({ username: 'boss', password: 'secret123', isAdmin: true });
+    const client = new Client(world.app);
+    await client.login('boss', 'secret123');
+    expect((await client.inject('GET', '/api/admin/users')).statusCode).toBe(200);
+
+    const admin = await adminClient();
+    const demote = await admin.inject('PATCH', `/api/admin/users/${boss.id}`, { isAdmin: false });
+    expect(demote.statusCode).toBe(200);
+
+    expect((await client.inject('GET', '/api/auth/me')).statusCode).toBe(401);
+    expect((await client.inject('GET', '/api/admin/users')).statusCode).toBe(401);
+  });
+
+  it('сброс пароля одного пользователя не затрагивает сессии других', async () => {
+    await createMemberClient('sveta');
+    const { client: petr } = await createMemberClient('petr');
+    const svetaId = world.core.users.getByUsername('sveta')!.id;
+
+    const admin = await adminClient();
+    const reset = await admin.inject('PATCH', `/api/admin/users/${svetaId}`, { password: 'newpass123' });
+    expect(reset.statusCode).toBe(200);
+
+    const me = await petr.inject('GET', '/api/auth/me');
+    expect(me.statusCode).toBe(200);
+  });
+});
+
 describe('группы и доступ к модулям', () => {
   it('создаёт группу, добавляет участника и показывает её в /me', async () => {
     const { userId } = await createMemberClient('sveta');
@@ -143,7 +196,7 @@ describe('группы и доступ к модулям', () => {
     const admin = await adminClient();
     const me = await admin.inject('GET', '/api/auth/me');
     const modules = me.json().modules;
-    expect(modules.map((m: { id: string }) => m.id).sort()).toEqual(['games', 'notes']);
+    expect(modules.map((m: { id: string }) => m.id).sort()).toEqual(['admin', 'games', 'notes']);
     for (const m of modules) {
       expect(m.canRead).toBe(true);
       expect(m.canWrite).toBe(true);

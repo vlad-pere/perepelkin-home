@@ -2,9 +2,9 @@ import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
-const MIGRATIONS: Record<number, string> = {
+export const MIGRATIONS: Record<number, string> = {
   1: `
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,6 +50,26 @@ const MIGRATIONS: Record<number, string> = {
       key TEXT NOT NULL,
       value TEXT NOT NULL,
       PRIMARY KEY (module_id, key)
+    );
+  `,
+  2: `
+    CREATE TABLE IF NOT EXISTS modules (
+      id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL CHECK (kind IN ('simple', 'code')),
+      name TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      manifest_json TEXT NOT NULL,
+      version INTEGER NOT NULL DEFAULT 1,
+      status TEXT NOT NULL DEFAULT 'active',
+      error TEXT,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS module_migrations (
+      module_id TEXT NOT NULL REFERENCES modules(id) ON DELETE CASCADE,
+      version INTEGER NOT NULL,
+      applied_at TEXT NOT NULL,
+      PRIMARY KEY (module_id, version)
     );
   `,
 };

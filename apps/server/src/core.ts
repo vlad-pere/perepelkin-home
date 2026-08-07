@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import type { Action, Grant, Group, ModuleInfo, ScopedStore, User, UserWithGroups } from '@perepelkin-home/core';
+import type { Action, CoreApi, Grant, Group, ModuleInfo, ScopedStore, User, UserWithGroups } from '@perepelkin-home/core';
 import {
   can as coreCan,
   createScopedStore,
@@ -8,6 +8,7 @@ import {
   registerModule as registerModulePkg,
 } from '@perepelkin-home/core';
 import { hashPassword } from './auth/passwords.js';
+import { deleteSessionsForUser } from './db/sessions.js';
 
 export interface UserRow {
   id: number;
@@ -33,40 +34,29 @@ export function toUser(row: UserRow): User {
   };
 }
 
-export interface Core {
-  users: {
-    list(): UserWithGroups[];
-    getById(id: number): UserRow | undefined;
+/**
+ * Платформенная реализация {@link CoreApi} + внутренние операции с учётными
+ * данными и админ-мутациями, которые не входят в контракт «модуль ↔ ядро».
+ */
+export interface Core extends CoreApi {
+  users: CoreApi['users'] & {
     getByUsername(username: string): UserRow | undefined;
-    create(input: { username: string; password: string; isAdmin?: boolean }): Promise<UserRow>;
+    create(input: { username: string; password: string; isAdmin?: boolean }): Promise<User>;
     setAdmin(id: number, isAdmin: boolean): void;
     resetPassword(id: number, password: string): Promise<void>;
     delete(id: number): void;
-    groupIds(id: number): number[];
   };
-  groups: {
-    list(): Array<Group & { memberCount: number }>;
-    getById(id: number): Group | undefined;
+  groups: CoreApi['groups'] & {
     create(input: { name: string; description?: string }): Group;
     update(id: number, patch: { name?: string; description?: string }): void;
     delete(id: number): void;
     addMember(groupId: number, userId: number): void;
     removeMember(groupId: number, userId: number): void;
-    listForUser(userId: number): Group[];
-    memberCount(groupId: number): number;
   };
-  grants: {
-    get(groupId: number, moduleId: string): Grant | null;
+  grants: CoreApi['grants'] & {
     set(groupId: number, moduleId: string, grant: Grant): void;
     remove(groupId: number, moduleId: string): void;
-    byModule(moduleId: string): Array<{ groupId: number; grant: Grant }>;
   };
-  can(user: { id: number; isAdmin: boolean }, moduleId: string, action: Action): boolean;
-  canForGroups(groupIds: readonly number[], isAdmin: boolean, moduleId: string, action: Action): boolean;
-  store(moduleId: string): ScopedStore;
-  registerModule(info: ModuleInfo): void;
-  listModules(): ModuleInfo[];
-  isModuleRegistered(moduleId: string): boolean;
 }
 
 export function buildCore(db: Database.Database): Core {
@@ -148,22 +138,26 @@ export function buildCore(db: Database.Database): Core {
           groups: (groupsForUser.all(u.id) as GroupRow[]).map(toGroup),
         }));
       },
-      getById(id: number): UserRow | undefined {
-        return userById.get(id) as UserRow | undefined;
+      getById(id: number): User | undefined {
+        const row = userById.get(id) as UserRow | undefined;
+        return row ? toUser(row) : undefined;
       },
       getByUsername(username: string): UserRow | undefined {
         return userByUsername.get(username) as UserRow | undefined;
       },
-      async create(input: { username: string; password: string; isAdmin?: boolean }): Promise<UserRow> {
+      async create(input: { username: string; password: string; isAdmin?: boolean }): Promise<User> {
         const passwordHash = await hashPassword(input.password);
         const result = insertUser.run(input.username.trim(), passwordHash, input.isAdmin ? 1 : 0);
-        return userById.get(result.lastInsertRowid) as UserRow;
+        const row = userById.get(result.lastInsertRowid) as UserRow;
+        return toUser(row);
       },
       setAdmin(id: number, isAdmin: boolean): void {
         updateIsAdmin.run(isAdmin ? 1 : 0, id);
+        if (!isAdmin) deleteSessionsForUser(db, id);
       },
       async resetPassword(id: number, password: string): Promise<void> {
         updatePasswordHash.run(await hashPassword(password), id);
+        deleteSessionsForUser(db, id);
       },
       delete(id: number): void {
         deleteUser.run(id);

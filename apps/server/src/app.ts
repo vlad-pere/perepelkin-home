@@ -9,10 +9,12 @@ import type Database from 'better-sqlite3';
 
 import type { Config } from './config.js';
 import { buildCore } from './core.js';
+import { adminModuleInfo } from '@perepelkin-home/module-admin';
 import { deleteExpiredSessions } from './db/sessions.js';
 import { resolveSession } from './hooks.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
+import { registerModulesFromDisk } from './modules/host.js';
 import { ApiError } from './errors.js';
 
 export interface AppOptions {
@@ -24,6 +26,7 @@ export interface AppOptions {
 export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
   const { db, config } = opts;
   const core = buildCore(db);
+  core.registerModule(adminModuleInfo);
   const app = Fastify({
     logger: opts.logger ?? false,
     trustProxy: config.trustProxy,
@@ -85,6 +88,10 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
 
   registerAuthRoutes(app, { db, config, core });
   registerAdminRoutes(app, core);
+
+  if (config.modulesDir) {
+    await registerModulesFromDisk(app, { db, core, modulesDir: config.modulesDir });
+  }
 
   if (config.webDist && existsSync(config.webDist)) {
     await app.register(fastifyStatic, { root: config.webDist, wildcard: false });

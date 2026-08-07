@@ -26,6 +26,7 @@ export async function createTestWorld(opts?: { sessionTtlMs?: number }): Promise
     cookieSecure: false,
     trustProxy: false,
     webDist: null,
+    modulesDir: null,
   };
   const app = await createApp({ db, config });
   return {

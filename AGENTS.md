@@ -4,7 +4,7 @@
 
 - **domo** — модульное веб-приложение для дома: пользователь добавляет/убирает функционал (модули), разные группы людей (семья, друзья) видят разные наборы модулей. Примеры: графики обслуживания вещей в доме (семья), игры (друзья).
 - **Стек (зафиксирован):** TypeScript, npm workspaces (monorepo). Backend — Fastify, frontend — React + Vite (SPA), хранилище — SQLite (better-sqlite3), деплой — Docker Compose (приложение + Caddy reverse proxy с авто-HTTPS). Окружение: Node v24.13.0, npm 11.6.2, Docker 29.4.3, Windows (PowerShell).
-- **Доступ:** приложение доступно из открытого интернета, доступы к модулям раздаются вручную (admin), self-registration нет. Масштаб — до ~10 пользователей.
+- **Доступ:** приложение доступно из открытого интернета, доступы к модулям раздаются вручную (admin), self-registration нет. Масштаб — до ~10 пользователей. Прод-деплой — Docker Compose + Caddy (`Dockerfile`, `docker-compose.yml`, `Caddyfile`, `docker-entrypoint.sh`); запуск `docker compose up -d --build`, конфиг из `.env` (см. `.env.example`), каталог `modules/` монтируется read-only.
 - **Архитектура модулей:** модули изолированы + общий API ядра (`core.users`, `core.groups`, `core.can`, `core.store(moduleId)`, `core.bus`). Гибридное добавление: простые модули — декларативный CRUD из конфига, сложные — код (Fastify-плагин + React-роуты). Контроль доступа: `users → groups → modules`, права на чтение/запись задаются на уровне модуля.
 - **Напоминания:** отложены. `core.bus`/`core.events` в каркасе — добавление позже без переделки.
 - **Дизайн:** тёплый, личный, спокойный премиум/минимализм (не корпоративный SaaS). Дизайн- и dev-скиллы установлены — см. раздел «Установленные скиллы».
@@ -50,11 +50,12 @@
 - Durable choices (infrastructure, deployment, storage, runbooks, provider specifics) live in `README.md` and `docs/`, not in this agent file.
 - **Module system invariants:**
   - Every module is an npm workspace package under `modules/`. Simple modules are declarative CRUD defined by a schema/config; complex modules ship a Fastify plugin (`server.ts`) and optional React entry (`ui.tsx`).
+  - Эталонный простой модуль — `modules/maintenance/` (один `manifest.json`, без кода); как добавить модуль — в `README.md`.
   - Modules never reach into each other's storage or code. Cross-module capabilities go through the shared core API only.
   - Access control is enforced by the core on the backend for every route, never only in the UI. `core.can(user, moduleId, action)` is the single source of truth.
   - A user sees a module only if at least one of their groups has access to it.
 - **Security posture:** the app is exposed to the open internet. Cookie sessions (httpOnly + Secure), bcrypt, CSRF protection, rate limiting, and security headers are mandatory, not optional. Apply the `security-and-hardening` skill for any feature that touches auth, sessions, user input, or storage.
-- **Planned scripts** (verify against `package.json`): `npm run dev` (local dev, workspaces), `npm run build` (Vite build + TS), `npm run typecheck`, `npm test`. Production runs via `docker compose up`.
+- **Available scripts** (root `package.json`): `npm run dev` (сборка core/admin + сервер 3000 + фронтенд 5173), `npm run build`, `npm run typecheck`, `npm test`, `npm run seed`. Прод-деплой — Docker Compose + Caddy (см. `README.md`, раздел «Продакшен»).
 - If a surface is deferred, prefer a short note in that surface's README over extra agent instructions.
 
 ## Installed Skills

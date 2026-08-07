@@ -225,6 +225,36 @@ button {
   color: var(--accent);
 }
 
+.btn-danger {
+  color: var(--error-text);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--error-bg);
+  color: var(--error-text);
+}
+
+.btn-danger-solid {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--error-text);
+  color: var(--on-accent);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.2s var(--ease);
+}
+
+.btn-danger-solid:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.btn-danger-solid:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* ---------- Shell / home ---------- */
 
 .shell {
@@ -261,6 +291,7 @@ button {
 .topbar-user {
   font-weight: 600;
   font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
 .topbar-groups {
@@ -287,6 +318,7 @@ button {
   font-size: 40px;
   line-height: 1.12;
   letter-spacing: 0.005em;
+  overflow-wrap: anywhere;
   animation: fade-up 0.7s var(--ease) both;
 }
 
@@ -303,10 +335,6 @@ button {
 }
 
 .module-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
   padding: 24px 4px;
   border-top: 1px solid var(--line);
   animation: fade-up 0.7s var(--ease) both;
@@ -314,6 +342,23 @@ button {
 
 .module-row:last-child {
   border-bottom: 1px solid var(--line);
+}
+
+.module-row-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.module-row-link {
+  color: inherit;
+  text-decoration: none;
+  transition: opacity 0.25s var(--ease);
+}
+
+.module-row-link:hover {
+  opacity: 0.78;
 }
 
 .module-name {
@@ -384,6 +429,93 @@ button {
   }
   to {
     opacity: 1;
+  }
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 640px) {
+  body {
+    font-size: 15px;
+  }
+
+  .shell {
+    padding: 20px 18px 56px;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .topbar-right {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .topbar-wordmark {
+    font-size: 22px;
+  }
+
+  .home {
+    padding-top: 36px;
+  }
+
+  .home-title {
+    font-size: 32px;
+  }
+
+  .home-sub {
+    margin-bottom: 28px;
+  }
+
+  .module-row {
+    padding: 20px 2px;
+  }
+
+  .module-row-inner {
+    gap: 14px;
+  }
+
+  .module-name {
+    font-size: 18px;
+  }
+
+  .module-access {
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+
+  .empty {
+    padding: 32px 20px;
+  }
+
+  .auth {
+    padding: 18px;
+  }
+
+  .auth-title {
+    font-size: 34px;
+  }
+
+  .splash {
+    padding: 18px;
+  }
+
+  .splash-wordmark {
+    font-size: 32px;
+  }
+
+  /* крупные тап-цели; 16px в полях убирает авто-зум iOS */
+  .btn-ghost {
+    min-height: 44px;
+  }
+
+  .field-input {
+    font-size: 16px;
   }
 }
 

@@ -6,6 +6,7 @@ export interface Config {
   cookieSecure: boolean;
   trustProxy: boolean;
   webDist: string | null;
+  modulesDir: string | null;
 }
 
 function parsePort(raw: string | undefined): number {
@@ -40,5 +41,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     cookieSecure: parseBool(env.COOKIE_SECURE, false),
     trustProxy: parseBool(env.TRUST_PROXY, false),
     webDist: env.WEB_DIST && env.WEB_DIST.trim() !== '' ? env.WEB_DIST : null,
+    modulesDir: env.MODULES_DIR && env.MODULES_DIR.trim() !== '' ? env.MODULES_DIR : null,
   };
 }

@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import type { Core, UserRow } from '../core.js';
-import { toUser } from '../core.js';
+import type { Core } from '../core.js';
 import { requireAdmin } from '../hooks.js';
 import { badRequest, conflict, isUniqueViolation, notFound } from '../errors.js';
 import { descriptionSchema, nameSchema, passwordSchema, usernameSchema } from '../schemas.js';
@@ -76,7 +75,7 @@ export function registerAdminRoutes(app: FastifyInstance, core: Core): void {
     const { username, password } = req.body as { username: string; password: string };
     try {
       const user = await core.users.create({ username, password });
-      return reply.code(201).send({ user: toUser(user) });
+      return reply.code(201).send({ user });
     } catch (err) {
       if (isUniqueViolation(err)) throw conflict('Пользователь с таким именем уже существует');
       throw err;
@@ -101,7 +100,9 @@ export function registerAdminRoutes(app: FastifyInstance, core: Core): void {
       if (req.user?.id === id && !body.isAdmin) throw badRequest('Нельзя снять с себя права администратора');
       core.users.setAdmin(id, body.isAdmin);
     }
-    return reply.send({ user: toUser(core.users.getById(id) as UserRow) });
+    const updated = core.users.getById(id);
+    if (!updated) throw notFound('Пользователь не найден');
+    return reply.send({ user: updated });
   });
 
   app.delete('/api/admin/users/:id', { ...admin, schema: { params: paramsId } }, async (req, reply) => {

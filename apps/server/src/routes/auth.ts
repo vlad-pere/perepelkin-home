@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type Database from 'better-sqlite3';
-import type { MeResponse } from '@perepelkin-home/core';
+import type { MeResponse, ModuleKind } from '@perepelkin-home/core';
 import type { Config } from '../config.js';
 import type { Core, UserRow } from '../core.js';
 import { toUser } from '../core.js';
@@ -26,15 +26,30 @@ export interface AuthRoutesDeps {
   core: Core;
 }
 
-export function buildMe(core: Core, user: UserRow, csrfToken: string): MeResponse & { csrfToken: string } {
+export function buildMe(
+  core: Core,
+  db: Database.Database,
+  user: UserRow,
+  csrfToken: string,
+): MeResponse & { csrfToken: string } {
   const groupIds = core.users.groupIds(user.id);
+  const kindById = new Map(
+    (
+      db.prepare('SELECT id, kind FROM modules').all() as Array<{ id: string; kind: ModuleKind }>
+    ).map((r) => [r.id, r.kind] as const),
+  );
   const modules = core
     .listModules()
-    .map((m) => ({
-      ...m,
-      canRead: core.canForGroups(groupIds, user.is_admin === 1, m.id, 'read'),
-      canWrite: core.canForGroups(groupIds, user.is_admin === 1, m.id, 'write'),
-    }))
+    .map((m) => {
+      const kind = kindById.get(m.id) ?? 'code';
+      return {
+        ...m,
+        kind,
+        route: m.id === 'admin' ? '/admin' : `/m/${m.id}`,
+        canRead: core.canForGroups(groupIds, user.is_admin === 1, m.id, 'read'),
+        canWrite: core.canForGroups(groupIds, user.is_admin === 1, m.id, 'write'),
+      };
+    })
     .filter((m) => m.canRead || m.canWrite);
 
   return {
@@ -79,7 +94,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthRoutesDeps): 
         maxAge: Math.floor(config.sessionTtlMs / 1000),
       });
 
-      return reply.send(buildMe(core, user, session.csrfToken));
+      return reply.send(buildMe(core, db, user, session.csrfToken));
     },
   );
 
@@ -96,6 +111,6 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthRoutesDeps): 
 
   app.get('/api/auth/me', { preHandler: requireAuth }, async (req) => {
     const user = req.user as UserRow;
-    return buildMe(core, user, req.csrfToken as string);
+    return buildMe(core, db, user, req.csrfToken as string);
   });
 }

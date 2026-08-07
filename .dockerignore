@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+dist
+**/dist
+.git
+.gitignore
+.scratch
+.10x
+.opencode
+docs
+*.md
+data
+*.log
+.env
+.env.*.local

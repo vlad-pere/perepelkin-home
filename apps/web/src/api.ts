@@ -48,6 +48,9 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
 
   if (!res.ok) {
     const err = (data as { error?: { code?: string; message?: string } } | null)?.error;
+    if (res.status === 401 && err?.code === 'UNAUTHENTICATED' && csrfToken !== null) {
+      window.location.assign('/login');
+    }
     throw new ApiError(res.status, err?.code ?? 'UNKNOWN', err?.message ?? 'Что-то пошло не так.');
   }
 

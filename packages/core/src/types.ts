@@ -1,3 +1,5 @@
+import type { ModuleKind } from './manifest.js';
+
 export interface User {
   id: number;
   username: string;
@@ -28,7 +30,12 @@ export interface Grant {
   canWrite: boolean;
 }
 
-export interface ModuleAccess extends ModuleInfo, Grant {}
+export interface ModuleAccess extends ModuleInfo, Grant {
+  /** `simple` — UI из манифеста; `code` — собственный React-компонент. */
+  kind: ModuleKind;
+  /** Фронтовый маршрут, по которому открывается модуль. */
+  route: string;
+}
 
 export interface MeResponse {
   user: User;

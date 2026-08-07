@@ -1,0 +1,26 @@
+{
+  "id": "maintenance",
+  "name": "Обслуживание вещей",
+  "description": "График обслуживания вещей в доме",
+  "kind": "simple",
+  "entities": [
+    {
+      "name": "item",
+      "label": "Вещь",
+      "fields": [
+        { "name": "title", "label": "Название", "type": "text", "required": true },
+        { "name": "nextDue", "label": "Следующее обслуживание", "type": "date" },
+        { "name": "cost", "label": "Стоимость", "type": "number" },
+        { "name": "done", "label": "Выполнено", "type": "boolean" }
+      ],
+      "defaultSort": { "field": "nextDue", "direction": "asc" }
+    },
+    {
+      "name": "note",
+      "label": "Заметка",
+      "fields": [
+        { "name": "text", "label": "Текст", "type": "textarea", "required": true }
+      ]
+    }
+  ]
+}

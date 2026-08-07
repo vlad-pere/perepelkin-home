@@ -1,0 +1,174 @@
+import { MODULE_ID_PATTERN } from './registry.js';
+
+export type ModuleKind = 'simple' | 'code';
+export type FieldType = 'text' | 'textarea' | 'number' | 'date' | 'boolean';
+export type SortDirection = 'asc' | 'desc';
+
+export interface ManifestField {
+  name: string;
+  label: string;
+  type: FieldType;
+  required?: boolean;
+}
+
+export interface ManifestEntitySort {
+  field: string;
+  direction: SortDirection;
+}
+
+export interface ManifestEntity {
+  name: string;
+  label: string;
+  fields: ManifestField[];
+  defaultSort?: ManifestEntitySort;
+}
+
+export interface ModuleManifest {
+  id: string;
+  name: string;
+  description: string;
+  kind: ModuleKind;
+  entities: ManifestEntity[];
+}
+
+export class ManifestError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ManifestError';
+  }
+}
+
+const FIELD_TYPES: readonly string[] = ['text', 'textarea', 'number', 'date', 'boolean'];
+const RESERVED_FIELD_NAMES = new Set(['id', 'created_at', 'updated_at', 'created_by']);
+const NAME_PATTERN = /^[a-z][a-zA-Z0-9_]{0,63}$/;
+const TOP_LEVEL_KEYS = ['id', 'name', 'description', 'kind', 'entities'] as const;
+const ENTITY_KEYS = ['name', 'label', 'fields', 'defaultSort'] as const;
+const FIELD_KEYS = ['name', 'label', 'type', 'required'] as const;
+const SORT_KEYS = ['field', 'direction'] as const;
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/**
+ * Валидирует и нормализует манифест модуля.
+ * Бросает {@link ManifestError} с сообщением, начинающимся с id модуля.
+ * Простые модули обязаны объявлять хотя бы одну сущность; код-модули — нет.
+ */
+export function validateManifest(input: unknown): ModuleManifest {
+  if (!isPlainObject(input)) throw new ManifestError('Manifest: expected an object');
+
+  const rawId = typeof input.id === 'string' ? input.id.trim() : '';
+  const prefix = rawId === '' ? 'Manifest: ' : `Module "${rawId}": `;
+  function fail(message: string): never {
+    throw new ManifestError(prefix + message);
+  }
+
+  const str = (v: unknown, what: string, max: number, min = 0): string => {
+    if (typeof v !== 'string') fail(`${what} must be a string`);
+    const t = v.trim();
+    if (t.length < min) fail(`${what} must not be empty`);
+    if (t.length > max) fail(`${what} must be at most ${max} characters`);
+    return t;
+  };
+
+  const rejectUnknownKeys = (obj: Record<string, unknown>, allowed: readonly string[], what: string): void => {
+    for (const key of Object.keys(obj)) {
+      if (!allowed.includes(key)) fail(`unknown key "${key}" in ${what}`);
+    }
+  };
+
+  rejectUnknownKeys(input, TOP_LEVEL_KEYS, 'manifest');
+
+  if (rawId === '' || !MODULE_ID_PATTERN.test(rawId)) {
+    fail('id must match /^[a-z0-9-]{1,64}$/');
+  }
+  const id = rawId;
+  const name = str(input.name, 'name', 200, 1);
+  const description = input.description === undefined ? '' : str(input.description, 'description', 500);
+
+  const kind = input.kind;
+  if (kind !== 'simple' && kind !== 'code') {
+    fail('kind must be "simple" or "code"');
+  }
+
+  const rawEntities = input.entities === undefined ? [] : input.entities;
+  if (!Array.isArray(rawEntities)) fail('entities must be an array');
+  if (kind === 'simple' && rawEntities.length === 0) {
+    fail('a simple module must declare at least one entity');
+  }
+
+  const entities: ManifestEntity[] = [];
+  const seenEntities = new Set<string>();
+
+  for (const rawEntity of rawEntities) {
+    if (!isPlainObject(rawEntity)) fail('each entity must be an object');
+    rejectUnknownKeys(rawEntity, ENTITY_KEYS, 'entity');
+
+    const eName = str(rawEntity.name, 'entity name', 64, 1);
+    if (!NAME_PATTERN.test(eName)) {
+      fail(`entity name "${eName}" must match /^[a-z][a-zA-Z0-9_]{0,63}$/`);
+    }
+    if (seenEntities.has(eName.toLowerCase())) fail(`duplicate entity "${eName}"`);
+    seenEntities.add(eName.toLowerCase());
+
+    const eLabel = str(rawEntity.label, `entity "${eName}" label`, 200, 1);
+
+    if (!Array.isArray(rawEntity.fields) || rawEntity.fields.length === 0) {
+      fail(`entity "${eName}" must declare at least one field`);
+    }
+
+    const fields: ManifestField[] = [];
+    const seenFields = new Set<string>();
+    for (const rawField of rawEntity.fields) {
+      if (!isPlainObject(rawField)) fail(`field in entity "${eName}" must be an object`);
+      rejectUnknownKeys(rawField, FIELD_KEYS, `field in entity "${eName}"`);
+
+      const fName = str(rawField.name, `field name in entity "${eName}"`, 64, 1);
+      if (!NAME_PATTERN.test(fName)) {
+        fail(`field name "${fName}" must match /^[a-z][a-zA-Z0-9_]{0,63}$/`);
+      }
+      if (RESERVED_FIELD_NAMES.has(fName)) fail(`field name "${fName}" is reserved`);
+      if (seenFields.has(fName.toLowerCase())) fail(`duplicate field "${fName}" in entity "${eName}"`);
+      seenFields.add(fName.toLowerCase());
+
+      const fLabel = str(rawField.label, `field "${fName}" label`, 200, 1);
+
+      if (typeof rawField.type !== 'string' || !FIELD_TYPES.includes(rawField.type)) {
+        fail(`field "${fName}" type must be one of ${FIELD_TYPES.join(', ')}`);
+      }
+      if (rawField.required !== undefined && typeof rawField.required !== 'boolean') {
+        fail(`field "${fName}" required must be a boolean`);
+      }
+
+      fields.push({
+        name: fName,
+        label: fLabel,
+        type: rawField.type as FieldType,
+        ...(rawField.required === undefined ? {} : { required: rawField.required }),
+      });
+    }
+
+    let defaultSort: ManifestEntitySort | undefined;
+    if (rawEntity.defaultSort !== undefined) {
+      if (!isPlainObject(rawEntity.defaultSort)) fail(`entity "${eName}" defaultSort must be an object`);
+      rejectUnknownKeys(rawEntity.defaultSort, SORT_KEYS, `defaultSort of entity "${eName}"`);
+      const sField = str(rawEntity.defaultSort.field, 'defaultSort field', 64, 1);
+      if (!seenFields.has(sField.toLowerCase())) fail(`defaultSort field "${sField}" not found in entity "${eName}"`);
+      const direction = rawEntity.defaultSort.direction;
+      if (direction !== 'asc' && direction !== 'desc') {
+        fail('defaultSort direction must be "asc" or "desc"');
+      }
+      defaultSort = { field: sField, direction };
+    }
+
+    entities.push({
+      name: eName,
+      label: eLabel,
+      fields,
+      ...(defaultSort === undefined ? {} : { defaultSort }),
+    });
+  }
+
+  return { id, name, description, kind: kind as ModuleKind, entities };
+}

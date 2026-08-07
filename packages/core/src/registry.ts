@@ -1,6 +1,6 @@
 import type { ModuleInfo } from './types.js';
 
-const MODULE_ID_PATTERN = /^[a-z0-9-]{1,64}$/;
+export const MODULE_ID_PATTERN = /^[a-z0-9-]{1,64}$/;
 
 const registry = new Map<string, ModuleInfo>();
 

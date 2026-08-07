@@ -1,8 +1,10 @@
 import type { ModuleAccess } from '@perepelkin-home/core';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../auth';
+import { Topbar } from '../components/Topbar';
 
 export function HomePage() {
-  const { me, logout } = useAuth();
+  const { me } = useAuth();
   const user = me?.user;
   const groups = me?.groups ?? [];
   const modules = me?.modules ?? [];
@@ -10,16 +12,13 @@ export function HomePage() {
 
   return (
     <div className="shell">
-      <header className="topbar">
-        <span className="topbar-wordmark">Дом Перепелкиных</span>
-        <div className="topbar-right">
-          <span className="topbar-user">{username}</span>
-          {groups.length > 0 && <span className="topbar-groups">{groups.map((g) => g.name).join(' · ')}</span>}
-          <button className="btn-ghost" type="button" onClick={() => void logout()}>
-            Выйти
-          </button>
-        </div>
-      </header>
+      <Topbar>
+        {user?.isAdmin && (
+          <Link className="btn-ghost" to="/admin">
+            Управление
+          </Link>
+        )}
+      </Topbar>
 
       <main className="home">
         <h1 className="home-title">Привет, {username}.</h1>
@@ -49,13 +48,22 @@ export function HomePage() {
 }
 
 function ModuleRow({ module }: { module: ModuleAccess }) {
-  return (
-    <li className="module-row">
+  const to = module.route;
+  const body = (
+    <>
       <div>
         <h2 className="module-name">{module.name}</h2>
         {module.description && <p className="module-desc">{module.description}</p>}
       </div>
       <span className="module-access">{module.canWrite ? 'полный доступ' : 'чтение'}</span>
+    </>
+  );
+
+  return (
+    <li className="module-row">
+      <Link className="module-row-inner module-row-link" to={to}>
+        {body}
+      </Link>
     </li>
   );
 }
