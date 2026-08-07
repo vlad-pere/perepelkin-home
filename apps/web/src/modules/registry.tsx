@@ -1,4 +1,4 @@
-import type { ComponentType, LazyExoticComponent } from 'react';
+import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { ModuleAccess, ModuleKind } from '@perepelkin-home/core';
 import { CrudModule } from './CrudModule';
 
@@ -15,11 +15,15 @@ export interface ModuleUiProps {
 
 export type ModuleUiComponent = ComponentType<ModuleUiProps>;
 
-const CODE_UI: Record<string, LazyExoticComponent<ModuleUiComponent>> = {};
+const CODE_UI: Record<string, LazyExoticComponent<ModuleUiComponent>> = {
+  todo: lazy(() => import('@perepelkin-home/module-todo/ui')),
+};
 
 export function resolveModuleUi(id: string, kind: ModuleKind): ModuleUiComponent | null {
+  const custom = CODE_UI[id];
+  if (custom) return custom;
   if (kind === 'simple') return CrudModule;
-  return CODE_UI[id] ?? null;
+  return null;
 }
 
 export function ModuleUnavailable({ module }: { module: ModuleAccess }) {

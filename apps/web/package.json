@@ -12,6 +12,7 @@
   "dependencies": {
     "@perepelkin-home/core": "*",
     "@perepelkin-home/module-admin": "*",
+    "@perepelkin-home/module-todo": "*",
     "@fontsource/manrope": "^5",
     "@fontsource/spectral": "^5",
     "@fontsource/spectral": "^5.3.0",

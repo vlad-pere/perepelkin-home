@@ -1,0 +1,271 @@
+.todo {
+  padding-top: 40px;
+}
+
+.todo-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 36px;
+  line-height: 1.12;
+  letter-spacing: 0.005em;
+  overflow-wrap: anywhere;
+  animation: fade-up 0.7s var(--ease) both;
+}
+
+.todo-sub {
+  margin: 12px 0 0;
+  color: var(--ink-soft);
+  animation: fade-up 0.7s var(--ease) 0.08s both;
+}
+
+.todo-hint {
+  margin: 18px 0 0;
+  color: var(--ink-muted);
+  animation: fade-up 0.5s var(--ease) both;
+}
+
+.todo .auth-error {
+  margin-top: 20px;
+}
+
+.todo-retry {
+  margin-top: 14px;
+}
+
+.todo-progress {
+  margin-top: 40px;
+  animation: fade-up 0.7s var(--ease) 0.12s both;
+}
+
+.todo-progress-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.todo-progress-count {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 19px;
+}
+
+.todo-progress-percent {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.todo-progress-track {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.todo-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.6s var(--ease);
+}
+
+.todo-add {
+  margin-top: 28px;
+  animation: fade-up 0.7s var(--ease) 0.16s both;
+}
+
+.todo-form {
+  padding: 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.todo-form-row {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 16px;
+}
+
+.todo-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.todo-list {
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.todo-row {
+  padding: 18px 4px;
+  border-top: 1px solid var(--line);
+  animation: fade-up 0.6s var(--ease) both;
+}
+
+.todo-row:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.todo-row-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.todo-check {
+  width: 19px;
+  height: 19px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.todo-dot {
+  width: 12px;
+  height: 12px;
+  margin-top: 5px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 50%;
+}
+
+.todo-dot.on {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.todo-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.todo-row-title {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.todo-row.done .todo-row-title {
+  color: var(--ink-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--line-strong);
+}
+
+.todo-row-when {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.todo-row-note {
+  font-size: 14px;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.todo-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.todo-confirm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--error-line);
+  border-radius: 12px;
+  background: var(--error-bg);
+  color: var(--error-text);
+  font-size: 14px;
+  animation: fade-up 0.3s var(--ease) both;
+}
+
+.todo-empty {
+  margin-top: 28px;
+  padding: 32px 24px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 16px;
+  text-align: center;
+  animation: fade-up 0.6s var(--ease) 0.1s both;
+}
+
+.todo-empty-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 19px;
+}
+
+.todo-empty-text {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.todo button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .todo {
+    padding-top: 28px;
+  }
+
+  .todo-title {
+    font-size: 30px;
+  }
+
+  .todo-progress {
+    margin-top: 28px;
+  }
+
+  .todo-form-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .todo-form-actions {
+    width: 100%;
+  }
+
+  .todo-form-actions .btn-primary {
+    flex: 1;
+  }
+
+  .todo-list {
+    margin-top: 20px;
+  }
+
+  .todo-row {
+    padding: 16px 2px;
+  }
+
+  .todo-row-main {
+    gap: 12px;
+  }
+
+  .todo-row-actions .btn-ghost {
+    min-height: 44px;
+  }
+
+  .todo-empty {
+    padding: 28px 20px;
+  }
+}
