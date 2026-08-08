@@ -1,6 +1,6 @@
-# Модуль «Список дел» с прогресс-баром — план реализации
+﻿# Модуль «Список дел» с прогресс-баром — план реализации
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Добавить модуль «Список дел» (`todo`) с общим прогресс-баром и удобным списком: добавить дело, отметить одним кликом, редактировать, удалять.
 
@@ -32,7 +32,9 @@
 - Consumes: нечего (новый модуль). Существующий хост `mountModule` и CRUD-генератор из `apps/server/src/modules/{host,crud}.ts`.
 - Produces: модуль `todo` с сущностью `task` и REST-эндпоинтами `/api/modules/todo/task` (GET list, POST create, PATCH `/:rowId`, DELETE `/:rowId`), тела ответов `{ items: TaskRow[] }` / `{ item: TaskRow }`, где `TaskRow` = поля сущности + `id`, `created_by`, `created_at`, `updated_at`.
 
-- [ ] **Step 1: Write the failing test**
+> **Status:** DONE — все задачи реализованы и закоммичены (`b6bd172..bb57c2b`), финальное whole-branch ревью чистое (Ready to merge: Yes). Остаточные мелочи см. в конце документа.
+
+- [x] **Step 1: Write the failing test**
 
 Добавить в `apps/server/test/repo-modules.test.ts` после существующего `it('mounts the reference maintenance module…')`:
 
@@ -73,12 +75,12 @@ it('mounts the todo module from modules/ and runs CRUD', async () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm run test -w @perepelkin-home/server`
 Expected: FAIL — `expect(manifest).toBeDefined()` не проходит (модуля `todo` ещё нет).
 
-- [ ] **Step 3: Create the module manifest**
+- [x] **Step 3: Create the module manifest**
 
 Создать `modules/todo/manifest.json`:
 
@@ -104,7 +106,7 @@ Expected: FAIL — `expect(manifest).toBeDefined()` не проходит (мо�
 }
 ```
 
-- [ ] **Step 4: Create the workspace package**
+- [x] **Step 4: Create the workspace package**
 
 Создать `modules/todo/package.json`:
 
@@ -137,17 +139,17 @@ Expected: FAIL — `expect(manifest).toBeDefined()` не проходит (мо�
 }
 ```
 
-- [ ] **Step 5: Link the new workspace**
+- [x] **Step 5: Link the new workspace**
 
 Run (в корне репозитория): `npm install`
 Expected: workspace `@perepelkin-home/module-todo` зарегистрирован, `package-lock.json` обновлён.
 
-- [ ] **Step 6: Run test to verify it passes**
+- [x] **Step 6: Run test to verify it passes**
 
 Run: `npm run test -w @perepelkin-home/server`
 Expected: PASS — все тесты, включая `mounts the todo module from modules/ and runs CRUD`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add modules/todo/manifest.json modules/todo/package.json package-lock.json apps/server/test/repo-modules.test.ts
@@ -171,7 +173,7 @@ git commit -m "Модуль todo: манифест, пакет и тест CRUD"
 - Consumes: REST CRUD модуля из Task 1 (`/api/modules/todo/task`), контракт `ModuleUiProps` (`{ moduleId: string; api: ModuleApiClient; currentUserId: number; canWrite: boolean }` из `apps/web/src/modules/registry.tsx`).
 - Produces: lazy-компонент `@perepelkin-home/module-todo/ui` (default-экспорт `TodoModule`), который принимает `{ moduleId: string; api: ApiClient; canWrite: boolean }`; `resolveModuleUi` теперь отдаёт кастомный UI для `todo`.
 
-- [ ] **Step 1: Package config**
+- [x] **Step 1: Package config**
 
 Создать `modules/todo/tsconfig.json`:
 
@@ -208,7 +210,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 copyFileSync(join(root, 'src', 'ui.css'), join(root, 'dist', 'ui.css'));
 ```
 
-- [ ] **Step 2: Write the UI component**
+- [x] **Step 2: Write the UI component**
 
 Создать `modules/todo/src/ui.tsx`:
 
@@ -614,7 +616,7 @@ function formatDate(value: string): string {
 
 Замечание (осознанное ограничение): при редактировании пустая дата не отправится на сервер (формат `YYYY-MM-DD` валидируется сервером, пустая строка не проходит), поэтому однажды поставленную дату очистить нельзя. Заметку очищать можно — она всегда отправляется строкой. Общий CRUD-UI ведёт себя так же.
 
-- [ ] **Step 3: Write the styles**
+- [x] **Step 3: Write the styles**
 
 Создать `modules/todo/src/ui.css`:
 
@@ -892,7 +894,7 @@ function formatDate(value: string): string {
 }
 ```
 
-- [ ] **Step 4: Build the module package**
+- [x] **Step 4: Build the module package**
 
 Run: `npm run build -w @perepelkin-home/module-todo`
 Expected: `dist/ui.js`, `dist/ui.d.ts`, `dist/ui.css` созданы.
@@ -900,7 +902,7 @@ Expected: `dist/ui.js`, `dist/ui.d.ts`, `dist/ui.css` созданы.
 Run: `npm run typecheck -w @perepelkin-home/module-todo`
 Expected: PASS.
 
-- [ ] **Step 5: Register the UI in the web registry**
+- [x] **Step 5: Register the UI in the web registry**
 
 В `apps/web/src/modules/registry.tsx` заменить содержимое (регистрируем lazy-UI для `todo`, кастомный UI имеет приоритет над CRUD-UI):
 
@@ -943,7 +945,7 @@ export function ModuleUnavailable({ module }: { module: ModuleAccess }) {
 }
 ```
 
-- [ ] **Step 6: Add the web dependency**
+- [x] **Step 6: Add the web dependency**
 
 В `apps/web/package.json` в секцию `dependencies` (после `@perepelkin-home/module-admin`) добавить:
 
@@ -954,7 +956,7 @@ export function ModuleUnavailable({ module }: { module: ModuleAccess }) {
 Затем в корне: `npm install`
 Expected: `node_modules/@perepelkin-home/module-todo` → symlink на `modules/todo`.
 
-- [ ] **Step 7: Validate web build**
+- [x] **Step 7: Validate web build**
 
 Run: `npm run typecheck -w @perepelkin-home/web`
 Expected: PASS.
@@ -962,7 +964,7 @@ Expected: PASS.
 Run: `npm run build -w @perepelkin-home/web`
 Expected: PASS — в бандл попадает lazy-чанк UI модуля (Vite разрешает `@perepelkin-home/module-todo/ui` через `dist/ui.js`).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add modules/todo/tsconfig.json modules/todo/src/ modules/todo/scripts/ apps/web/src/modules/registry.tsx apps/web/package.json package-lock.json
@@ -982,7 +984,7 @@ git commit -m "Интерфейс модуля «Список дел»: прог
 - Consumes: workspace `@perepelkin-home/module-todo` из Task 1–2.
 - Produces: сборка (`npm run build`) и `npm run dev` собирают `module-todo` перед `server`/`web`; прод-образ содержит манифест и package.json модуля.
 
-- [ ] **Step 1: Update root scripts**
+- [x] **Step 1: Update root scripts**
 
 В корневом `package.json`:
 
@@ -996,7 +998,7 @@ git commit -m "Интерфейс модуля «Список дел»: прог
 "dev": "npm run build -w @perepelkin-home/core && npm run build -w @perepelkin-home/module-admin && npm run build -w @perepelkin-home/module-todo && concurrently -n server,web -c auto \"npm:dev:server\" \"npm:dev:web\"",
 ```
 
-- [ ] **Step 2: Update the Dockerfile**
+- [x] **Step 2: Update the Dockerfile**
 
 В `Dockerfile`:
 
@@ -1015,7 +1017,7 @@ COPY modules/todo/manifest.json modules/todo/manifest.json
 
 Пояснение: `npm ci` в обеих стадиях требует наличие package.json всех workspace-пакетов из lock-файла. `manifest.json` нужен серверу, который читает `MODULES_DIR` (в compose каталог `./modules` монтируется read-only и перекрывает образ). Собранный `dist` модуля в образ переносить не нужно: сервер его не импортирует, а web-бандл уже содержит UI (в отличие от admin, который сервер импортирует в рантайме).
 
-- [ ] **Step 3: Update README**
+- [x] **Step 3: Update README**
 
 В `README.md` в разделе «Модули», после подраздела «Простой модуль (только `manifest.json`)» и перед «Код-модуль», добавить подраздел:
 
@@ -1025,12 +1027,12 @@ COPY modules/todo/manifest.json modules/todo/manifest.json
 Иногда простому модулю нужен свой экран вместо общего CRUD-UI (например, список дел с прогресс-баром). Тогда модуль остаётся декларативным (`kind: "simple"`, бэкенд — общий CRUD), а в `apps/web/src/modules/registry.tsx` для его id регистрируется собственный React-компонент — он имеет приоритет над общим UI. Пример — `modules/todo/` (страница в пакете модуля, как у `modules/admin/`). Добавление такого модуля требует пересборки фронтенда (`npm run build`).
 ```
 
-- [ ] **Step 4: Validate full build**
+- [x] **Step 4: Validate full build**
 
 Run (в корне): `npm run build`
 Expected: PASS — core → admin → todo → server → web собираются последовательно.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add package.json Dockerfile README.md
@@ -1044,7 +1046,7 @@ git commit -m "Сборка и деплой: module-todo в скриптах, Do
 **Files:**
 - No source changes (только проверки).
 
-- [ ] **Step 1: Full static checks and tests**
+- [x] **Step 1: Full static checks and tests**
 
 Run (в корне):
 ```bash
@@ -1054,7 +1056,7 @@ npm run build
 ```
 Expected: все три проходят (typecheck — все workspace-пакеты; `npm test` — vitest core + server, включая новый тест CRUD `todo`; `npm run build` — полная сборка).
 
-- [ ] **Step 2: E2E smoke-проверка через Playwright (скилл `webapp-testing`)**
+- [x] **Step 2: E2E smoke-проверка через Playwright (скилл `webapp-testing`)**
 
 Сценарий:
 1. `npm run seed` (если нужно) и `npm run dev` (сервер 3000, web 5173).
@@ -1071,7 +1073,7 @@ Expected: все три проходят (typecheck — все workspace-пак�
 
 Expected: все шаги проходят, скриншоты сохранены в `.scratch/`. Если что-то не так — вернуться к Task 2 и исправить.
 
-- [ ] **Step 3: Report validation result**
+- [x] **Step 3: Report validation result**
 
 Кратко отчитаться: primary signal (работающая страница в браузере), secondary signals (typecheck/test/build), скриншоты, остаточные риски.
 
@@ -1086,3 +1088,17 @@ Expected: все шаги проходят, скриншоты сохранен�
 **3. Типы:** `TaskRow`, `TaskValues`, `ApiClient`, `TodoUiProps` определены в Task 2 и используются согласованно; `TodoModule` совместим с `ModuleUiComponent` (принимает подмножество пропсов `ModuleUiProps`); тест из Task 1 использует только уже существующие хелперы (`Client.inject`, `loadManifests`, `mountModule`).
 
 **Принятое ограничение:** пустую дату при редактировании очистить нельзя (серверная валидация `YYYY-MM-DD`); заметку очищать можно. Действие не расширяет общий CRUD и не трогает серверный код.
+
+---
+
+## Статус выполнения
+
+Все шаги выполнены и закоммичены: `59b8bec` (Task 1), `bf3d968`+`06fd16e` (Task 2), `bb57c2b` (Task 3), Task 4 — валидация без изменений (typecheck/test/build PASS; E2E 15/15 шагов, скриншоты в `.scratch/shots/`). Финальное whole-branch ревью (`b6bd172..bb57c2b`): **Ready to merge: Yes**, 0 Critical, 0 Important. Отчёт Task 4: `.superpowers/sdd/2026-08-07-todo-module/task-4-report.md` (вне git).
+
+### Отложенные мелочи (не блокируют, по результатам ревью)
+
+1. `README.md` — таблица скриптов (строка «Сборка core/admin…» для `dev` и «Сборка core, module-admin, server, web» для `build`) не упоминает module-todo; раздел «Простой модуль со своим интерфейсом» уже добавлен.
+2. Диалог подтверждения удаления: кнопка «Отмена» не имеет `disabled={busy}` (косметика).
+3. Поле «Дело» с пробелами проходит HTML-валидацию, а после `trim()` сервер отвечает англ. ошибкой «field "title" must not be empty»; желательна клиентская проверка с русским текстом.
+4. Дату при редактировании очистить нельзя (зафиксировано как принятое ограничение выше; общий CrudModule ведёт себя так же).
+5. Корневой `typecheck` зависит от предварительной сборки модулей (`dist/ui.d.ts` для web) — существующий паттерн (как у admin), не регрессия.
