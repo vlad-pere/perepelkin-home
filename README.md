@@ -114,10 +114,10 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 
 | Команда | Что делает |
 | --- | --- |
-| `npm run dev` | Сборка core/admin + сервер (3000) и фронтенд (5173) одновременно |
+| `npm run dev` | Сборка core/admin/todo + сервер (3000) и фронтенд (5173) одновременно |
 | `npm run dev:server` / `npm run dev:web` | Только сервер / только фронтенд |
 | `npm run seed` | Создаёт администратора и группы «Семья»/«Гости» |
-| `npm run build` | Сборка core, module-admin, server, web |
+| `npm run build` | Сборка core, module-admin, module-todo, server, web |
 | `npm run typecheck` | Проверка типов во всех workspace-пакетах |
 | `npm test` | Vitest: core + server |
 

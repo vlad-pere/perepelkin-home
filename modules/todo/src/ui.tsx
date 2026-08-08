@@ -66,6 +66,10 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
 
   const onCreate = async (values: TaskValues): Promise<void> => {
     if (busy) return;
+    if (values.title.trim() === '') {
+      setError('Введите название дела');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -81,6 +85,10 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
 
   const onSave = async (row: TaskRow, values: TaskValues): Promise<void> => {
     if (busy) return;
+    if (values.title.trim() === '') {
+      setError('Введите название дела');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -277,7 +285,12 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
                   >
                     {busy ? 'Удаляем…' : 'Удалить'}
                   </button>
-                  <button className="btn-ghost" type="button" onClick={() => setConfirmDelete(null)}>
+                  <button
+                    className="btn-ghost"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setConfirmDelete(null)}
+                  >
                     Отмена
                   </button>
                 </div>
