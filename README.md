@@ -190,3 +190,19 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 ```sh
 ./publish.sh "описание изменений"
 ```
+
+
+## Автодеплой (CI/CD)
+
+Пуш в ветку `main` автоматически публикует изменения на сервер через GitHub Actions (self-hosted runner `win-vm-wsl`):
+
+1. тесты и сборка в Docker-контейнере (`npm ci --ignore-scripts && npm run build && npm test`);
+2. синхронизация кода в каталог деплоя `/home/user/docker/apps/perepelkin-home`;
+3. `docker compose up -d --wait --build` — пересборка образа и перезапуск контейнеров;
+4. проверка здоровья (`app` и `caddy` healthy).
+
+Рабочая копия на сервере — `/home/user/dev/perepelkin-home`. Публикация одной командой:
+
+```sh
+./publish.sh "описание изменений"
+```
