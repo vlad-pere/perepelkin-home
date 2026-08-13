@@ -5,6 +5,7 @@
 - **domo** — модульное веб-приложение для дома: пользователь добавляет/убирает функционал (модули), разные группы людей (семья, друзья) видят разные наборы модулей. Примеры: графики обслуживания вещей в доме (семья), игры (друзья).
 - **Стек (зафиксирован):** TypeScript, npm workspaces (monorepo). Backend — Fastify, frontend — React + Vite (SPA), хранилище — SQLite (better-sqlite3), деплой — Docker Compose (приложение + Caddy reverse proxy с авто-HTTPS). Окружение: Node v24.13.0, npm 11.6.2, Docker 29.4.3, Windows (PowerShell).
 - **Доступ:** приложение доступно из открытого интернета, доступы к модулям раздаются вручную (admin), self-registration нет. Масштаб — до ~10 пользователей. Прод-деплой — Docker Compose + Caddy (`Dockerfile`, `docker-compose.yml`, `Caddyfile`, `docker-entrypoint.sh`); запуск `docker compose up -d --build`, конфиг из `.env` (см. `.env.example`), каталог `modules/` монтируется read-only.
+- **CI/CD и стенд (установлены по явному запросу):** пуш в `main` авто-деплоит прод через workflow `Deploy` (`.github/workflows/deploy.yml`, self-hosted runner `win-vm-wsl`). Тестовый стенд — изолированный стек `docker-compose.staging.yml` (отдельный volume `staging_data`) на порту `3080`, доступен только из домашней сети; деплой — workflow `Staging` (вручную или пуш в ветку `staging`). Подробности — `README.md`, разделы «Автодеплой (CI/CD)» и «Тестовый стенд (staging)».
 - **Архитектура модулей:** модули изолированы + общий API ядра (`core.users`, `core.groups`, `core.can`, `core.store(moduleId)`, `core.bus`). Гибридное добавление: простые модули — декларативный CRUD из конфига, сложные — код (Fastify-плагин + React-роуты). Контроль доступа: `users → groups → modules`, права на чтение/запись задаются на уровне модуля.
 - **Напоминания:** отложены. `core.bus`/`core.events` в каркасе — добавление позже без переделки.
 - **Дизайн:** тёплый, личный, спокойный премиум/минимализм (не корпоративный SaaS). Дизайн- и dev-скиллы установлены — см. раздел «Установленные скиллы».
@@ -55,7 +56,7 @@
   - Access control is enforced by the core on the backend for every route, never only in the UI. `core.can(user, moduleId, action)` is the single source of truth.
   - A user sees a module only if at least one of their groups has access to it.
 - **Security posture:** the app is exposed to the open internet. Cookie sessions (httpOnly + Secure), bcrypt, CSRF protection, rate limiting, and security headers are mandatory, not optional. Apply the `security-and-hardening` skill for any feature that touches auth, sessions, user input, or storage.
-- **Available scripts** (root `package.json`): `npm run dev` (сборка core/admin + сервер 3000 + фронтенд 5173), `npm run build`, `npm run typecheck`, `npm test`, `npm run seed`. Прод-деплой — Docker Compose + Caddy (см. `README.md`, раздел «Продакшен»).
+- **Available scripts** (root `package.json`): `npm run dev` (сборка core/admin + сервер 3000 + фронтенд 5173), `npm run build`, `npm run typecheck`, `npm test`, `npm run seed`. Прод-деплой — Docker Compose + Caddy (см. `README.md`, раздел «Продакшен»). Публикация на прод — пуш в `main` (workflow `Deploy`); проверка изменений перед продом — workflow `Staging` (стенд на порту `3080`).
 - If a surface is deferred, prefer a short note in that surface's README over extra agent instructions.
 
 ## Installed Skills
@@ -196,7 +197,7 @@ When touching a boundary, inspect and align directly coupled code.
 ## Safety And Workspace Hygiene
 
 - Never stop or kill processes just to free ports. Use isolated ports, alternate URLs, or test config overrides.
-- Do not propose or implement CI/CD, hosted automation, deployment pipelines, or release ceremony unless explicitly asked.
+- CI/CD существует по явному запросу владельца (workflows `Deploy` и `Staging`) — его можно поддерживать и развивать. Не добавлять другие пайплайны, хостинг-автоматизацию или release-церемонии без явного запроса.
 - Add automation only when it removes real repeated pain, not when it merely looks mature.
 - Do not print secrets, tokens, private keys, credentials, cookies, customer data, or raw `.env` values in final responses.
 - Do not add real secrets to fixtures, tests, docs, screenshots, logs, or committed files.

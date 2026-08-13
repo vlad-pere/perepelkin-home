@@ -44,6 +44,12 @@ Rel(spa, api, "JSON API + CSRF-заголовок", "fetch, same-origin credenti
 Rel(api, db, "SQL (prepared statements)", "better-sqlite3")
 ```
 
+## Развёртывание и CI/CD
+
+- **Прод:** Docker Compose (`docker-compose.yml`) + Caddy (авто-HTTPS). Пуш в `main` запускает workflow `Deploy` (`.github/workflows/deploy.yml`) на self-hosted runner: тесты + сборка в контейнере → синхронизация кода в каталог деплоя → `docker compose up -d --wait --build` → healthcheck приложения и Caddy.
+- **Staging:** изолированный стенд для проверки изменений перед продом (`docker-compose.staging.yml`, проект `perepelkin-home-staging`, отдельный volume `staging_data`, порт `3080`, только домашняя сеть). Деплой — workflow `Staging` (вручную или пуш в ветку `staging`).
+- **Изоляция окружений:** у стенда свои БД, данные и учётка admin (пароль из `.env` стенда). Прод при деплое стенда не затрагивается. Стенд стартует со свежей БД и автоматическим seed'ом.
+
 ## Ключевые решения за диаграммами
 
 - **Один процесс, одна БД.** Для масштаба до ~100 пользователей и одного дома распределённая сложность не нужна. Модули изолируются границами в коде, а не процессами.
