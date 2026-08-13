@@ -43,6 +43,12 @@ services:
       DOMAIN: ${DOMAIN:?задайте DOMAIN в .env (например, domo.example.com)}
       DOMAIN2: ${DOMAIN2:-${DOMAIN}}
       ACME_EMAIL: ${ACME_EMAIL:-caddy@localhost}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:2019/config/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
