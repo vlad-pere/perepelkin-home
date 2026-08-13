@@ -17,10 +17,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies and run tests (in container)
+      - name: Install dependencies, build and run tests (in container)
         run: |
           docker run --rm -v "$PWD:/app" -w /app node:24-bookworm-slim \
-            bash -lc "npm ci --ignore-scripts && npm test"
+            bash -lc "npm ci --ignore-scripts && npm run build && npm test"
 
       - name: Deploy image and restart containers
         run: |
