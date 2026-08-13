@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies and run tests (in container)
         run: |
           docker run --rm -v "$PWD:/app" -w /app node:24-bookworm-slim \
-            bash -lc "npm ci && npm test"
+            bash -lc "npm ci --ignore-scripts && npm test"
 
       - name: Deploy image and restart containers
         run: |
