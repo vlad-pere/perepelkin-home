@@ -1,0 +1,30 @@
+services:
+  app:
+    image: perepelkin-home:staging
+    restart: unless-stopped
+    ports:
+      - "${STAGING_PORT:-3080}:3000"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      DB_PATH: /app/data/perepelkin-home.db
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-168}
+      # Staging — по HTTP (без домена), поэтому Secure-куки выключены
+      COOKIE_SECURE: "false"
+      TRUST_PROXY: "false"
+      WEB_DIST: /app/apps/web/dist
+      MODULES_DIR: /app/modules
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?задайте ADMIN_PASSWORD в .env staging}
+    volumes:
+      - staging_data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/auth/me').then(r=>process.exit(r.status===401||r.status===200?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  staging_data:

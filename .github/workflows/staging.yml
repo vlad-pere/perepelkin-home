@@ -1,0 +1,43 @@
+name: Staging
+
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+concurrency:
+  group: staging
+  cancel-in-progress: true
+
+jobs:
+  build-test-deploy:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies, build and run tests (in container)
+        run: |
+          docker run --rm -v "$PWD:/app" -w /app \
+            -e HOME=/tmp --user "$(id -u):$(id -g)" \
+            node:24-bookworm-slim \
+            bash -lc "npm ci --ignore-scripts && npm run build && npm test"
+
+      - name: Build staging image
+        run: docker build -t perepelkin-home:staging .
+
+      - name: Deploy staging stack
+        run: |
+          set -e
+          mkdir -p /home/user/docker/apps/perepelkin-home-staging
+          docker compose --project-name perepelkin-home-staging \
+            -f docker-compose.staging.yml \
+            --env-file /home/user/docker/apps/perepelkin-home-staging/.env \
+            up -d --wait
+
+      - name: Health check
+        run: |
+          set -e
+          docker inspect -f '{{.State.Health.Status}}' perepelkin-home-staging-app-1 | grep -qx healthy
+          echo "staging app is healthy"
