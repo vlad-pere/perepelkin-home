@@ -41,6 +41,7 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
   const [editing, setEditing] = useState<TaskRow | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<TaskRow | null>(null);
   const [formKey, setFormKey] = useState(0);
+  const [addOpen, setAddOpen] = useState(false);
 
   const loadAll = useCallback(async (): Promise<void> => {
     try {
@@ -75,6 +76,7 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
     try {
       await api(base, { method: 'POST', body: buildTaskPayload(values) });
       setFormKey((k) => k + 1);
+      setAddOpen(false);
       await loadAll();
     } catch (err) {
       fail(err, 'Не удалось добавить дело');
@@ -191,13 +193,24 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
 
       {canWrite && (
         <div className="todo-add">
-          <TaskForm
-            key={formKey}
-            initial={EMPTY_VALUES}
-            submitLabel="Добавить дело"
-            busy={busy}
-            onSubmit={(values) => void onCreate(values)}
-          />
+          {addOpen ? (
+            <TaskForm
+              key={formKey}
+              initial={EMPTY_VALUES}
+              submitLabel="Добавить дело"
+              busy={busy}
+              onSubmit={(values) => void onCreate(values)}
+              onCancel={() => setAddOpen(false)}
+            />
+          ) : (
+            <button
+              className="btn-primary todo-add-toggle"
+              type="button"
+              onClick={() => setAddOpen(true)}
+            >
+              Добавить дело
+            </button>
+          )}
         </div>
       )}
 

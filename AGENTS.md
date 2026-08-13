@@ -50,7 +50,7 @@
 - Durable choices (infrastructure, deployment, storage, runbooks, provider specifics) live in `README.md` and `docs/`, not in this agent file.
 - **Module system invariants:**
   - Every module is an npm workspace package under `modules/`. Simple modules are declarative CRUD defined by a schema/config; complex modules ship a Fastify plugin (`server.ts`) and optional React entry (`ui.tsx`).
-  - Эталонный простой модуль — `modules/maintenance/` (один `manifest.json`, без кода); как добавить модуль — в `README.md`.
+  - Эталонный простой модуль — `modules/todo/` (`manifest.json` + опциональный свой интерфейс); как добавить модуль — в `README.md`.
   - Modules never reach into each other's storage or code. Cross-module capabilities go through the shared core API only.
   - Access control is enforced by the core on the backend for every route, never only in the UI. `core.can(user, moduleId, action)` is the single source of truth.
   - A user sees a module only if at least one of their groups has access to it.

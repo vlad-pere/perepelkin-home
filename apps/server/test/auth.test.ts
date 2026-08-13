@@ -5,9 +5,9 @@ import { mountModule } from '../src/modules/host.js';
 import type { ModuleManifest } from '@perepelkin-home/core';
 
 const simpleManifest: ModuleManifest = {
-  id: 'maintenance',
-  name: 'Обслуживание вещей',
-  description: 'График обслуживания',
+  id: 'demo',
+  name: 'Демо-модуль',
+  description: 'Проверка простого модуля',
   kind: 'simple',
   entities: [
     {
@@ -178,19 +178,19 @@ describe('метаданные модулей в /me', () => {
     const user = world.core.users.getByUsername('member')!;
     const group = world.core.groups.create({ name: 'family' });
     world.core.groups.addMember(group.id, user.id);
-    world.core.grants.set(group.id, 'maintenance', { canRead: true, canWrite: true });
+    world.core.grants.set(group.id, 'demo', { canRead: true, canWrite: true });
 
     const client = new Client(world.app);
     await client.login('member', 'secret123');
 
     const me = await client.inject('GET', '/api/auth/me');
     expect(me.statusCode).toBe(200);
-    const maintenance = (
+    const demo = (
       me.json() as { modules: Array<{ id: string; kind: string; route: string }> }
-    ).modules.find((m) => m.id === 'maintenance');
-    expect(maintenance).toBeDefined();
-    expect(maintenance?.kind).toBe('simple');
-    expect(maintenance?.route).toBe('/m/maintenance');
+    ).modules.find((m) => m.id === 'demo');
+    expect(demo).toBeDefined();
+    expect(demo?.kind).toBe('simple');
+    expect(demo?.route).toBe('/m/demo');
   });
 });
 

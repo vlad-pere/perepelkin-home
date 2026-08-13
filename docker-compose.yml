@@ -41,7 +41,8 @@ services:
       - "${HTTPS_PORT:-443}:443"
     environment:
       DOMAIN: ${DOMAIN:?задайте DOMAIN в .env (например, domo.example.com)}
-      ACME_EMAIL: ${ACME_EMAIL:-}
+      DOMAIN2: ${DOMAIN2:-${DOMAIN}}
+      ACME_EMAIL: ${ACME_EMAIL:-caddy@localhost}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

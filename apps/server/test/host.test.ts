@@ -8,9 +8,9 @@ import { mountModule, syncModule, registerModulesFromDisk, type CodeModuleRegist
 import { tableName } from '../src/modules/crud.js';
 
 const itemManifest: ModuleManifest = {
-  id: 'maintenance',
-  name: 'Обслуживание вещей',
-  description: 'График обслуживания',
+  id: 'demo',
+  name: 'Демо-модуль',
+  description: 'Проверка хоста модулей',
   kind: 'simple',
   entities: [
     {
@@ -42,7 +42,7 @@ afterEach(async () => {
 function grant(userId: number, canRead: boolean, canWrite: boolean): void {
   const group = world.core.groups.create({ name: `family-${userId}-${canRead}-${canWrite}` });
   world.core.groups.addMember(group.id, userId);
-  world.core.grants.set(group.id, 'maintenance', { canRead, canWrite });
+  world.core.grants.set(group.id, 'demo', { canRead, canWrite });
 }
 
 async function memberClient(username = 'member', password = 'secret123'): Promise<Client> {
@@ -55,14 +55,14 @@ describe('module host', () => {
   it('rejects unauthenticated access to module routes', async () => {
     await mountModule(world.app, { db: world.db, core: world.core, manifest: itemManifest });
     const client = new Client(world.app);
-    const res = await client.inject('GET', '/api/modules/maintenance/item');
+    const res = await client.inject('GET', '/api/modules/demo/item');
     expect(res.statusCode).toBe(401);
   });
 
   it('rejects access without a grant (403)', async () => {
     await mountModule(world.app, { db: world.db, core: world.core, manifest: itemManifest });
     const client = await memberClient();
-    const res = await client.inject('GET', '/api/modules/maintenance/item');
+    const res = await client.inject('GET', '/api/modules/demo/item');
     expect(res.statusCode).toBe(403);
   });
 
@@ -72,10 +72,10 @@ describe('module host', () => {
     grant(user.id, true, false);
     const client = await memberClient();
 
-    const read = await client.inject('GET', '/api/modules/maintenance/item');
+    const read = await client.inject('GET', '/api/modules/demo/item');
     expect(read.statusCode).toBe(200);
 
-    const write = await client.inject('POST', '/api/modules/maintenance/item', { title: 'Чайник' });
+    const write = await client.inject('POST', '/api/modules/demo/item', { title: 'Чайник' });
     expect(write.statusCode).toBe(403);
   });
 
@@ -85,7 +85,7 @@ describe('module host', () => {
     grant(user.id, true, false);
     const client = await memberClient();
 
-    const res = await client.inject('GET', '/api/modules/maintenance/manifest');
+    const res = await client.inject('GET', '/api/modules/demo/manifest');
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ manifest: itemManifest });
   });
@@ -94,7 +94,7 @@ describe('module host', () => {
     syncModule(world.db, itemManifest);
     const tables = world.db
       .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?")
-      .get(tableName('maintenance', 'item'));
+      .get(tableName('demo', 'item'));
     expect(tables).toBeTruthy();
   });
 
@@ -114,7 +114,7 @@ describe('module host', () => {
     };
     syncModule(world.db, changed);
     const row = world.db.prepare('SELECT version, status, manifest_json FROM modules WHERE id = ?').get(
-      'maintenance',
+      'demo',
     ) as { version: number; status: string; manifest_json: string };
     expect(row.version).toBe(2);
     expect(row.status).toBe('active');
@@ -122,11 +122,11 @@ describe('module host', () => {
 
     const migrations = world.db
       .prepare('SELECT version FROM module_migrations WHERE module_id = ? ORDER BY version')
-      .all('maintenance') as Array<{ version: number }>;
+      .all('demo') as Array<{ version: number }>;
     expect(migrations.map((m) => m.version)).toEqual([1, 2]);
 
     syncModule(world.db, changed);
-    const after = world.db.prepare('SELECT version FROM modules WHERE id = ?').get('maintenance') as {
+    const after = world.db.prepare('SELECT version FROM modules WHERE id = ?').get('demo') as {
       version: number;
     };
     expect(after.version).toBe(2);
@@ -138,7 +138,7 @@ describe('module host', () => {
     grant(user.id, true, true);
     const client = await memberClient();
 
-    const created = await client.inject('POST', '/api/modules/maintenance/item', {
+    const created = await client.inject('POST', '/api/modules/demo/item', {
       title: 'Чайник',
       nextDue: '2026-09-01',
       interval: 3,
@@ -158,13 +158,13 @@ describe('module host', () => {
     expect(createdBody.item.created_by).toBe(user.id);
     const id = createdBody.item.id as number;
 
-    const listed = await client.inject('GET', '/api/modules/maintenance/item');
+    const listed = await client.inject('GET', '/api/modules/demo/item');
     expect(listed.statusCode).toBe(200);
     const listBody = listed.json() as { items: Array<Record<string, unknown>> };
     expect(listBody.items).toHaveLength(1);
     expect(listBody.items[0]).toMatchObject({ title: 'Чайник', done: false });
 
-    const patched = await client.inject('PATCH', `/api/modules/maintenance/item/${id}`, {
+    const patched = await client.inject('PATCH', `/api/modules/demo/item/${id}`, {
       done: true,
       notes: 'Сделано',
     });
@@ -173,10 +173,10 @@ describe('module host', () => {
       item: expect.objectContaining({ done: true, notes: 'Сделано' }),
     });
 
-    const removed = await client.inject('DELETE', `/api/modules/maintenance/item/${id}`);
+    const removed = await client.inject('DELETE', `/api/modules/demo/item/${id}`);
     expect(removed.statusCode).toBe(204);
 
-    const after = await client.inject('GET', '/api/modules/maintenance/item');
+    const after = await client.inject('GET', '/api/modules/demo/item');
     expect((after.json() as { items: unknown[] }).items).toHaveLength(0);
   });
 
@@ -186,7 +186,7 @@ describe('module host', () => {
     grant(user.id, true, true);
     const client = await memberClient();
 
-    const res = await client.inject('POST', '/api/modules/maintenance/item', { nextDue: '2026-09-01' });
+    const res = await client.inject('POST', '/api/modules/demo/item', { nextDue: '2026-09-01' });
     expect(res.statusCode).toBe(400);
     expect((res.json() as { error: { code: string } }).error.code).toBe('BAD_REQUEST');
   });
@@ -202,7 +202,7 @@ describe('module host', () => {
     grant(user.id, true, true);
     const client = await memberClient();
 
-    const res = await client.inject('POST', '/api/modules/maintenance/item', payload);
+    const res = await client.inject('POST', '/api/modules/demo/item', payload);
     expect(res.statusCode).toBe(400);
   });
 
@@ -212,13 +212,13 @@ describe('module host', () => {
     grant(user.id, true, true);
     const client = await memberClient();
 
-    const created = await client.inject('POST', '/api/modules/maintenance/item', { title: 'Чайник' });
+    const created = await client.inject('POST', '/api/modules/demo/item', { title: 'Чайник' });
     const id = (created.json() as { item: { id: number } }).item.id;
 
-    const bad = await client.inject('PATCH', `/api/modules/maintenance/item/${id}`, { nextDue: 'нет' });
+    const bad = await client.inject('PATCH', `/api/modules/demo/item/${id}`, { nextDue: 'нет' });
     expect(bad.statusCode).toBe(400);
 
-    const unknown = await client.inject('PATCH', `/api/modules/maintenance/item/${id}`, { nope: 1 });
+    const unknown = await client.inject('PATCH', `/api/modules/demo/item/${id}`, { nope: 1 });
     expect(unknown.statusCode).toBe(400);
   });
 
@@ -228,10 +228,10 @@ describe('module host', () => {
     grant(user.id, true, true);
     const client = await memberClient();
 
-    await client.inject('POST', '/api/modules/maintenance/item', { title: 'B', nextDue: '2026-10-01' });
-    await client.inject('POST', '/api/modules/maintenance/item', { title: 'A', nextDue: '2026-05-01' });
+    await client.inject('POST', '/api/modules/demo/item', { title: 'B', nextDue: '2026-10-01' });
+    await client.inject('POST', '/api/modules/demo/item', { title: 'A', nextDue: '2026-05-01' });
 
-    const res = await client.inject('GET', '/api/modules/maintenance/item');
+    const res = await client.inject('GET', '/api/modules/demo/item');
     const items = (res.json() as { items: Array<{ title: string }> }).items;
     expect(items.map((i) => i.title)).toEqual(['A', 'B']);
   });
@@ -249,13 +249,13 @@ describe('module host', () => {
     });
 
     const noAccess = await memberClient();
-    const denied = await noAccess.inject('GET', '/api/modules/maintenance/stats');
+    const denied = await noAccess.inject('GET', '/api/modules/demo/stats');
     expect(denied.statusCode).toBe(403);
 
     const user = world.core.users.getByUsername('member')!;
     grant(user.id, true, false);
     const allowed = await memberClient();
-    const ok = await allowed.inject('GET', '/api/modules/maintenance/stats');
+    const ok = await allowed.inject('GET', '/api/modules/demo/stats');
     expect(ok.statusCode).toBe(200);
     expect(ok.json()).toEqual({ count: 42 });
   });
@@ -263,9 +263,9 @@ describe('module host', () => {
   it('registers modules from disk and isolates broken ones', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'domo-modules-'));
     try {
-      mkdirSync(join(dir, 'maintenance'));
+      mkdirSync(join(dir, 'demo'));
       writeFileSync(
-        join(dir, 'maintenance', 'manifest.json'),
+        join(dir, 'demo', 'manifest.json'),
         JSON.stringify(itemManifest),
         'utf8',
       );
@@ -307,13 +307,13 @@ describe('module host', () => {
 
       const active = world.db
         .prepare('SELECT status FROM modules WHERE id = ?')
-        .get('maintenance') as { status: string };
+        .get('demo') as { status: string };
       expect(active.status).toBe('active');
 
       const user = world.core.users.getByUsername('member')!;
       grant(user.id, true, true);
       const client = await memberClient();
-      const res = await client.inject('GET', '/api/modules/maintenance/manifest');
+      const res = await client.inject('GET', '/api/modules/demo/manifest');
       expect(res.statusCode).toBe(200);
     } finally {
       rmSync(dir, { recursive: true, force: true });

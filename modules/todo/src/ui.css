@@ -77,6 +77,11 @@
   animation: fade-up 0.7s var(--ease) 0.16s both;
 }
 
+.todo-add-toggle {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
 .todo-form {
   padding: 20px 0 0;
   display: flex;
@@ -247,6 +252,10 @@
 
   .todo-form-actions .btn-primary {
     flex: 1;
+  }
+
+  .todo-add-toggle {
+    width: 100%;
   }
 
   .todo-list {

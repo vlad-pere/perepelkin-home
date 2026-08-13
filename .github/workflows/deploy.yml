@@ -1,0 +1,39 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  build-test-deploy:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies and run tests (in container)
+        run: |
+          docker run --rm -v "$PWD:/app" -w /app node:24-bookworm-slim \
+            bash -lc "npm ci && npm test"
+
+      - name: Deploy image and restart containers
+        run: |
+          set -e
+          rsync -a --delete \
+            --exclude '.git' --exclude '.env' --exclude 'node_modules' \
+            --exclude '.scratch' --exclude '.10x' --exclude '.superpowers' --exclude '.opencode' \
+            ./ /home/user/docker/apps/perepelkin-home/
+          cd /home/user/docker/apps/perepelkin-home
+          docker compose up -d --wait --build
+
+      - name: Health check
+        run: |
+          code=$(curl -skL -o /dev/null -w '%{http_code}' http://127.0.0.1/api/auth/me)
+          echo "Health check HTTP code: $code"
+          [ "$code" = "401" ] || [ "$code" = "200" ] || exit 1

@@ -1,7 +1,14 @@
-# Домен из переменной окружения DOMAIN (docker-compose).
-# Для локального теста без домена: DOMAIN=localhost (без TLS, порт 80).
-# Для продакшена: DOMAIN=domo.example.com — Caddy сам выпустит сертификат Let's Encrypt.
-{$DOMAIN} {
+# Глобальные опции.
+# email — контакт для уведомлений Let's Encrypt (из ACME_EMAIL в .env).
+{
+	email {$ACME_EMAIL}
+}
+
+# Домены из переменных окружения DOMAIN и DOMAIN2 (docker-compose).
+# Для локального теста без домена: DOMAIN=localhost, DOMAIN2=localhost (без TLS, порт 80).
+# Для продакшена: DOMAIN=perepelkin-home.ru, DOMAIN2=perepelkin-home.online —
+# Caddy сам выпустит сертификаты Let's Encrypt для обоих доменов.
+{$DOMAIN}, www.{$DOMAIN}, {$DOMAIN2}, www.{$DOMAIN2} {
 	encode gzip
 
 	reverse_proxy app:3000
