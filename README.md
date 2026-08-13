@@ -175,34 +175,32 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 
 Переменные окружения сервера: см. `apps/server/.env.example`.
 
-
 ## Автодеплой (CI/CD)
 
-Пуш в ветку `main` автоматически публикует изменения на сервер через GitHub Actions (self-hosted runner `win-vm-wsl`):
+Пуш в ветку `main` автоматически публикует изменения на сервер: GitHub Actions (self-hosted runner `win-vm-wsl`) запускает workflow `Deploy` (`.github/workflows/deploy.yml`):
 
 1. тесты и сборка в Docker-контейнере (`npm ci --ignore-scripts && npm run build && npm test`);
 2. синхронизация кода в каталог деплоя `/home/user/docker/apps/perepelkin-home`;
 3. `docker compose up -d --wait --build` — пересборка образа и перезапуск контейнеров;
 4. проверка здоровья (`app` и `caddy` healthy).
 
-Рабочая копия на сервере — `/home/user/dev/perepelkin-home`. Публикация одной командой:
+Инфраструктура: self-hosted runner установлен в `/srv/actions-runner` и работает как systemd-сервис (переживает перезагрузки WSL-ВМ); ВМ удерживается постоянной сессией через плановое задание Windows `WSL-KeepAlive`.
+
+Рабочая копия для редактирования — `/home/user/dev/perepelkin-home`. Публикация одной командой:
 
 ```sh
 ./publish.sh "описание изменений"
 ```
 
+Статус деплоя: `gh run list --repo vlad-pere/perepelkin-home` или страница Actions в GitHub.
 
-## Автодеплой (CI/CD)
+## Тестовый стенд (staging)
 
-Пуш в ветку `main` автоматически публикует изменения на сервер через GitHub Actions (self-hosted runner `win-vm-wsl`):
+Изолированный стенд для проверки изменений перед продом: свои контейнер, БД и порт — прод не затрагивает.
 
-1. тесты и сборка в Docker-контейнере (`npm ci --ignore-scripts && npm run build && npm test`);
-2. синхронизация кода в каталог деплоя `/home/user/docker/apps/perepelkin-home`;
-3. `docker compose up -d --wait --build` — пересборка образа и перезапуск контейнеров;
-4. проверка здоровья (`app` и `caddy` healthy).
+- Адрес: `http://192.168.0.103:3080` (только домашняя сеть; локально — `http://localhost:3080`).
+- Вход: `admin`, пароль — в `/home/user/docker/apps/perepelkin-home-staging/.env` на сервере.
+- Конфиг: `docker-compose.staging.yml` (проект `perepelkin-home-staging`, отдельный volume `staging_data` — данные стенда изолированы от прода).
+- Деплой: workflow `Staging` (`.github/workflows/staging.yml`) — запуск вручную (`gh workflow run staging.yml --repo vlad-pere/perepelkin-home` или GitHub → Actions → Staging → Run workflow), либо автоматически при пуше в ветку `staging`.
 
-Рабочая копия на сервере — `/home/user/dev/perepelkin-home`. Публикация одной командой:
-
-```sh
-./publish.sh "описание изменений"
-```
+Цикл проверки: ветка → пуш → workflow Staging → тестирование на `:3080` → merge в `main` → прод публикуется сам.
