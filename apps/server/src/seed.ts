@@ -36,7 +36,7 @@ async function ensureAdmin(
     throw new Error('ADMIN_PASSWORD слишком длинный (макс. 72 символа)');
   }
 
-  await core.users.create({ username, password, isAdmin: true, authMode: 'password' });
+  await core.users.create({ username, password, isAdmin: true });
   return { created: true, username, generatedPassword };
 }
 

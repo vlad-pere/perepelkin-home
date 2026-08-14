@@ -30,7 +30,7 @@ Person(admin, "Администратор", "Управляет доступом
 
 System_Boundary(domo, "Domo (один Node-процесс, npm workspace)") {
   Container(spa, "SPA (оболочка)", "React 19 + Vite + react-router", "Вход, главная, реестр модулей, маршрут /m/:moduleId. Простые модули рендерит автогенерируемый CRUD-UI из манифеста; код-модули подгружаются лениво через сгенерированную карту импортов")
-  Container(api, "API-сервер", "Fastify 5 (TypeScript)", "Аутентификация (httpOnly-сессии, per-session CSRF, пинкод или пароль на пользователя), права core.can, хост модулей: монтаж /api/modules/<id>, обязательный гард makeModuleGuard, CRUD-генератор из манифеста, версионированные миграции модулей, инвалидация сессий при смене учётных данных/снятии админа")
+  Container(api, "API-сервер", "Fastify 5 (TypeScript)", "Аутентификация (httpOnly-сессии, per-session CSRF, пинкод и/или пароль на пользователя — вход любым из заданных), права core.can, хост модулей: монтаж /api/modules/<id>, обязательный гард makeModuleGuard, CRUD-генератор из манифеста, версионированные миграции модулей, инвалидация сессий при смене учётных данных/снятии админа")
   ContainerDb(db, "SQLite", "better-sqlite3 (WAL)", "users, groups, group_members, module_grants, sessions, modules, module_migrations, module_data + entity-таблицы модулей module_<id>_*")
 }
 

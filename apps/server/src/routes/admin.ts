@@ -1,19 +1,17 @@
 import type { FastifyInstance } from 'fastify';
-import type { AuthMode } from '@perepelkin-home/core';
 import type { Core } from '../core.js';
 import { requireAdmin } from '../hooks.js';
 import { badRequest, conflict, isUniqueViolation, notFound } from '../errors.js';
-import { authModeSchema, descriptionSchema, nameSchema, secretSchema, usernameSchema } from '../schemas.js';
-import { validateCredential } from '../auth/passwords.js';
+import { descriptionSchema, nameSchema, passwordSchema, pinSchema, usernameSchema } from '../schemas.js';
 
 const createUserSchema = {
   type: 'object',
   additionalProperties: false,
-  required: ['username', 'password'],
+  required: ['username'],
   properties: {
     username: usernameSchema,
-    password: secretSchema,
-    authMode: authModeSchema,
+    pin: pinSchema,
+    password: passwordSchema,
   },
 };
 
@@ -21,8 +19,8 @@ const patchUserSchema = {
   type: 'object',
   additionalProperties: false,
   properties: {
-    password: secretSchema,
-    authMode: authModeSchema,
+    pin: pinSchema,
+    password: passwordSchema,
     isAdmin: { type: 'boolean' },
   },
 };
@@ -76,16 +74,12 @@ export function registerAdminRoutes(app: FastifyInstance, core: Core): void {
   app.get('/api/admin/users', admin, async () => ({ users: core.users.list() }));
 
   app.post('/api/admin/users', { ...admin, schema: { body: createUserSchema } }, async (req, reply) => {
-    const { username, password, authMode } = req.body as {
-      username: string;
-      password: string;
-      authMode?: AuthMode;
-    };
-    const mode: AuthMode = authMode ?? 'pin';
-    const invalid = validateCredential(password, mode);
-    if (invalid) throw badRequest(invalid);
+    const { username, pin, password } = req.body as { username: string; pin?: string; password?: string };
+    if (pin === undefined && password === undefined) {
+      throw badRequest('Задайте хотя бы пинкод или пароль');
+    }
     try {
-      const user = await core.users.create({ username, password, authMode: mode });
+      const user = await core.users.create({ username, pin, password });
       return reply.code(201).send({ user });
     } catch (err) {
       if (isUniqueViolation(err)) throw conflict('Пользователь с таким именем уже существует');
@@ -95,25 +89,17 @@ export function registerAdminRoutes(app: FastifyInstance, core: Core): void {
 
   app.patch('/api/admin/users/:id', { ...admin, schema: { body: patchUserSchema, params: paramsId } }, async (req, reply) => {
     const id = (req.params as { id: number }).id;
-    const body = req.body as { password?: string; authMode?: AuthMode; isAdmin?: boolean };
+    const body = req.body as { pin?: string; password?: string; isAdmin?: boolean };
 
-    if (body.password !== undefined && body.authMode === undefined) {
-      throw badRequest('Укажите тип входа: pin или password');
-    }
-    if (body.authMode !== undefined && body.password === undefined) {
-      throw badRequest('Для смены типа входа укажите новый пинкод или пароль');
-    }
-    if (body.password === undefined && body.isAdmin === undefined) {
+    if (body.pin === undefined && body.password === undefined && body.isAdmin === undefined) {
       throw badRequest('Нет полей для изменения');
     }
     const existing = core.users.getById(id);
     if (!existing) throw notFound('Пользователь не найден');
 
-    if (body.password !== undefined) {
-      if (req.user?.id === id) throw badRequest('Нельзя менять собственный пароль через админ-API');
-      const invalid = validateCredential(body.password, body.authMode!);
-      if (invalid) throw badRequest(invalid);
-      await core.users.setCredential(id, body.password, body.authMode!);
+    if (body.pin !== undefined || body.password !== undefined) {
+      if (req.user?.id === id) throw badRequest('Нельзя менять собственные пинкод/пароль через админ-API');
+      await core.users.setCredential(id, { pin: body.pin, password: body.password });
     }
     if (body.isAdmin !== undefined) {
       if (req.user?.id === id && !body.isAdmin) throw badRequest('Нельзя снять с себя права администратора');

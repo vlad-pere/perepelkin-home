@@ -22,7 +22,7 @@ async function adminClient(): Promise<Client> {
 
 async function createMemberClient(username: string, password = 'secret123'): Promise<{ client: Client; userId: number }> {
   const admin = await adminClient();
-  const res = await admin.inject('POST', '/api/admin/users', { username, password, authMode: 'password' });
+  const res = await admin.inject('POST', '/api/admin/users', { username, password });
   expect(res.statusCode).toBe(201);
   const userId = res.json().user.id;
   admin.resetAuth();
@@ -40,8 +40,10 @@ describe('пользователи', () => {
     const users = res.json().users;
     expect(users.length).toBe(1);
     expect(users[0].username).toBe('admin');
-    expect(users[0].authMode).toBe('password');
+    expect(users[0].hasPassword).toBe(true);
+    expect(users[0].hasPin).toBe(false);
     expect(users[0]).not.toHaveProperty('password_hash');
+    expect(users[0]).not.toHaveProperty('pin_hash');
     expect(Array.isArray(users[0].groups)).toBe(true);
   });
 
@@ -50,14 +52,12 @@ describe('пользователи', () => {
     const created = await client.inject('POST', '/api/admin/users', {
       username: 'sveta',
       password: 'secret123',
-      authMode: 'password',
     });
     expect(created.statusCode).toBe(201);
 
     const dup = await client.inject('POST', '/api/admin/users', {
       username: 'Sveta',
       password: 'secret123',
-      authMode: 'password',
     });
     expect(dup.statusCode).toBe(409);
     expect(dup.json().error.code).toBe('CONFLICT');
@@ -69,84 +69,119 @@ describe('пользователи', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('создаёт пользователя с пинкодом по умолчанию, если authMode не задан', async () => {
+  it('создаёт пользователя только с пинкодом', async () => {
     const admin = await adminClient();
-    const created = await admin.inject('POST', '/api/admin/users', { username: 'sveta', password: '123456' });
+    const created = await admin.inject('POST', '/api/admin/users', { username: 'sveta', pin: '123456' });
     expect(created.statusCode).toBe(201);
-    expect(created.json().user.authMode).toBe('pin');
+    expect(created.json().user.hasPin).toBe(true);
+    expect(created.json().user.hasPassword).toBe(false);
 
     const client = new Client(world.app);
     expect((await client.login('sveta', '123456')).statusCode).toBe(200);
   });
 
-  it('создаёт пользователя с паролем при authMode=password', async () => {
+  it('создаёт пользователя только с паролем', async () => {
     const admin = await adminClient();
     const created = await admin.inject('POST', '/api/admin/users', {
       username: 'petr',
       password: 'secret123',
-      authMode: 'password',
     });
     expect(created.statusCode).toBe(201);
-    expect(created.json().user.authMode).toBe('password');
+    expect(created.json().user.hasPin).toBe(false);
+    expect(created.json().user.hasPassword).toBe(true);
 
     const client = new Client(world.app);
     expect((await client.login('petr', 'secret123')).statusCode).toBe(200);
+  });
+
+  it('создаёт пользователя с обоими способами входа', async () => {
+    const admin = await adminClient();
+    const created = await admin.inject('POST', '/api/admin/users', {
+      username: 'sveta',
+      pin: '123456',
+      password: 'secret123',
+    });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().user.hasPin).toBe(true);
+    expect(created.json().user.hasPassword).toBe(true);
+
+    const byPin = new Client(world.app);
+    expect((await byPin.login('sveta', '123456')).statusCode).toBe(200);
+    const byPassword = new Client(world.app);
+    expect((await byPassword.login('sveta', 'secret123')).statusCode).toBe(200);
+  });
+
+  it('отклоняет создание без пинкода и пароля', async () => {
+    const admin = await adminClient();
+    const res = await admin.inject('POST', '/api/admin/users', { username: 'sveta' });
+    expect(res.statusCode).toBe(400);
   });
 
   it('отклоняет пинкод не из 6 цифр', async () => {
     const admin = await adminClient();
     const letters = await admin.inject('POST', '/api/admin/users', {
       username: 'sveta',
-      password: '12ab56',
-      authMode: 'pin',
+      pin: '12ab56',
     });
     expect(letters.statusCode).toBe(400);
     const short = await admin.inject('POST', '/api/admin/users', {
       username: 'sveta',
-      password: '12345',
-      authMode: 'pin',
+      pin: '12345',
     });
     expect(short.statusCode).toBe(400);
   });
 
-  it('отклоняет короткий пароль при authMode=password', async () => {
+  it('отклоняет короткий пароль', async () => {
     const admin = await adminClient();
     const res = await admin.inject('POST', '/api/admin/users', {
       username: 'petr',
       password: 'secret',
-      authMode: 'password',
     });
     expect(res.statusCode).toBe(400);
   });
 
-  it('смена типа входа требует и authMode, и новый пинкод/пароль', async () => {
+  it('смена без полей для изменения отклоняется', async () => {
     const { userId } = await createMemberClient('sveta');
     const admin = await adminClient();
-
-    const noSecret = await admin.inject('PATCH', `/api/admin/users/${userId}`, { authMode: 'pin' });
-    expect(noSecret.statusCode).toBe(400);
-
-    const noMode = await admin.inject('PATCH', `/api/admin/users/${userId}`, { password: '654321' });
-    expect(noMode.statusCode).toBe(400);
+    const empty = await admin.inject('PATCH', `/api/admin/users/${userId}`, {});
+    expect(empty.statusCode).toBe(400);
   });
 
-  it('смена на пинкод инвалидирует сессии и пускает только с новым пинкодом', async () => {
+  it('добавление пинкода инвалидирует сессии и открывает вход по пинкоду', async () => {
     const { client, userId } = await createMemberClient('sveta');
     const admin = await adminClient();
-    const reset = await admin.inject('PATCH', `/api/admin/users/${userId}`, {
-      password: '654321',
-      authMode: 'pin',
-    });
+    const reset = await admin.inject('PATCH', `/api/admin/users/${userId}`, { pin: '654321' });
     expect(reset.statusCode).toBe(200);
 
     const me = await client.inject('GET', '/api/auth/me');
     expect(me.statusCode).toBe(401);
 
-    const oldLogin = await client.login('sveta', 'secret123');
-    expect(oldLogin.statusCode).toBe(401);
-
     const fresh = new Client(world.app);
     expect((await fresh.login('sveta', '654321')).statusCode).toBe(200);
+
+    const wrongPin = new Client(world.app);
+    expect((await wrongPin.login('sveta', '123456')).statusCode).toBe(401);
+  });
+
+  it('смена пароля не затрагивает пинкод', async () => {
+    const { userId } = await createMemberClient('sveta');
+    const admin = await adminClient();
+    await admin.inject('PATCH', `/api/admin/users/${userId}`, { pin: '123456' });
+
+    const reset = await admin.inject('PATCH', `/api/admin/users/${userId}`, { password: 'newpass123' });
+    expect(reset.statusCode).toBe(200);
+
+    const byPin = new Client(world.app);
+    expect((await byPin.login('sveta', '123456')).statusCode).toBe(200);
+    const byPassword = new Client(world.app);
+    expect((await byPassword.login('sveta', 'newpass123')).statusCode).toBe(200);
+  });
+
+  it('не даёт сменить собственные учётные данные через админ-API', async () => {
+    const admin = await adminClient();
+    const adminId = world.core.users.getByUsername('admin')!.id;
+    const res = await admin.inject('PATCH', `/api/admin/users/${adminId}`, { password: 'newpass123' });
+    expect(res.statusCode).toBe(400);
   });
 
   it('не даёт удалить собственный аккаунт', async () => {
@@ -183,7 +218,6 @@ describe('инвалидация сессий при изменении учёт
     const admin = await adminClient();
     const reset = await admin.inject('PATCH', `/api/admin/users/${userId}`, {
       password: 'newpass123',
-      authMode: 'password',
     });
     expect(reset.statusCode).toBe(200);
 
@@ -207,7 +241,6 @@ describe('инвалидация сессий при изменении учёт
       username: 'boss',
       password: 'secret123',
       isAdmin: true,
-      authMode: 'password',
     });
     const client = new Client(world.app);
     await client.login('boss', 'secret123');
@@ -229,7 +262,6 @@ describe('инвалидация сессий при изменении учёт
     const admin = await adminClient();
     const reset = await admin.inject('PATCH', `/api/admin/users/${svetaId}`, {
       password: 'newpass123',
-      authMode: 'password',
     });
     expect(reset.statusCode).toBe(200);
 

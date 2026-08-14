@@ -103,17 +103,28 @@ describe('POST /api/auth/login', () => {
   });
 });
 
-describe('POST /api/auth/login с пинкодом', () => {
+describe('POST /api/auth/login: пинкод и пароль', () => {
   it('пускает пользователя с пинкодом из 6 цифр', async () => {
-    await world.core.users.create({ username: 'sveta', password: '123456', authMode: 'pin' });
+    await world.core.users.create({ username: 'sveta', pin: '123456' });
     const client = new Client(world.app);
     const res = await client.login('sveta', '123456');
     expect(res.statusCode).toBe(200);
     expect(client.hasSession).toBe(true);
   });
 
+  it('пускает и по пинкоду, и по паролю, когда заданы оба', async () => {
+    await world.core.users.create({ username: 'sveta', pin: '123456', password: 'secret123' });
+    const byPin = new Client(world.app);
+    expect((await byPin.login('sveta', '123456')).statusCode).toBe(200);
+    expect(byPin.hasSession).toBe(true);
+
+    const byPassword = new Client(world.app);
+    expect((await byPassword.login('sveta', 'secret123')).statusCode).toBe(200);
+    expect(byPassword.hasSession).toBe(true);
+  });
+
   it('отклоняет неверный пинкод тем же сообщением, что и неверный пароль', async () => {
-    await world.core.users.create({ username: 'sveta', password: '123456', authMode: 'pin' });
+    await world.core.users.create({ username: 'sveta', pin: '123456' });
     const client = new Client(world.app);
     const res = await client.login('sveta', '654321');
     expect(res.statusCode).toBe(401);
@@ -121,27 +132,24 @@ describe('POST /api/auth/login с пинкодом', () => {
     expect(client.hasSession).toBe(false);
   });
 
-  it('отклоняет пинкод не из 6 цифр без раскрытия формата', async () => {
-    await world.core.users.create({ username: 'sveta', password: '123456', authMode: 'pin' });
+  it('отклоняет секрет не подходящий ни под один формат без раскрытия деталей', async () => {
+    await world.core.users.create({ username: 'sveta', pin: '123456', password: 'secret123' });
     const client = new Client(world.app);
 
     const letters = await client.login('sveta', '12345a');
     expect(letters.statusCode).toBe(401);
     expect(letters.json().error.code).toBe('INVALID_CREDENTIALS');
-
-    const password = await client.login('sveta', 'secret123');
-    expect(password.statusCode).toBe(401);
   });
 
-  it('отклоняет пароль для пинкод-пользователя', async () => {
-    await world.core.users.create({ username: 'sveta', password: '123456', authMode: 'pin' });
+  it('не пускает паролем пользователя, у которого задан только пинкод', async () => {
+    await world.core.users.create({ username: 'sveta', pin: '123456' });
     const client = new Client(world.app);
     const res = await client.login('sveta', 'secret123');
     expect(res.statusCode).toBe(401);
   });
 
-  it('не пускает пинкодом пользователя с паролем', async () => {
-    await world.core.users.create({ username: 'petr', password: 'secret123', authMode: 'password' });
+  it('не пускает пинкодом пользователя, у которого задан только пароль', async () => {
+    await world.core.users.create({ username: 'petr', password: 'secret123' });
     const client = new Client(world.app);
     const res = await client.login('petr', '123456');
     expect(res.statusCode).toBe(401);
@@ -217,7 +225,7 @@ describe('метаданные модулей в /me', () => {
   });
 
   it('для простого модуля возвращает kind=simple и route=/m/<id>', async () => {
-    await world.core.users.create({ username: 'member', password: 'secret123', authMode: 'password' });
+    await world.core.users.create({ username: 'member', password: 'secret123' });
     await mountModule(world.app, { db: world.db, core: world.core, manifest: simpleManifest });
 
     const user = world.core.users.getByUsername('member')!;
@@ -241,7 +249,7 @@ describe('метаданные модулей в /me', () => {
 
 describe('админ-доступ', () => {
   it('запрещает обычному пользователю админ-эндпоинты', async () => {
-    await world.core.users.create({ username: 'member', password: 'secret123', authMode: 'password' });
+    await world.core.users.create({ username: 'member', password: 'secret123' });
     const client = new Client(world.app);
     await client.login('member', 'secret123');
 

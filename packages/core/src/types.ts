@@ -1,13 +1,13 @@
 import type { ModuleKind } from './manifest.js';
 
-/** Чем пользователь входит: пинкодом из 6 цифр или паролем. */
-export type AuthMode = 'pin' | 'password';
-
 export interface User {
   id: number;
   username: string;
   isAdmin: boolean;
-  authMode: AuthMode;
+  /** Задан ли у пользователя пинкод из 6 цифр (один из возможных способов входа). */
+  hasPin: boolean;
+  /** Задан ли пароль (один из возможных способов входа). */
+  hasPassword: boolean;
   createdAt: string;
 }
 

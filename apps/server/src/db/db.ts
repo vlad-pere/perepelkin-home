@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 export const MIGRATIONS: Record<number, string> = {
   1: `
@@ -76,15 +76,41 @@ export const MIGRATIONS: Record<number, string> = {
     ALTER TABLE users ADD COLUMN auth_mode TEXT NOT NULL DEFAULT 'pin' CHECK (auth_mode IN ('pin', 'password'));
     UPDATE users SET auth_mode = 'password';
   `,
+  4: `
+    CREATE TABLE users_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      password_hash TEXT,
+      pin_hash TEXT,
+      is_admin INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+    INSERT INTO users_new (id, username, password_hash, pin_hash, is_admin, created_at)
+      SELECT id, username,
+        CASE WHEN auth_mode = 'password' THEN password_hash ELSE NULL END,
+        CASE WHEN auth_mode = 'pin' THEN password_hash ELSE NULL END,
+        is_admin, created_at
+      FROM users;
+    DROP TABLE users;
+    ALTER TABLE users_new RENAME TO users;
+  `,
 };
 
 function migrate(db: Database.Database): void {
   const current = db.pragma('user_version', { simple: true }) as number;
-  for (let version = current + 1; version <= SCHEMA_VERSION; version++) {
-    const sql = MIGRATIONS[version];
-    if (sql === undefined) throw new Error(`Missing migration for schema version ${version}`);
-    db.transaction(() => db.exec(sql))();
-    db.pragma(`user_version = ${version}`);
+  if (current >= SCHEMA_VERSION) return;
+  // Пересоздание таблиц внутри миграций требует отключения FK: PRAGMA нельзя
+  // менять внутри транзакции, поэтому выключаем до и возвращаем после.
+  db.pragma('foreign_keys = OFF');
+  try {
+    for (let version = current + 1; version <= SCHEMA_VERSION; version++) {
+      const sql = MIGRATIONS[version];
+      if (sql === undefined) throw new Error(`Missing migration for schema version ${version}`);
+      db.transaction(() => db.exec(sql))();
+      db.pragma(`user_version = ${version}`);
+    }
+  } finally {
+    db.pragma('foreign_keys = ON');
   }
 }
 

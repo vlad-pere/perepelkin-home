@@ -15,7 +15,8 @@ export interface AdminUser {
   id: number;
   username: string;
   isAdmin: boolean;
-  authMode: 'pin' | 'password';
+  hasPin: boolean;
+  hasPassword: boolean;
   createdAt: string;
   groups: AdminGroup[];
 }
@@ -45,12 +46,19 @@ interface AdminPageProps {
 
 type Tab = 'users' | 'groups' | 'grants';
 
-type AuthMode = 'pin' | 'password';
+type LoginWay = 'pin' | 'password';
 
-const AUTH_MODE_LABEL: Record<AuthMode, string> = {
-  pin: 'Пинкод',
-  password: 'Пароль',
+const WAY_LABEL: Record<LoginWay, string> = {
+  pin: 'пинкод',
+  password: 'пароль',
 };
+
+function loginWays(user: { hasPin: boolean; hasPassword: boolean }): LoginWay[] {
+  const ways: LoginWay[] = [];
+  if (user.hasPin) ways.push('pin');
+  if (user.hasPassword) ways.push('password');
+  return ways;
+}
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'users', label: 'Пользователи' },
@@ -116,12 +124,13 @@ function UsersPanel({ api, currentUserId, fail }: PanelProps & { currentUserId: 
   const [busyId, setBusyId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
   const [username, setUsername] = useState('');
-  const [authMode, setAuthMode] = useState<AuthMode>('pin');
-  const [secret, setSecret] = useState('');
+  const [pin, setPin] = useState('');
+  const [password, setPassword] = useState('');
   const [resetFor, setResetFor] = useState<number | null>(null);
-  const [resetMode, setResetMode] = useState<AuthMode>('pin');
-  const [resetSecret, setResetSecret] = useState('');
+  const [resetPin, setResetPin] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const load = async (): Promise<void> => {
     try {
@@ -139,15 +148,23 @@ function UsersPanel({ api, currentUserId, fail }: PanelProps & { currentUserId: 
   const onCreate = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
     if (busyId !== null) return;
+    if (pin === '' && password === '') {
+      fail(new Error('Задайте хотя бы пинкод или пароль'), 'Задайте хотя бы пинкод или пароль');
+      return;
+    }
     setBusyId(-1);
     try {
       await api('/api/admin/users', {
         method: 'POST',
-        body: { username: username.trim(), password: secret, authMode },
+        body: {
+          username: username.trim(),
+          ...(pin ? { pin } : {}),
+          ...(password ? { password } : {}),
+        },
       });
       setUsername('');
-      setSecret('');
-      setAuthMode('pin');
+      setPin('');
+      setPassword('');
       setCreating(false);
       await load();
     } catch (err) {
@@ -175,15 +192,25 @@ function UsersPanel({ api, currentUserId, fail }: PanelProps & { currentUserId: 
 
   const onReset = async (user: AdminUser): Promise<void> => {
     if (busyId !== null) return;
+    if (resetPin === '' && resetPassword === '') {
+      fail(new Error('Заполните хотя бы одно поле'), 'Заполните хотя бы одно поле');
+      return;
+    }
     setBusyId(user.id);
     try {
       await api(`/api/admin/users/${user.id}`, {
         method: 'PATCH',
-        body: { password: resetSecret, authMode: resetMode },
+        body: {
+          ...(resetPin ? { pin: resetPin } : {}),
+          ...(resetPassword ? { password: resetPassword } : {}),
+        },
       });
       setResetFor(null);
-      setResetSecret('');
+      setResetPin('');
+      setResetPassword('');
       await load();
+      setNotice(`Учётные данные для «${user.username}» обновлены.`);
+      window.setTimeout(() => setNotice(null), 5000);
     } catch (err) {
       fail(err, 'Не удалось сменить учётные данные');
     } finally {
@@ -228,17 +255,18 @@ function UsersPanel({ api, currentUserId, fail }: PanelProps & { currentUserId: 
                 required
               />
             </label>
-            <CredentialField
-              mode={authMode}
-              onModeChange={setAuthMode}
-              value={secret}
-              onChange={setSecret}
-            />
+            <CredentialInputs pin={pin} onPin={setPin} password={password} onPassword={setPassword} />
           </div>
           <button className="btn-primary" type="submit" disabled={busyId !== null}>
             {busyId === -1 ? 'Создаём…' : 'Создать пользователя'}
           </button>
         </form>
+      )}
+
+      {notice && (
+        <p className="admin-notice" role="status">
+          {notice}
+        </p>
       )}
 
       {users === null ? (
@@ -252,9 +280,11 @@ function UsersPanel({ api, currentUserId, fail }: PanelProps & { currentUserId: 
                   <div className="admin-row-title">
                     <span className="admin-username">{u.username}</span>
                     {u.isAdmin && <span className="badge badge-admin">администратор</span>}
-                    <span className={`badge badge-authmode badge-${u.authMode}`}>
-                      {AUTH_MODE_LABEL[u.authMode].toLowerCase()}
-                    </span>
+                    {loginWays(u).map((w) => (
+                      <span key={w} className={`badge badge-authmode badge-${w}`}>
+                        {WAY_LABEL[w]}
+                      </span>
+                    ))}
                     {u.groups.length > 0 && (
                       <span className="badge badge-groups">{u.groups.map((g) => g.name).join(' · ')}</span>
                     )}
@@ -273,27 +303,43 @@ function UsersPanel({ api, currentUserId, fail }: PanelProps & { currentUserId: 
                       void onReset(u);
                     }}
                   >
-                    <CredentialField
-                      mode={resetMode}
-                      onModeChange={setResetMode}
-                      value={resetSecret}
-                      onChange={setResetSecret}
+                    <div className="admin-reset-head">
+                      <span className="admin-reset-title">Сменить вход: {u.username}</span>
+                      <span className="admin-reset-current">
+                        сейчас&nbsp;·
+                        {loginWays(u).map((w) => (
+                          <span key={w} className={`badge badge-authmode badge-${w}`}>
+                            {WAY_LABEL[w]}
+                          </span>
+                        ))}
+                      </span>
+                    </div>
+                    <CredentialInputs
+                      pin={resetPin}
+                      onPin={setResetPin}
+                      password={resetPassword}
+                      onPassword={setResetPassword}
                       autoFocus
-                      placeholder="Новый пинкод или пароль"
+                      pinLabel="Новый пинкод"
+                      passwordLabel="Новый пароль"
                     />
-                    <button className="btn-ghost" type="submit" disabled={busyId !== null}>
-                      Сохранить
-                    </button>
-                    <button
-                      className="btn-ghost"
-                      type="button"
-                      onClick={() => {
-                        setResetFor(null);
-                        setResetSecret('');
-                      }}
-                    >
-                      Отмена
-                    </button>
+                    <div className="admin-reset-actions">
+                      <button className="btn-ghost" type="submit" disabled={busyId !== null}>
+                        Сохранить
+                      </button>
+                      <button
+                        className="btn-ghost"
+                        type="button"
+                        disabled={busyId !== null}
+                        onClick={() => {
+                          setResetFor(null);
+                          setResetPin('');
+                          setResetPassword('');
+                        }}
+                      >
+                        Отмена
+                      </button>
+                    </div>
                   </form>
                 ) : (
                   <div className="admin-row-actions">
@@ -303,11 +349,11 @@ function UsersPanel({ api, currentUserId, fail }: PanelProps & { currentUserId: 
                       disabled={busyId !== null}
                       onClick={() => {
                         setResetFor(u.id);
-                        setResetMode(u.authMode);
-                        setResetSecret('');
+                        setResetPin('');
+                        setResetPassword('');
                       }}
                     >
-                      Пинкод/пароль
+                      Сменить вход
                     </button>
                     <button
                       className="btn-ghost"
@@ -703,52 +749,56 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-interface CredentialFieldProps {
-  mode: AuthMode;
-  onModeChange: (mode: AuthMode) => void;
-  value: string;
-  onChange: (value: string) => void;
+interface CredentialInputsProps {
+  pin: string;
+  onPin: (value: string) => void;
+  password: string;
+  onPassword: (value: string) => void;
   autoFocus?: boolean;
-  placeholder?: string;
+  pinLabel?: string;
+  passwordLabel?: string;
 }
 
-function CredentialField({ mode, onModeChange, value, onChange, autoFocus, placeholder }: CredentialFieldProps) {
-  const isPin = mode === 'pin';
+function CredentialInputs({
+  pin,
+  onPin,
+  password,
+  onPassword,
+  autoFocus,
+  pinLabel = 'Пинкод · 6 цифр',
+  passwordLabel = 'Пароль · от 8 символов',
+}: CredentialInputsProps) {
   return (
-    <div className="field">
-      <div className="cred-mode" role="group" aria-label="Тип входа">
-        <button
-          type="button"
-          className={`cred-mode-btn${isPin ? ' active' : ''}`}
-          aria-pressed={isPin}
-          onClick={() => onModeChange('pin')}
-        >
-          Пинкод
-        </button>
-        <button
-          type="button"
-          className={`cred-mode-btn${!isPin ? ' active' : ''}`}
-          aria-pressed={!isPin}
-          onClick={() => onModeChange('password')}
-        >
-          Пароль
-        </button>
-      </div>
-      <input
-        className="field-input"
-        type="password"
-        inputMode={isPin ? 'numeric' : undefined}
-        autoComplete="new-password"
-        pattern={isPin ? '[0-9]{6}' : undefined}
-        title={isPin ? 'Пинкод — ровно 6 цифр' : 'Не короче 8 символов'}
-        minLength={isPin ? undefined : 8}
-        maxLength={isPin ? 6 : undefined}
-        placeholder={placeholder ?? (isPin ? '6 цифр' : 'не короче 8 символов')}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        autoFocus={autoFocus}
-        required
-      />
-    </div>
+    <>
+      <label className="field">
+        <span className="field-label">{pinLabel}</span>
+        <input
+          className="field-input"
+          type="password"
+          inputMode="numeric"
+          autoComplete="new-password"
+          pattern="[0-9]{6}"
+          title="Пинкод — ровно 6 цифр"
+          maxLength={6}
+          placeholder="6 цифр"
+          value={pin}
+          onChange={(e) => onPin(e.target.value)}
+          autoFocus={autoFocus}
+        />
+      </label>
+      <label className="field">
+        <span className="field-label">{passwordLabel}</span>
+        <input
+          className="field-input"
+          type="password"
+          autoComplete="new-password"
+          minLength={8}
+          title="Не короче 8 символов"
+          placeholder="не короче 8 символов"
+          value={password}
+          onChange={(e) => onPassword(e.target.value)}
+        />
+      </label>
+    </>
   );
 }

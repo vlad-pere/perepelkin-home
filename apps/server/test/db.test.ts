@@ -33,7 +33,7 @@ interface TableInfo {
   pk: number;
 }
 
-describe('schema v3', () => {
+describe('schema v4', () => {
   it('creates modules and module_migrations tables on a fresh db', () => {
     const db = track(openDb(':memory:'));
     const tables = db
@@ -85,22 +85,20 @@ describe('schema v3', () => {
     db.close();
   });
 
-  it('users has auth_mode with pin default and a CHECK constraint', () => {
+  it('users has nullable password_hash and pin_hash and no auth_mode', () => {
     const db = track(openDb(':memory:'));
     const cols = db.prepare('PRAGMA table_info(users)').all() as TableInfo[];
-    const col = cols.find((c) => c.name === 'auth_mode');
-    expect(col).toBeDefined();
-    expect(col!.notnull).toBe(1);
-    expect(col!.dflt_value).toBe("'pin'");
+    const col = (name: string): TableInfo | undefined => cols.find((c) => c.name === name);
 
-    db.prepare("INSERT INTO users (username, password_hash) VALUES ('a', 'h')").run();
-    expect(db.prepare("SELECT auth_mode FROM users WHERE username = 'a'").get()).toEqual({
-      auth_mode: 'pin',
-    });
+    const pin = col('pin_hash');
+    expect(pin).toBeDefined();
+    expect(pin!.notnull).toBe(0);
 
-    expect(() =>
-      db.prepare("INSERT INTO users (username, password_hash, auth_mode) VALUES ('b', 'h', 'bogus')").run(),
-    ).toThrow();
+    const password = col('password_hash');
+    expect(password).toBeDefined();
+    expect(password!.notnull).toBe(0);
+
+    expect(col('auth_mode')).toBeUndefined();
     db.close();
   });
 
@@ -110,11 +108,11 @@ describe('schema v3', () => {
     db1.prepare(
       "INSERT INTO modules (id, kind, name, manifest_json) VALUES ('m1', 'simple', 'Mod', '{}')",
     ).run();
-    expect(db1.pragma('user_version', { simple: true })).toBe(3);
+    expect(db1.pragma('user_version', { simple: true })).toBe(4);
     db1.close();
 
     const db2 = track(openDb(file));
-    expect(db2.pragma('user_version', { simple: true })).toBe(3);
+    expect(db2.pragma('user_version', { simple: true })).toBe(4);
     expect(db2.prepare("SELECT id, kind FROM modules WHERE id = 'm1'").get()).toEqual({
       id: 'm1',
       kind: 'simple',
@@ -132,19 +130,68 @@ describe('schema v3', () => {
     raw.close();
 
     const db = track(openDb(file));
-    expect(db.pragma('user_version', { simple: true })).toBe(3);
+    expect(db.pragma('user_version', { simple: true })).toBe(4);
     expect(db.prepare("SELECT username FROM users WHERE username = 'alice'").get()).toEqual({
       username: 'alice',
     });
-    expect(db.prepare("SELECT auth_mode FROM users WHERE username = 'alice'").get()).toEqual({
-      auth_mode: 'password',
-    });
+    const alice = db.prepare("SELECT password_hash, pin_hash FROM users WHERE username = 'alice'").get() as {
+      password_hash: string;
+      pin_hash: string | null;
+    };
+    expect(alice.password_hash).toBe('hash');
+    expect(alice.pin_hash).toBeNull();
     expect(db.prepare("SELECT name FROM groups WHERE name = 'family'").get()).toEqual({
       name: 'family',
     });
     expect(
       db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = 'modules'").get(),
     ).toBeTruthy();
+    db.close();
+  });
+
+  it('v3→v4: переносит хеш по auth_mode в pin_hash или password_hash', () => {
+    const file = tempDbFile();
+    const raw = track(new Database(file));
+    raw.exec(MIGRATIONS[1]!);
+    raw.pragma('user_version = 1');
+    raw.exec(MIGRATIONS[2]!);
+    raw.pragma('user_version = 2');
+    raw.exec(MIGRATIONS[3]!);
+    raw.pragma('user_version = 3');
+    raw.prepare(
+      "INSERT INTO users (username, password_hash, auth_mode) VALUES ('pinny', 'pinhash', 'pin')",
+    ).run();
+    raw.prepare(
+      "INSERT INTO users (username, password_hash, auth_mode) VALUES ('passy', 'passhash', 'password')",
+    ).run();
+    raw.close();
+
+    const db = track(openDb(file));
+    expect(db.pragma('user_version', { simple: true })).toBe(4);
+    const pinny = db.prepare("SELECT password_hash, pin_hash FROM users WHERE username = 'pinny'").get() as {
+      password_hash: string | null;
+      pin_hash: string | null;
+    };
+    expect(pinny.password_hash).toBeNull();
+    expect(pinny.pin_hash).toBe('pinhash');
+
+    const passy = db.prepare("SELECT password_hash, pin_hash FROM users WHERE username = 'passy'").get() as {
+      password_hash: string | null;
+      pin_hash: string | null;
+    };
+    expect(passy.password_hash).toBe('passhash');
+    expect(passy.pin_hash).toBeNull();
+    db.close();
+  });
+
+  it('recreate users не ломает внешние ключи sessions', () => {
+    const db = track(openDb(':memory:'));
+    const userId = db.prepare("INSERT INTO users (username, password_hash) VALUES ('a', 'h')").run()
+      .lastInsertRowid as number;
+    db.prepare(
+      "INSERT INTO sessions (token, user_id, csrf_token, expires_at) VALUES ('t', ?, 'csrf', 0)",
+    ).run(userId);
+    expect(db.pragma('foreign_key_check')).toEqual([]);
     db.close();
   });
 });

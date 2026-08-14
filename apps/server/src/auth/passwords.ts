@@ -1,5 +1,4 @@
 import bcrypt from 'bcryptjs';
-import type { AuthMode } from '@perepelkin-home/core';
 
 const SALT_ROUNDS = (() => {
   const raw = process.env.BCRYPT_ROUNDS;
@@ -16,25 +15,41 @@ export const PIN_PATTERN = /^\d{6}$/;
 
 export const MIN_PASSWORD_LENGTH = 8;
 
-export function hashPassword(plain: string): Promise<string> {
+export function hashSecret(plain: string): Promise<string> {
   return bcrypt.hash(plain, SALT_ROUNDS);
 }
 
-/** Соответствует ли секрет формату, заданному режимом входа. */
-export function isValidSecret(secret: string, mode: AuthMode): boolean {
-  return mode === 'pin' ? PIN_PATTERN.test(secret) : secret.length >= MIN_PASSWORD_LENGTH;
+export function isPinSecret(secret: string): boolean {
+  return PIN_PATTERN.test(secret);
 }
 
-/** Ошибка валидации секрета для режима входа (null — валидно). */
-export function validateCredential(secret: string, mode: AuthMode): string | null {
-  if (mode === 'pin') {
-    return PIN_PATTERN.test(secret) ? null : 'Пинкод — это ровно 6 цифр';
+export function isPasswordSecret(secret: string): boolean {
+  return secret.length >= MIN_PASSWORD_LENGTH;
+}
+
+/** Ошибка валидации пинкода (null — валидно). */
+export function validatePin(secret: string): string | null {
+  return isPinSecret(secret) ? null : 'Пинкод — это ровно 6 цифр';
+}
+
+/** Ошибка валидации пароля (null — валидно). */
+export function validatePassword(secret: string): string | null {
+  return isPasswordSecret(secret) ? null : 'Пароль должен быть не короче 8 символов';
+}
+
+/**
+ * Проверка секрета при входе по любому из заданных способов.
+ * Неверный формат для способа молча трактуется как неверные данные.
+ */
+export async function verifyLogin(
+  secret: string,
+  user: { pin_hash: string | null; password_hash: string | null },
+): Promise<boolean> {
+  if (isPinSecret(secret) && user.pin_hash !== null) {
+    if (await bcrypt.compare(secret, user.pin_hash)) return true;
   }
-  return secret.length >= MIN_PASSWORD_LENGTH ? null : 'Пароль должен быть не короче 8 символов';
-}
-
-/** Проверка секрета при входе: неверный формат молча трактуется как неверные данные. */
-export function verifyCredential(secret: string, hash: string, mode: AuthMode): Promise<boolean> {
-  if (!isValidSecret(secret, mode)) return Promise.resolve(false);
-  return bcrypt.compare(secret, hash);
+  if (isPasswordSecret(secret) && user.password_hash !== null) {
+    if (await bcrypt.compare(secret, user.password_hash)) return true;
+  }
+  return false;
 }

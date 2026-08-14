@@ -4,7 +4,7 @@ import type { MeResponse, ModuleKind } from '@perepelkin-home/core';
 import type { Config } from '../config.js';
 import type { Core, UserRow } from '../core.js';
 import { toUser } from '../core.js';
-import { verifyCredential } from '../auth/passwords.js';
+import { verifyLogin } from '../auth/passwords.js';
 import { createSession, deleteSession } from '../db/sessions.js';
 import { SESSION_COOKIE } from '../constants.js';
 import { requireAuth, csrfOk } from '../hooks.js';
@@ -78,7 +78,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthRoutesDeps): 
           .code(401)
           .send({ error: { code: 'INVALID_CREDENTIALS', message: 'Неверное имя пользователя, пинкод или пароль' } });
       }
-      const ok = await verifyCredential(password, user.password_hash, user.auth_mode);
+      const ok = await verifyLogin(password, user);
       if (!ok) {
         return reply
           .code(401)

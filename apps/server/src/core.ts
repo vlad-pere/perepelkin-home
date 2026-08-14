@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import type { Action, AuthMode, CoreApi, Grant, Group, ModuleInfo, ScopedStore, User, UserWithGroups } from '@perepelkin-home/core';
+import type { Action, CoreApi, Grant, Group, ModuleInfo, ScopedStore, User, UserWithGroups } from '@perepelkin-home/core';
 import {
   can as coreCan,
   createScopedStore,
@@ -7,14 +7,14 @@ import {
   listModules as listModulesPkg,
   registerModule as registerModulePkg,
 } from '@perepelkin-home/core';
-import { hashPassword } from './auth/passwords.js';
+import { hashSecret } from './auth/passwords.js';
 import { deleteSessionsForUser } from './db/sessions.js';
 
 export interface UserRow {
   id: number;
   username: string;
-  password_hash: string;
-  auth_mode: AuthMode;
+  password_hash: string | null;
+  pin_hash: string | null;
   is_admin: number;
   created_at: string;
 }
@@ -31,7 +31,8 @@ export function toUser(row: UserRow): User {
     id: row.id,
     username: row.username,
     isAdmin: row.is_admin === 1,
-    authMode: row.auth_mode === 'pin' ? 'pin' : 'password',
+    hasPin: row.pin_hash !== null,
+    hasPassword: row.password_hash !== null,
     createdAt: row.created_at,
   };
 }
@@ -43,9 +44,9 @@ export function toUser(row: UserRow): User {
 export interface Core extends CoreApi {
   users: CoreApi['users'] & {
     getByUsername(username: string): UserRow | undefined;
-    create(input: { username: string; password: string; isAdmin?: boolean; authMode?: AuthMode }): Promise<User>;
+    create(input: { username: string; isAdmin?: boolean; pin?: string; password?: string }): Promise<User>;
     setAdmin(id: number, isAdmin: boolean): void;
-    setCredential(id: number, secret: string, authMode: AuthMode): Promise<void>;
+    setCredential(id: number, patch: { pin?: string; password?: string }): Promise<void>;
     delete(id: number): void;
   };
   groups: CoreApi['groups'] & {
@@ -67,10 +68,12 @@ export function buildCore(db: Database.Database): Core {
   const userById = db.prepare('SELECT * FROM users WHERE id = ?');
   const userByUsername = db.prepare('SELECT * FROM users WHERE username = ?');
   const insertUser = db.prepare(
-    'INSERT INTO users (username, password_hash, is_admin, auth_mode) VALUES (?, ?, ?, ?)',
+    'INSERT INTO users (username, password_hash, pin_hash, is_admin) VALUES (?, ?, ?, ?)',
   );
   const updateIsAdmin = db.prepare('UPDATE users SET is_admin = ? WHERE id = ?');
-  const updateCredential = db.prepare('UPDATE users SET password_hash = ?, auth_mode = ? WHERE id = ?');
+  const updateCredential = db.prepare(
+    'UPDATE users SET password_hash = COALESCE(?, password_hash), pin_hash = COALESCE(?, pin_hash) WHERE id = ?',
+  );
   const deleteUser = db.prepare('DELETE FROM users WHERE id = ?');
   const groupIdsForUser = db.prepare('SELECT group_id FROM group_members WHERE user_id = ?');
   const groupsForUser = db.prepare(
@@ -147,10 +150,12 @@ export function buildCore(db: Database.Database): Core {
       getByUsername(username: string): UserRow | undefined {
         return userByUsername.get(username) as UserRow | undefined;
       },
-      async create(input: { username: string; password: string; isAdmin?: boolean; authMode?: AuthMode }): Promise<User> {
-        const authMode: AuthMode = input.authMode ?? 'pin';
-        const passwordHash = await hashPassword(input.password);
-        const result = insertUser.run(input.username.trim(), passwordHash, input.isAdmin ? 1 : 0, authMode);
+      async create(input: { username: string; isAdmin?: boolean; pin?: string; password?: string }): Promise<User> {
+        const [passwordHash, pinHash] = await Promise.all([
+          input.password !== undefined ? hashSecret(input.password) : Promise.resolve(null),
+          input.pin !== undefined ? hashSecret(input.pin) : Promise.resolve(null),
+        ]);
+        const result = insertUser.run(input.username.trim(), passwordHash, pinHash, input.isAdmin ? 1 : 0);
         const row = userById.get(result.lastInsertRowid) as UserRow;
         return toUser(row);
       },
@@ -158,8 +163,12 @@ export function buildCore(db: Database.Database): Core {
         updateIsAdmin.run(isAdmin ? 1 : 0, id);
         if (!isAdmin) deleteSessionsForUser(db, id);
       },
-      async setCredential(id: number, secret: string, authMode: AuthMode): Promise<void> {
-        updateCredential.run(await hashPassword(secret), authMode, id);
+      async setCredential(id: number, patch: { pin?: string; password?: string }): Promise<void> {
+        const [passwordHash, pinHash] = await Promise.all([
+          patch.password !== undefined ? hashSecret(patch.password) : Promise.resolve(null),
+          patch.pin !== undefined ? hashSecret(patch.pin) : Promise.resolve(null),
+        ]);
+        updateCredential.run(passwordHash, pinHash, id);
         deleteSessionsForUser(db, id);
       },
       delete(id: number): void {

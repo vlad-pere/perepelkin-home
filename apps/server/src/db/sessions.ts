@@ -1,6 +1,5 @@
 import { randomBytes } from 'node:crypto';
 import type Database from 'better-sqlite3';
-import type { AuthMode } from '@perepelkin-home/core';
 
 export interface Session {
   token: string;
@@ -11,8 +10,8 @@ export interface Session {
 export interface SessionUser {
   id: number;
   username: string;
-  password_hash: string;
-  auth_mode: AuthMode;
+  password_hash: string | null;
+  pin_hash: string | null;
   is_admin: number;
   created_at: string;
 }
@@ -27,8 +26,8 @@ interface SessionRow {
   expires_at: number;
   id: number;
   username: string;
-  password_hash: string;
-  auth_mode: AuthMode;
+  password_hash: string | null;
+  pin_hash: string | null;
   is_admin: number;
   created_at: string;
 }
@@ -39,7 +38,7 @@ const insertSession = (db: Database.Database, token: string, userId: number, csr
 const selectSession = (db: Database.Database, token: string) =>
   db
     .prepare(
-      `SELECT s.token, s.csrf_token, s.expires_at, u.id, u.username, u.password_hash, u.auth_mode, u.is_admin, u.created_at
+      `SELECT s.token, s.csrf_token, s.expires_at, u.id, u.username, u.password_hash, u.pin_hash, u.is_admin, u.created_at
          FROM sessions s JOIN users u ON u.id = s.user_id
         WHERE s.token = ?`,
     )
@@ -79,7 +78,7 @@ export function getSession(
       id: row.id,
       username: row.username,
       password_hash: row.password_hash,
-      auth_mode: row.auth_mode,
+      pin_hash: row.pin_hash,
       is_admin: row.is_admin,
       created_at: row.created_at,
     },
