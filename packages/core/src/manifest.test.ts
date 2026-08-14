@@ -50,6 +50,27 @@ describe('validateManifest', () => {
     expect(m.entities[0]?.fields[1]?.required).toBeUndefined();
   });
 
+  it('accepts publicRead flag and normalizes absence', () => {
+    const m = validateManifest({ ...simpleManifest(), publicRead: true });
+    expect(m.publicRead).toBe(true);
+
+    const plain = validateManifest(simpleManifest());
+    expect(plain.publicRead).toBeUndefined();
+  });
+
+  it('rejects non-boolean publicRead', () => {
+    const raw = { ...simpleManifest(), publicRead: 'yes' };
+    expect(() => validateManifest(raw)).toThrow(ManifestError);
+  });
+
+  it('accepts a url field type', () => {
+    const m = validateManifest({
+      ...simpleManifest(),
+      entities: [{ name: 'item', label: 'Вещь', fields: [{ name: 'link', label: 'Ссылка', type: 'url' }] }],
+    });
+    expect(m.entities[0]?.fields[0]?.type).toBe('url');
+  });
+
   it('rejects non-object input', () => {
     for (const bad of [null, undefined, 'string', 42, [], true]) {
       expect(() => validateManifest(bad)).toThrow(ManifestError);

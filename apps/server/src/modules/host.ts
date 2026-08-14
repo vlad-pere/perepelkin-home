@@ -59,18 +59,25 @@ export async function mountModule(app: FastifyInstance, opts: MountModuleOptions
   const moduleId = manifest.id;
   syncModule(db, manifest);
 
+  const publicRead = manifest.publicRead === true;
+  const noopGuard = async (_req: FastifyRequest, _reply: FastifyReply): Promise<FastifyReply | undefined> =>
+    undefined;
+  /** Read-роуты публичных модулей открыты без входа; write-роуты всегда под гардом. */
+  const guardFor = (action: Action): typeof noopGuard =>
+    publicRead && action === 'read' ? noopGuard : makeModuleGuard(core, moduleId, action);
+
   let registerError: unknown;
   await app.register(
     async (moduleApp) => {
       try {
-        const readGuard = makeModuleGuard(core, moduleId, 'read');
-        const writeGuard = makeModuleGuard(core, moduleId, 'write');
+        const readGuard = guardFor('read');
+        const writeGuard = guardFor('write');
         const ctx: ModuleContext = {
           route(spec, handler) {
             moduleApp.route({
               method: spec.method,
               url: spec.path,
-              preHandler: makeModuleGuard(core, moduleId, spec.action),
+              preHandler: guardFor(spec.action),
               handler,
             });
           },

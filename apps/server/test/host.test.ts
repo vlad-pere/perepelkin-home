@@ -28,6 +28,24 @@ const itemManifest: ModuleManifest = {
   ],
 };
 
+const publicManifest: ModuleManifest = {
+  id: 'public-demo',
+  name: 'Публичный модуль',
+  description: 'Чтение без входа',
+  kind: 'simple',
+  publicRead: true,
+  entities: [
+    {
+      name: 'gift',
+      label: 'Подарок',
+      fields: [
+        { name: 'title', label: 'Название', type: 'text', required: true },
+        { name: 'link', label: 'Ссылка', type: 'url' },
+      ],
+    },
+  ],
+};
+
 let world: TestWorld;
 
 beforeEach(async () => {
@@ -39,10 +57,10 @@ afterEach(async () => {
   await world.close();
 });
 
-function grant(userId: number, canRead: boolean, canWrite: boolean): void {
+function grant(userId: number, canRead: boolean, canWrite: boolean, moduleId = 'demo'): void {
   const group = world.core.groups.create({ name: `family-${userId}-${canRead}-${canWrite}` });
   world.core.groups.addMember(group.id, userId);
-  world.core.grants.set(group.id, 'demo', { canRead, canWrite });
+  world.core.grants.set(group.id, moduleId, { canRead, canWrite });
 }
 
 async function memberClient(username = 'member', password = 'secret123'): Promise<Client> {
@@ -88,6 +106,65 @@ describe('module host', () => {
     const res = await client.inject('GET', '/api/modules/demo/manifest');
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ manifest: itemManifest });
+  });
+
+  it('publicRead: allows unauthenticated read and manifest', async () => {
+    await mountModule(world.app, { db: world.db, core: world.core, manifest: publicManifest });
+    const client = new Client(world.app);
+
+    const listed = await client.inject('GET', '/api/modules/public-demo/gift');
+    expect(listed.statusCode).toBe(200);
+    expect((listed.json() as { items: unknown[] }).items).toEqual([]);
+
+    const manifest = await client.inject('GET', '/api/modules/public-demo/manifest');
+    expect(manifest.statusCode).toBe(200);
+    expect(manifest.json()).toEqual({ manifest: publicManifest });
+  });
+
+  it('publicRead: mutations still require auth', async () => {
+    await mountModule(world.app, { db: world.db, core: world.core, manifest: publicManifest });
+    const anonymous = new Client(world.app);
+    const denied = await anonymous.inject('POST', '/api/modules/public-demo/gift', { title: 'Чайник' });
+    expect(denied.statusCode).toBe(401);
+  });
+
+  it('publicRead: authenticated user without grant cannot write', async () => {
+    await mountModule(world.app, { db: world.db, core: world.core, manifest: publicManifest });
+    const client = await memberClient();
+    const denied = await client.inject('POST', '/api/modules/public-demo/gift', { title: 'Чайник' });
+    expect(denied.statusCode).toBe(403);
+  });
+
+  it('publicRead: write works for a user with a write grant', async () => {
+    await mountModule(world.app, { db: world.db, core: world.core, manifest: publicManifest });
+    const user = world.core.users.getByUsername('member')!;
+    grant(user.id, true, true, 'public-demo');
+    const client = await memberClient();
+
+    const created = await client.inject('POST', '/api/modules/public-demo/gift', {
+      title: 'Чайник',
+      link: 'https://example.com/teapot',
+    });
+    expect(created.statusCode).toBe(201);
+    expect((created.json() as { item: { title: string } }).item.title).toBe('Чайник');
+
+    const anonymous = new Client(world.app);
+    const listed = await anonymous.inject('GET', '/api/modules/public-demo/gift');
+    expect((listed.json() as { items: unknown[] }).items).toHaveLength(1);
+  });
+
+  it.each([
+    ['javascript scheme', 'javascript:alert(1)'],
+    ['missing scheme', 'example.com/teapot'],
+    ['not a url', 'не ссылка'],
+  ])('rejects unsafe url: %s', async (_name, link) => {
+    await mountModule(world.app, { db: world.db, core: world.core, manifest: publicManifest });
+    const user = world.core.users.getByUsername('member')!;
+    grant(user.id, true, true, 'public-demo');
+    const client = await memberClient();
+
+    const res = await client.inject('POST', '/api/modules/public-demo/gift', { title: 'Чайник', link });
+    expect(res.statusCode).toBe(400);
   });
 
   it('creates the entity table on sync', async () => {

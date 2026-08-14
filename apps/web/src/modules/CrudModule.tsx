@@ -394,6 +394,18 @@ function FieldInput({
       />
     );
   }
+  if (field.type === 'url') {
+    return (
+      <input
+        className="field-input"
+        type="url"
+        inputMode="url"
+        required={required}
+        value={String(value)}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    );
+  }
   return (
     <input
       className="field-input"
@@ -451,7 +463,27 @@ function FieldValue({ field, value }: { field: ManifestField; value: unknown }):
     return <span className="crud-na">—</span>;
   }
   if (field.type === 'date') return formatDate(value);
+  if (field.type === 'url') {
+    const href = safeHttpUrl(String(value));
+    return href !== null ? (
+      <a className="crud-link" href={href} target="_blank" rel="noopener noreferrer">
+        {String(value)}
+      </a>
+    ) : (
+      String(value)
+    );
+  }
   return String(value);
+}
+
+function safeHttpUrl(value: string): string | null {
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.toString();
+  } catch {
+    /* не ссылка */
+  }
+  return null;
 }
 
 function formatDate(value: unknown): string {

@@ -1,0 +1,20 @@
+{
+  "id": "wishlist",
+  "name": "Подарки",
+  "description": "Мы переезжаем в новый дом, а у нашей дочери скоро первый день рождения. Если вы захотите порадовать нас подарком — вот несколько идей.",
+  "kind": "simple",
+  "publicRead": true,
+  "entities": [
+    {
+      "name": "gift",
+      "label": "Подарок",
+      "fields": [
+        { "name": "name", "label": "Название", "type": "text", "required": true },
+        { "name": "description", "label": "Описание", "type": "textarea" },
+        { "name": "link", "label": "Ссылка", "type": "url" },
+        { "name": "category", "label": "Раздел", "type": "text" }
+      ],
+      "defaultSort": { "field": "category", "direction": "asc" }
+    }
+  ]
+}

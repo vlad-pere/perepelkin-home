@@ -6,54 +6,61 @@ import { Topbar } from './components/Topbar';
 import { LoginPage } from './pages/Login';
 import { HomePage } from './pages/Home';
 import { ProfilePage } from './pages/Profile';
+import { WishlistPublicPage } from './pages/Wishlist';
 import { Splash } from './components/Splash';
 import { ModuleUnavailable, resolveModuleUi } from './modules/registry';
 
 function Root() {
   const { status, me } = useAuth();
-  if (status === 'loading') return <Splash />;
   const isAdmin = status === 'authenticated' && me !== null && me.user.isAdmin;
 
   return (
     <Routes>
-      <Route
-        path="/login"
-        element={status === 'authenticated' ? <Navigate to="/" replace /> : <LoginPage />}
-      />
-      <Route
-        path="/"
-        element={status === 'authenticated' ? <HomePage /> : <Navigate to="/login" replace />}
-      />
-      <Route
-        path="/admin"
-        element={
-          isAdmin ? (
-            <div className="shell">
-              <Topbar />
-              <AdminPage api={api} currentUserId={me!.user.id} />
-            </div>
-          ) : (
-            <Navigate to="/" replace />
-          )
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          status === 'authenticated' ? <ProfilePage /> : <Navigate to="/login" replace />
-        }
-      />
-      <Route
-        path="/m/:moduleId/*"
-        element={
-          status === 'authenticated' ? (
-            <ModulePage />
-          ) : (
-            <Navigate to="/login" replace />
-          )
-        }
-      />
-      <Route path="*" element={<Navigate to={status === 'authenticated' ? '/' : '/login'} replace />} />
+      <Route path="/wishlist" element={<WishlistPublicPage />} />
+      {status === 'loading' ? (
+        <Route path="*" element={<Splash />} />
+      ) : (
+        <>
+          <Route
+            path="/login"
+            element={status === 'authenticated' ? <Navigate to="/" replace /> : <LoginPage />}
+          />
+          <Route
+            path="/"
+            element={status === 'authenticated' ? <HomePage /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/admin"
+            element={
+              isAdmin ? (
+                <div className="shell">
+                  <Topbar />
+                  <AdminPage api={api} currentUserId={me!.user.id} />
+                </div>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              status === 'authenticated' ? <ProfilePage /> : <Navigate to="/login" replace />
+            }
+          />
+          <Route
+            path="/m/:moduleId/*"
+            element={
+              status === 'authenticated' ? (
+                <ModulePage />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route path="*" element={<Navigate to={status === 'authenticated' ? '/' : '/login'} replace />} />
+        </>
+      )}
     </Routes>
   );
 }

@@ -17,6 +17,7 @@ export function columnType(type: FieldType): string {
     case 'text':
     case 'textarea':
     case 'date':
+    case 'url':
       return 'TEXT';
     case 'number':
       return 'REAL';
@@ -59,6 +60,22 @@ function validateFieldValue(field: ManifestField, value: unknown): string | null
     case 'boolean':
       if (typeof value !== 'boolean') return `field "${field.name}" must be a boolean`;
       return null;
+    case 'url': {
+      if (typeof value !== 'string') return `field "${field.name}" must be a string`;
+      if (value.trim() === '') {
+        return field.required ? `field "${field.name}" must not be empty` : null;
+      }
+      let parsed: URL;
+      try {
+        parsed = new URL(value);
+      } catch {
+        return `field "${field.name}" must be a valid URL`;
+      }
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return `field "${field.name}" must be an http(s) URL`;
+      }
+      return null;
+    }
   }
 }
 

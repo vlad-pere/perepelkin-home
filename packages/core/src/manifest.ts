@@ -1,7 +1,7 @@
 import { MODULE_ID_PATTERN } from './registry.js';
 
 export type ModuleKind = 'simple' | 'code';
-export type FieldType = 'text' | 'textarea' | 'number' | 'date' | 'boolean';
+export type FieldType = 'text' | 'textarea' | 'number' | 'date' | 'boolean' | 'url';
 export type SortDirection = 'asc' | 'desc';
 
 export interface ManifestField {
@@ -28,6 +28,8 @@ export interface ModuleManifest {
   name: string;
   description: string;
   kind: ModuleKind;
+  /** Если true — GET-роуты модуля (манифест и списки сущностей) доступны без входа. */
+  publicRead?: boolean;
   entities: ManifestEntity[];
 }
 
@@ -38,10 +40,10 @@ export class ManifestError extends Error {
   }
 }
 
-const FIELD_TYPES: readonly string[] = ['text', 'textarea', 'number', 'date', 'boolean'];
+const FIELD_TYPES: readonly string[] = ['text', 'textarea', 'number', 'date', 'boolean', 'url'];
 const RESERVED_FIELD_NAMES = new Set(['id', 'created_at', 'updated_at', 'created_by']);
 const NAME_PATTERN = /^[a-z][a-zA-Z0-9_]{0,63}$/;
-const TOP_LEVEL_KEYS = ['id', 'name', 'description', 'kind', 'entities'] as const;
+const TOP_LEVEL_KEYS = ['id', 'name', 'description', 'kind', 'publicRead', 'entities'] as const;
 const ENTITY_KEYS = ['name', 'label', 'fields', 'defaultSort'] as const;
 const FIELD_KEYS = ['name', 'label', 'type', 'required'] as const;
 const SORT_KEYS = ['field', 'direction'] as const;
@@ -90,6 +92,10 @@ export function validateManifest(input: unknown): ModuleManifest {
   const kind = input.kind;
   if (kind !== 'simple' && kind !== 'code') {
     fail('kind must be "simple" or "code"');
+  }
+
+  if (input.publicRead !== undefined && typeof input.publicRead !== 'boolean') {
+    fail('publicRead must be a boolean');
   }
 
   const rawEntities = input.entities === undefined ? [] : input.entities;
@@ -170,5 +176,12 @@ export function validateManifest(input: unknown): ModuleManifest {
     });
   }
 
-  return { id, name, description, kind: kind as ModuleKind, entities };
+  return {
+    id,
+    name,
+    description,
+    kind: kind as ModuleKind,
+    ...(input.publicRead === undefined ? {} : { publicRead: input.publicRead }),
+    entities,
+  };
 }
