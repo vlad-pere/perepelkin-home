@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 export const MIGRATIONS: Record<number, string> = {
   1: `
@@ -71,6 +71,10 @@ export const MIGRATIONS: Record<number, string> = {
       applied_at TEXT NOT NULL,
       PRIMARY KEY (module_id, version)
     );
+  `,
+  3: `
+    ALTER TABLE users ADD COLUMN auth_mode TEXT NOT NULL DEFAULT 'pin' CHECK (auth_mode IN ('pin', 'password'));
+    UPDATE users SET auth_mode = 'password';
   `,
 };
 

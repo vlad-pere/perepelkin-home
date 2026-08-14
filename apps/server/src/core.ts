@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import type { Action, CoreApi, Grant, Group, ModuleInfo, ScopedStore, User, UserWithGroups } from '@perepelkin-home/core';
+import type { Action, AuthMode, CoreApi, Grant, Group, ModuleInfo, ScopedStore, User, UserWithGroups } from '@perepelkin-home/core';
 import {
   can as coreCan,
   createScopedStore,
@@ -14,6 +14,7 @@ export interface UserRow {
   id: number;
   username: string;
   password_hash: string;
+  auth_mode: AuthMode;
   is_admin: number;
   created_at: string;
 }
@@ -30,6 +31,7 @@ export function toUser(row: UserRow): User {
     id: row.id,
     username: row.username,
     isAdmin: row.is_admin === 1,
+    authMode: row.auth_mode === 'pin' ? 'pin' : 'password',
     createdAt: row.created_at,
   };
 }
@@ -41,9 +43,9 @@ export function toUser(row: UserRow): User {
 export interface Core extends CoreApi {
   users: CoreApi['users'] & {
     getByUsername(username: string): UserRow | undefined;
-    create(input: { username: string; password: string; isAdmin?: boolean }): Promise<User>;
+    create(input: { username: string; password: string; isAdmin?: boolean; authMode?: AuthMode }): Promise<User>;
     setAdmin(id: number, isAdmin: boolean): void;
-    resetPassword(id: number, password: string): Promise<void>;
+    setCredential(id: number, secret: string, authMode: AuthMode): Promise<void>;
     delete(id: number): void;
   };
   groups: CoreApi['groups'] & {
@@ -65,10 +67,10 @@ export function buildCore(db: Database.Database): Core {
   const userById = db.prepare('SELECT * FROM users WHERE id = ?');
   const userByUsername = db.prepare('SELECT * FROM users WHERE username = ?');
   const insertUser = db.prepare(
-    'INSERT INTO users (username, password_hash, is_admin) VALUES (?, ?, ?)',
+    'INSERT INTO users (username, password_hash, is_admin, auth_mode) VALUES (?, ?, ?, ?)',
   );
   const updateIsAdmin = db.prepare('UPDATE users SET is_admin = ? WHERE id = ?');
-  const updatePasswordHash = db.prepare('UPDATE users SET password_hash = ? WHERE id = ?');
+  const updateCredential = db.prepare('UPDATE users SET password_hash = ?, auth_mode = ? WHERE id = ?');
   const deleteUser = db.prepare('DELETE FROM users WHERE id = ?');
   const groupIdsForUser = db.prepare('SELECT group_id FROM group_members WHERE user_id = ?');
   const groupsForUser = db.prepare(
@@ -145,9 +147,10 @@ export function buildCore(db: Database.Database): Core {
       getByUsername(username: string): UserRow | undefined {
         return userByUsername.get(username) as UserRow | undefined;
       },
-      async create(input: { username: string; password: string; isAdmin?: boolean }): Promise<User> {
+      async create(input: { username: string; password: string; isAdmin?: boolean; authMode?: AuthMode }): Promise<User> {
+        const authMode: AuthMode = input.authMode ?? 'pin';
         const passwordHash = await hashPassword(input.password);
-        const result = insertUser.run(input.username.trim(), passwordHash, input.isAdmin ? 1 : 0);
+        const result = insertUser.run(input.username.trim(), passwordHash, input.isAdmin ? 1 : 0, authMode);
         const row = userById.get(result.lastInsertRowid) as UserRow;
         return toUser(row);
       },
@@ -155,8 +158,8 @@ export function buildCore(db: Database.Database): Core {
         updateIsAdmin.run(isAdmin ? 1 : 0, id);
         if (!isAdmin) deleteSessionsForUser(db, id);
       },
-      async resetPassword(id: number, password: string): Promise<void> {
-        updatePasswordHash.run(await hashPassword(password), id);
+      async setCredential(id: number, secret: string, authMode: AuthMode): Promise<void> {
+        updateCredential.run(await hashPassword(secret), authMode, id);
         deleteSessionsForUser(db, id);
       },
       delete(id: number): void {

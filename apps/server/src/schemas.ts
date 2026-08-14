@@ -3,10 +3,16 @@ export const usernameSchema = {
   pattern: '^[^\\s\\u0000-\\u001F]{1,64}$',
 };
 
-export const passwordSchema = {
+/** Секрет входа — пинкод (6 цифр) или пароль; формат проверяется по authMode. */
+export const secretSchema = {
   type: 'string',
-  minLength: 8,
+  minLength: 6,
   maxLength: 72,
+};
+
+export const authModeSchema = {
+  type: 'string',
+  enum: ['pin', 'password'],
 };
 
 export const nameSchema = {

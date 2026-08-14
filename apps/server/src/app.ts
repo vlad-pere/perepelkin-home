@@ -30,6 +30,7 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: opts.logger ?? false,
     trustProxy: config.trustProxy,
+    bodyLimit: 64 * 1024,
   });
 
   app.decorateRequest('core', { getter: () => core });
@@ -53,7 +54,9 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
       },
     },
     referrerPolicy: { policy: 'no-referrer' },
-    hsts: false,
+    hsts: config.cookieSecure
+      ? { maxAge: 31536000, includeSubDomains: true, preload: false }
+      : false,
   });
   await app.register(rateLimit, {
     max: 300,
@@ -62,9 +65,7 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
 
   app.addHook('preHandler', async (req, reply) => {
     resolveSession(db, req, reply);
-  });
-
-  app.setErrorHandler((err: FastifyError, req, reply) => {
+  });  app.setErrorHandler((err: FastifyError, req, reply) => {
     if (err.validation) {
       return reply
         .code(400)

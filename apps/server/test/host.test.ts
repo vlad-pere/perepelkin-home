@@ -32,7 +32,7 @@ let world: TestWorld;
 
 beforeEach(async () => {
   world = await createTestWorld();
-  await world.core.users.create({ username: 'member', password: 'secret123' });
+  await world.core.users.create({ username: 'member', password: 'secret123', authMode: 'password' });
 });
 
 afterEach(async () => {

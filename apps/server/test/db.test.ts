@@ -33,7 +33,7 @@ interface TableInfo {
   pk: number;
 }
 
-describe('schema v2', () => {
+describe('schema v3', () => {
   it('creates modules and module_migrations tables on a fresh db', () => {
     const db = track(openDb(':memory:'));
     const tables = db
@@ -85,17 +85,36 @@ describe('schema v2', () => {
     db.close();
   });
 
+  it('users has auth_mode with pin default and a CHECK constraint', () => {
+    const db = track(openDb(':memory:'));
+    const cols = db.prepare('PRAGMA table_info(users)').all() as TableInfo[];
+    const col = cols.find((c) => c.name === 'auth_mode');
+    expect(col).toBeDefined();
+    expect(col!.notnull).toBe(1);
+    expect(col!.dflt_value).toBe("'pin'");
+
+    db.prepare("INSERT INTO users (username, password_hash) VALUES ('a', 'h')").run();
+    expect(db.prepare("SELECT auth_mode FROM users WHERE username = 'a'").get()).toEqual({
+      auth_mode: 'pin',
+    });
+
+    expect(() =>
+      db.prepare("INSERT INTO users (username, password_hash, auth_mode) VALUES ('b', 'h', 'bogus')").run(),
+    ).toThrow();
+    db.close();
+  });
+
   it('is idempotent on reopen and preserves data', () => {
     const file = tempDbFile();
     const db1 = track(openDb(file));
     db1.prepare(
       "INSERT INTO modules (id, kind, name, manifest_json) VALUES ('m1', 'simple', 'Mod', '{}')",
     ).run();
-    expect(db1.pragma('user_version', { simple: true })).toBe(2);
+    expect(db1.pragma('user_version', { simple: true })).toBe(3);
     db1.close();
 
     const db2 = track(openDb(file));
-    expect(db2.pragma('user_version', { simple: true })).toBe(2);
+    expect(db2.pragma('user_version', { simple: true })).toBe(3);
     expect(db2.prepare("SELECT id, kind FROM modules WHERE id = 'm1'").get()).toEqual({
       id: 'm1',
       kind: 'simple',
@@ -113,9 +132,12 @@ describe('schema v2', () => {
     raw.close();
 
     const db = track(openDb(file));
-    expect(db.pragma('user_version', { simple: true })).toBe(2);
+    expect(db.pragma('user_version', { simple: true })).toBe(3);
     expect(db.prepare("SELECT username FROM users WHERE username = 'alice'").get()).toEqual({
       username: 'alice',
+    });
+    expect(db.prepare("SELECT auth_mode FROM users WHERE username = 'alice'").get()).toEqual({
+      auth_mode: 'password',
     });
     expect(db.prepare("SELECT name FROM groups WHERE name = 'family'").get()).toEqual({
       name: 'family',

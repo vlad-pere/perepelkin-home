@@ -4,11 +4,11 @@ import type { MeResponse, ModuleKind } from '@perepelkin-home/core';
 import type { Config } from '../config.js';
 import type { Core, UserRow } from '../core.js';
 import { toUser } from '../core.js';
-import { verifyPassword } from '../auth/passwords.js';
+import { verifyCredential } from '../auth/passwords.js';
 import { createSession, deleteSession } from '../db/sessions.js';
 import { SESSION_COOKIE } from '../constants.js';
 import { requireAuth, csrfOk } from '../hooks.js';
-import { passwordSchema, usernameSchema } from '../schemas.js';
+import { secretSchema, usernameSchema } from '../schemas.js';
 
 const loginBodySchema = {
   type: 'object',
@@ -16,7 +16,7 @@ const loginBodySchema = {
   required: ['username', 'password'],
   properties: {
     username: usernameSchema,
-    password: passwordSchema,
+    password: secretSchema,
   },
 };
 
@@ -76,13 +76,13 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthRoutesDeps): 
       if (!user) {
         return reply
           .code(401)
-          .send({ error: { code: 'INVALID_CREDENTIALS', message: 'Неверное имя пользователя или пароль' } });
+          .send({ error: { code: 'INVALID_CREDENTIALS', message: 'Неверное имя пользователя, пинкод или пароль' } });
       }
-      const ok = await verifyPassword(password, user.password_hash);
+      const ok = await verifyCredential(password, user.password_hash, user.auth_mode);
       if (!ok) {
         return reply
           .code(401)
-          .send({ error: { code: 'INVALID_CREDENTIALS', message: 'Неверное имя пользователя или пароль' } });
+          .send({ error: { code: 'INVALID_CREDENTIALS', message: 'Неверное имя пользователя, пинкод или пароль' } });
       }
 
       const session = createSession(db, user.id, config.sessionTtlMs);

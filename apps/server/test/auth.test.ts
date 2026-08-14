@@ -70,7 +70,7 @@ describe('POST /api/auth/login', () => {
     const client = new Client(world.app);
     const res = await client.login('admin', 'wrongpass1');
     expect(res.statusCode).toBe(401);
-    expect(res.json().error.message).toMatch(/Неверное имя пользователя или пароль/);
+    expect(res.json().error.message).toMatch(/Неверное имя пользователя, пинкод или пароль/);
   });
 
   it('устанавливает httpOnly-куку сессии и выдаёт CSRF-токен', async () => {
@@ -100,6 +100,51 @@ describe('POST /api/auth/login', () => {
       last = await client.login('admin', 'wrongpass1');
     }
     expect(last?.statusCode).toBe(429);
+  });
+});
+
+describe('POST /api/auth/login с пинкодом', () => {
+  it('пускает пользователя с пинкодом из 6 цифр', async () => {
+    await world.core.users.create({ username: 'sveta', password: '123456', authMode: 'pin' });
+    const client = new Client(world.app);
+    const res = await client.login('sveta', '123456');
+    expect(res.statusCode).toBe(200);
+    expect(client.hasSession).toBe(true);
+  });
+
+  it('отклоняет неверный пинкод тем же сообщением, что и неверный пароль', async () => {
+    await world.core.users.create({ username: 'sveta', password: '123456', authMode: 'pin' });
+    const client = new Client(world.app);
+    const res = await client.login('sveta', '654321');
+    expect(res.statusCode).toBe(401);
+    expect(res.json().error.code).toBe('INVALID_CREDENTIALS');
+    expect(client.hasSession).toBe(false);
+  });
+
+  it('отклоняет пинкод не из 6 цифр без раскрытия формата', async () => {
+    await world.core.users.create({ username: 'sveta', password: '123456', authMode: 'pin' });
+    const client = new Client(world.app);
+
+    const letters = await client.login('sveta', '12345a');
+    expect(letters.statusCode).toBe(401);
+    expect(letters.json().error.code).toBe('INVALID_CREDENTIALS');
+
+    const password = await client.login('sveta', 'secret123');
+    expect(password.statusCode).toBe(401);
+  });
+
+  it('отклоняет пароль для пинкод-пользователя', async () => {
+    await world.core.users.create({ username: 'sveta', password: '123456', authMode: 'pin' });
+    const client = new Client(world.app);
+    const res = await client.login('sveta', 'secret123');
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('не пускает пинкодом пользователя с паролем', async () => {
+    await world.core.users.create({ username: 'petr', password: 'secret123', authMode: 'password' });
+    const client = new Client(world.app);
+    const res = await client.login('petr', '123456');
+    expect(res.statusCode).toBe(401);
   });
 });
 
@@ -172,7 +217,7 @@ describe('метаданные модулей в /me', () => {
   });
 
   it('для простого модуля возвращает kind=simple и route=/m/<id>', async () => {
-    await world.core.users.create({ username: 'member', password: 'secret123' });
+    await world.core.users.create({ username: 'member', password: 'secret123', authMode: 'password' });
     await mountModule(world.app, { db: world.db, core: world.core, manifest: simpleManifest });
 
     const user = world.core.users.getByUsername('member')!;
@@ -196,7 +241,7 @@ describe('метаданные модулей в /me', () => {
 
 describe('админ-доступ', () => {
   it('запрещает обычному пользователю админ-эндпоинты', async () => {
-    await world.core.users.create({ username: 'member', password: 'secret123' });
+    await world.core.users.create({ username: 'member', password: 'secret123', authMode: 'password' });
     const client = new Client(world.app);
     await client.login('member', 'secret123');
 

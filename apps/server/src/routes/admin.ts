@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify';
+import type { AuthMode } from '@perepelkin-home/core';
 import type { Core } from '../core.js';
 import { requireAdmin } from '../hooks.js';
 import { badRequest, conflict, isUniqueViolation, notFound } from '../errors.js';
-import { descriptionSchema, nameSchema, passwordSchema, usernameSchema } from '../schemas.js';
+import { authModeSchema, descriptionSchema, nameSchema, secretSchema, usernameSchema } from '../schemas.js';
+import { validateCredential } from '../auth/passwords.js';
 
 const createUserSchema = {
   type: 'object',
@@ -10,7 +12,8 @@ const createUserSchema = {
   required: ['username', 'password'],
   properties: {
     username: usernameSchema,
-    password: passwordSchema,
+    password: secretSchema,
+    authMode: authModeSchema,
   },
 };
 
@@ -18,7 +21,8 @@ const patchUserSchema = {
   type: 'object',
   additionalProperties: false,
   properties: {
-    password: passwordSchema,
+    password: secretSchema,
+    authMode: authModeSchema,
     isAdmin: { type: 'boolean' },
   },
 };
@@ -65,16 +69,23 @@ const setGrantSchema = {
 const paramsId = { type: 'object', additionalProperties: false, properties: { id: { type: 'integer', minimum: 1 } } };
 
 export function registerAdminRoutes(app: FastifyInstance, core: Core): void {
-  const admin = { preHandler: requireAdmin };
+  const admin = { preHandler: requireAdmin, config: { rateLimit: { max: 60, timeWindow: '15 minutes' } } };
 
   // ---- users ----
 
   app.get('/api/admin/users', admin, async () => ({ users: core.users.list() }));
 
   app.post('/api/admin/users', { ...admin, schema: { body: createUserSchema } }, async (req, reply) => {
-    const { username, password } = req.body as { username: string; password: string };
+    const { username, password, authMode } = req.body as {
+      username: string;
+      password: string;
+      authMode?: AuthMode;
+    };
+    const mode: AuthMode = authMode ?? 'pin';
+    const invalid = validateCredential(password, mode);
+    if (invalid) throw badRequest(invalid);
     try {
-      const user = await core.users.create({ username, password });
+      const user = await core.users.create({ username, password, authMode: mode });
       return reply.code(201).send({ user });
     } catch (err) {
       if (isUniqueViolation(err)) throw conflict('Пользователь с таким именем уже существует');
@@ -84,8 +95,14 @@ export function registerAdminRoutes(app: FastifyInstance, core: Core): void {
 
   app.patch('/api/admin/users/:id', { ...admin, schema: { body: patchUserSchema, params: paramsId } }, async (req, reply) => {
     const id = (req.params as { id: number }).id;
-    const body = req.body as { password?: string; isAdmin?: boolean };
+    const body = req.body as { password?: string; authMode?: AuthMode; isAdmin?: boolean };
 
+    if (body.password !== undefined && body.authMode === undefined) {
+      throw badRequest('Укажите тип входа: pin или password');
+    }
+    if (body.authMode !== undefined && body.password === undefined) {
+      throw badRequest('Для смены типа входа укажите новый пинкод или пароль');
+    }
     if (body.password === undefined && body.isAdmin === undefined) {
       throw badRequest('Нет полей для изменения');
     }
@@ -94,7 +111,9 @@ export function registerAdminRoutes(app: FastifyInstance, core: Core): void {
 
     if (body.password !== undefined) {
       if (req.user?.id === id) throw badRequest('Нельзя менять собственный пароль через админ-API');
-      await core.users.resetPassword(id, body.password);
+      const invalid = validateCredential(body.password, body.authMode!);
+      if (invalid) throw badRequest(invalid);
+      await core.users.setCredential(id, body.password, body.authMode!);
     }
     if (body.isAdmin !== undefined) {
       if (req.user?.id === id && !body.isAdmin) throw badRequest('Нельзя снять с себя права администратора');

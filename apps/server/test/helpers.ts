@@ -45,7 +45,7 @@ export async function createAdmin(
   username = 'admin',
   password = 'secret123',
 ): Promise<void> {
-  await world.core.users.create({ username, password, isAdmin: true });
+  await world.core.users.create({ username, password, isAdmin: true, authMode: 'password' });
 }
 
 /** Клиент, который хранит сессию/CSRF-токен и шлёт их в следующих запросах. */

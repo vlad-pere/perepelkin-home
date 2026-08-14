@@ -4,6 +4,7 @@ export type {
   User,
   UserWithGroups,
   Group,
+  AuthMode,
   ModuleInfo,
   Grant,
   ModuleAccess,
