@@ -92,4 +92,68 @@ describe('repo modules', () => {
     });
     expect(created.statusCode).toBe(201);
   });
+
+  it('diary module mounts and supports CRUD plus file upload/serve/delete', async () => {
+    const { modules, errors } = loadManifests(MODULES_DIR);
+    expect(errors).toEqual([]);
+    const manifest = modules.find((m) => m.id === 'diary');
+    expect(manifest).toBeDefined();
+    expect(manifest!.kind).toBe('simple');
+    expect(manifest!.entities.map((e) => e.name)).toEqual(['entry']);
+
+    await mountModule(world.app, {
+      db: world.db,
+      core: world.core,
+      manifest: manifest!,
+      files: world.files,
+    });
+    const user = world.core.users.getByUsername('member')!;
+    grant(user.id, true, true, 'diary');
+    const client = new Client(world.app);
+    await client.login('member', 'secret123');
+
+    const uploaded = await client.inject(
+      'POST',
+      '/api/modules/diary/files?name=apple-tree.jpg',
+      Buffer.from('яблоня', 'utf8'),
+      { headers: { 'content-type': 'image/jpeg' } },
+    );
+    expect(uploaded.statusCode).toBe(201);
+    const fileId = (uploaded.json() as { file: { id: string } }).file.id;
+
+    const created = await client.inject('POST', '/api/modules/diary/entry', {
+      date: '2026-08-16',
+      title: 'Посадили яблоню',
+      text: 'Купили саженец и посадили у забора.',
+      mood: '😊',
+      category: 'Сад и двор',
+      photos: JSON.stringify([fileId]),
+    });
+    expect(created.statusCode).toBe(201);
+    const id = (created.json() as { item: { id: number } }).item.id;
+
+    const served = await client.inject('GET', `/api/modules/diary/files/${fileId}`);
+    expect(served.statusCode).toBe(200);
+    expect(served.headers['content-type']).toBe('image/jpeg');
+    expect(served.rawPayload.toString('utf8')).toBe('яблоня');
+
+    const listed = await client.inject('GET', '/api/modules/diary/entry');
+    expect(listed.statusCode).toBe(200);
+    expect((listed.json() as { items: unknown[] }).items).toHaveLength(1);
+
+    const patched = await client.inject('PATCH', `/api/modules/diary/entry/${id}`, {
+      text: 'Посадили две яблони.',
+      photos: JSON.stringify([]),
+    });
+    expect(patched.statusCode).toBe(200);
+
+    const removed = await client.inject('DELETE', `/api/modules/diary/files/${fileId}`);
+    expect(removed.statusCode).toBe(204);
+
+    const gone = await client.inject('GET', `/api/modules/diary/files/${fileId}`);
+    expect(gone.statusCode).toBe(404);
+
+    const deleted = await client.inject('DELETE', `/api/modules/diary/entry/${id}`);
+    expect(deleted.statusCode).toBe(204);
+  });
 });

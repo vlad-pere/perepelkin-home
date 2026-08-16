@@ -1,0 +1,21 @@
+{
+  "id": "diary",
+  "name": "Дневник дома",
+  "description": "Летопись дома: события, ремонт, гости, сад и всё, что стоит запомнить.",
+  "kind": "simple",
+  "entities": [
+    {
+      "name": "entry",
+      "label": "Запись",
+      "fields": [
+        { "name": "date", "label": "Дата", "type": "date", "required": true },
+        { "name": "title", "label": "Заголовок", "type": "text", "required": true },
+        { "name": "text", "label": "Рассказ", "type": "textarea", "required": true },
+        { "name": "mood", "label": "Настроение", "type": "text" },
+        { "name": "category", "label": "Раздел", "type": "text" },
+        { "name": "photos", "label": "Фото", "type": "text" }
+      ],
+      "defaultSort": { "field": "date", "direction": "desc" }
+    }
+  ]
+}

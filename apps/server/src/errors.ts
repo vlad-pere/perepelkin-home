@@ -16,6 +16,9 @@ export const notFound = (message = 'Ресурс не найден'): ApiError =
 export const badRequest = (message = 'Некорректный запрос'): ApiError =>
   new ApiError(400, 'BAD_REQUEST', message);
 
+export const payloadTooLarge = (message = 'Файл слишком большой'): ApiError =>
+  new ApiError(413, 'PAYLOAD_TOO_LARGE', message);
+
 export const conflict = (message = 'Конфликт'): ApiError =>
   new ApiError(409, 'CONFLICT', message);
 

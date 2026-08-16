@@ -8,6 +8,7 @@
 - **Автогенерация UI.** Простые модули получают CRUD-интерфейс автоматически из манифеста, без пересборки фронтенда.
 - **Доступ по группам.** `пользователи → группы → модули`. Права чтения/записи на модуль задаются на уровне группы.
 - **Безопасность.** Сессии (httpOnly + Secure), per-session CSRF, bcrypt, rate limiting, security-заголовки.
+- **Хранение файлов.** Платформенные файловые роуты (`GET/POST/DELETE /api/modules/<id>/files...`) монтируются для каждого модуля под его правами read/write. В проде файлы живут в отдельном S3-совместимом хранилище (MinIO-контейнер), в разработке — на локальном диске. Метаданные файлов — в БД, байты — в хранилище, так что файлы переживают пересоздание контейнера приложения.
 
 ## Стек
 
@@ -119,14 +120,30 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 
 Манифест с `kind: "code"` + Fastify-плагин (`server.ts`) и React-роуты (`ui.tsx`). Роуты регистрируются через `ctx.route({ method, path, action }, handler)` — проверка прав обязательна для каждого роута. Пример — `modules/admin/`. Подробности: [docs/architecture.md](docs/architecture.md).
 
+## Хранение файлов
+
+Любой модуль может хранить файлы (фото, документы). Файлы — платформенный механизм, переиспользуемый модулями без собственного кода для загрузки/хранения.
+
+- **Роуты** монтируются для каждого модуля и закрыты его правами:
+  - `POST /api/modules/<id>/files?name=<filename>` — загрузка (тело запроса — сырые байты, заголовок `content-type` — тип файла). Ответ: `{ "id": <uuid>, "name": <filename>, "size": <bytes>, "mime": <type> }`.
+  - `GET /api/modules/<id>/files/<fileId>` — отдача файла (`content-type`, `content-length`, `cache-control`; несуществующий файл — 404). Загрузка и отдача **не требуют** CSRF-токена (GET и мультипарт-свободные запросы) — но требуют сессии и права `files.read`/`files.write`.
+  - `DELETE /api/modules/<id>/files/<fileId>` — удаление (сразу из БД и из хранилища).
+- **Что можно хранить:** только изображения (`jpeg`, `png`, `webp`, `gif`, `avif`; SVG запрещён — против XSS), размер по умолчанию до 8 МБ (`MAX_FILE_SIZE_MB`, максимум 64). Ключ объекта в хранилище — `randomUUID()`, валидируется при запросах (защита от path traversal).
+- **Использование в модуле:** метаданные файла берутся из ответа загрузки; ссылки на них модуль хранит у себя в записях (например, дневник держит `photos` — массив id картинок). Байты модуль не трогает.
+- **Два бэкенда** под общим интерфейсом `ByteStorage` (`apps/server/src/modules/storage.ts`):
+  - **S3 (прод).** Если задан `S3_ENDPOINT`, хранилище — S3-совместимый сервис (в проде это сервис `minio` в compose). Bucket создаётся автоматически при старте приложения (идемпотентно). Ключи доступа — `S3_ACCESS_KEY`/`S3_SECRET_KEY`, имя bucket — `S3_BUCKET`, регион — `S3_REGION` (по умолчанию `us-east-1`), `S3_USE_SSL` — если endpoint отдан по HTTPS.
+  - **Локальный диск (разработка).** Без `S3_ENDPOINT` файлы пишутся в `filesDir` (`FILES_DIR`, по умолчанию `<cwd>/files`). Для локального теста S3 можно поднять MinIO и задать S3-переменные — код тот же, что в проде.
+- **Проверка S3-пути офлайн:** `npm test` гоняет `storage.s3mock.test.ts` — реальный minio-клиент против in-process фейк-S3. Интеграционный тест `storage.s3.test.ts` (настоящий MinIO, round-trip put/get/remove) пропускается, пока не задан `S3_TEST_ENDPOINT`; команда запуска — в шапке файла.
+- Переменные окружения: см. `apps/server/.env.example`. Пример модуля с файлами — `modules/diary/` (дневник с фото).
+
 ## Скрипты
 
 | Команда | Что делает |
 | --- | --- |
-| `npm run dev` | Сборка core/admin/todo/wishlist + сервер (3000) и фронтенд (5173) одновременно |
+| `npm run dev` | Сборка core/admin/todo/wishlist/diary + сервер (3000) и фронтенд (5173) одновременно |
 | `npm run dev:server` / `npm run dev:web` | Только сервер / только фронтенд |
 | `npm run seed` | Создаёт администратора и группы «Семья»/«Гости» |
-| `npm run build` | Сборка core, module-admin, module-todo, module-wishlist, server, web |
+| `npm run build` | Сборка core, module-admin, module-todo, module-wishlist, module-diary, server, web |
 | `npm run typecheck` | Проверка типов во всех workspace-пакетах |
 | `npm test` | Vitest: core + server |
 
@@ -138,11 +155,11 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 
 ## Продакшен
 
-Деплой — Docker Compose: приложение (`app`) + Caddy reverse proxy (`caddy`) с авто-HTTPS (Let's Encrypt). Файлы: `Dockerfile`, `docker-compose.yml`, `Caddyfile`, `docker-entrypoint.sh`.
+Деплой — Docker Compose: приложение (`app`) + Caddy reverse proxy (`caddy`) с авто-HTTPS (Let's Encrypt) + MinIO (`minio`) для хранения файлов. Файлы: `Dockerfile`, `docker-compose.yml`, `Caddyfile`, `docker-entrypoint.sh`.
 
 Примечание для домашнего роутера Xiaomi (прошивка 3.x): пробросить наружу порт 80 нельзя — его занимает админка роутера, ограничение прошивки. Пробрасывается только 443 → хост. Caddy получает сертификат по TLS-ALPN (порт 443), поэтому сайт открывается строго по `https://домен`; ввод домена без схемы (порт 80) из интернета не работает.
 
-1. **Настроить окружение.** Скопировать `.env.example` в `.env` и заполнить: `DOMAIN` (домен, на котором будет доступно приложение; A/AAAA-запись должна указывать на сервер), `ADMIN_PASSWORD` (8–72 символа), при желании `ADMIN_USERNAME`, `ACME_EMAIL`. Хост-порты `HTTP_PORT`/`HTTPS_PORT` по умолчанию 80/443.
+1. **Настроить окружение.** Скопировать `.env.example` в `.env` и заполнить: `DOMAIN` (домен, на котором будет доступно приложение; A/AAAA-запись должна указывать на сервер), `ADMIN_PASSWORD` (8–72 символа), при желании `ADMIN_USERNAME`, `ACME_EMAIL`. Для хранилища файлов задать `MINIO_ROOT_USER` и `MINIO_ROOT_PASSWORD` (имя и пароль суперпользователя MinIO) и `S3_BUCKET` (имя bucket'а приложения); `S3_ENDPOINT` выставлять не нужно — compose подставляет его сам. Хост-порты `HTTP_PORT`/`HTTPS_PORT` по умолчанию 80/443.
 
 2. **Запустить:**
 
@@ -150,7 +167,7 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
    docker compose up -d --build
    ```
 
-   При первом старте контейнер сам создаёт администратора и группы «Семья»/«Гости» (seed идемпотентен, безопасен на каждом старте). База — named volume `data` (`/app/data/perepelkin-home.db`), данные переживают рестарт и обновление образа.
+   При первом старте контейнер сам создаёт администратора и группы «Семья»/«Гости» (seed идемпотентен, безопасен на каждом старте). База — named volume `data` (`/app/data/perepelkin-home.db`), данные переживают рестарт и обновление образа. Файлы модулей — в MinIO (volume `minio_data`), приложение дожидается его готовности и при старте создаёт bucket.
 
 3. **Добавить модуль** — положить `modules/<id>/manifest.json` на сервере и перезапустить контейнер: `docker compose restart app`. Каталог `modules/` монтируется в контейнер read-only, пересборка образа не нужна.
 
@@ -179,7 +196,7 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 ### Как это устроено
 
 - **Dockerfile** — мультистейдж: `build` (npm ci + сборка core → module-admin → server → web) и `runtime` (только prod-зависимости, артефакты сборки, не-root пользователь `node`). `npm ci` идёт с `--ignore-scripts`: better-sqlite3 и esbuild используют prebuilds/optionalDependencies, компилятор в образе не нужен.
-- **`docker-compose.yml`** — сервис `app` (healthcheck через `GET /api/auth/me`), сервис `caddy` (ждёт healthy, раздаёт по `DOMAIN`, авто-HTTPS). Секреты/конфиг — из `.env`.
+- **`docker-compose.yml`** — сервис `app` (healthcheck через `GET /api/auth/me`), сервис `caddy` (ждёт healthy, раздаёт по `DOMAIN`, авто-HTTPS), сервис `minio` (S3-совместимое хранилище, консоль только на `127.0.0.1:9001`, volume `minio_data`; приложение ждёт его healthcheck и само создаёт bucket). Секреты/конфиг — из `.env`.
 - **Монтирование модулей.** Код-модуль `admin` импортируется сервером из `node_modules` (не из смонтированного каталога), поэтому хост-маунт `./modules` не ломает импорт.
 
 Переменные окружения сервера: см. `apps/server/.env.example`.
@@ -205,11 +222,11 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 
 ## Тестовый стенд (staging)
 
-Изолированный стенд для проверки изменений перед продом: свои контейнер, БД и порт — прод не затрагивает.
+Изолированный стенд для проверки изменений перед продом: свои контейнер, БД, MinIO и порт — прод не затрагивает.
 
 - Адрес: `http://192.168.0.103:3080` (только домашняя сеть; локально — `http://localhost:3080`).
 - Вход: `admin`, пароль — в `/home/user/docker/apps/perepelkin-home-staging/.env` на сервере.
-- Конфиг: `docker-compose.staging.yml` (проект `perepelkin-home-staging`, отдельный volume `staging_data` — данные стенда изолированы от прода).
+- Конфиг: `docker-compose.staging.yml` (проект `perepelkin-home-staging`, отдельные volume `staging_data` и `staging_minio_data` — данные стенда изолированы от прода).
 - Деплой: workflow `Staging` (`.github/workflows/staging.yml`) — запуск вручную (`gh workflow run staging.yml --repo vlad-pere/perepelkin-home` или GitHub → Actions → Staging → Run workflow), либо автоматически при пуше в ветку `staging`.
 
 Цикл проверки: ветка → пуш → workflow Staging → тестирование на `:3080` → merge в `main` → прод публикуется сам.

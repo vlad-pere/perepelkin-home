@@ -1,4 +1,4 @@
-services:
+﻿services:
   app:
     build:
       context: .
@@ -11,20 +11,52 @@ services:
       PORT: 3000
       DB_PATH: /app/data/perepelkin-home.db
       SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-168}
-      # За Caddy HTTPS всегда true; для локального теста по http ставьте false
+      # Р—Р° Caddy HTTPS РІСЃРµРіРґР° true; РґР»СЏ Р»РѕРєР°Р»СЊРЅРѕРіРѕ С‚РµСЃС‚Р° РїРѕ http СЃС‚Р°РІСЊС‚Рµ false
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
       TRUST_PROXY: ${TRUST_PROXY:-true}
       WEB_DIST: /app/apps/web/dist
       MODULES_DIR: /app/modules
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?задайте ADMIN_PASSWORD в .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Р·Р°РґР°Р№С‚Рµ ADMIN_PASSWORD РІ .env}
+      # Р¤Р°Р№Р»С‹ РјРѕРґСѓР»РµР№ (С„РѕС‚Рѕ РґРЅРµРІРЅРёРєР°) вЂ” РІ S3 (MinIO), Р° РЅРµ РЅР° РґРёСЃРєРµ РїСЂРёР»РѕР¶РµРЅРёСЏ
+      S3_ENDPOINT: minio:9000
+      S3_USE_SSL: "false"
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:?Р·Р°РґР°Р№С‚Рµ MINIO_ROOT_USER РІ .env}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Р·Р°РґР°Р№С‚Рµ MINIO_ROOT_PASSWORD РІ .env (РјРёРЅРёРјСѓРј 8 СЃРёРјРІРѕР»РѕРІ)}
+      S3_BUCKET: ${S3_BUCKET:-domo}
+      S3_REGION: ${S3_REGION:-us-east-1}
+    depends_on:
+      minio:
+        condition: service_healthy
     volumes:
       - data:/app/data
-      # Каталог модулей — read-only: добавление модуля = положить manifest.json,
-      # перезапустить контейнер, без пересборки образа.
+      # РљР°С‚Р°Р»РѕРі РјРѕРґСѓР»РµР№ вЂ” read-only: РґРѕР±Р°РІР»РµРЅРёРµ РјРѕРґСѓР»СЏ = РїРѕР»РѕР¶РёС‚СЊ manifest.json,
+      # РїРµСЂРµР·Р°РїСѓСЃС‚РёС‚СЊ РєРѕРЅС‚РµР№РЅРµСЂ, Р±РµР· РїРµСЂРµСЃР±РѕСЂРєРё РѕР±СЂР°Р·Р°.
       - ./modules:/app/modules:ro
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/auth/me').then(r=>process.exit(r.status===401||r.status===200?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # S3-С…СЂР°РЅРёР»РёС‰Рµ С„Р°Р№Р»РѕРІ РјРѕРґСѓР»РµР№. Р Р°Р±РѕС‚Р°РµС‚ РЅРµР·Р°РІРёСЃРёРјРѕ РѕС‚ РїСЂРёР»РѕР¶РµРЅРёСЏ; С„РѕС‚Рѕ РґРЅРµРІРЅРёРєР°
+  # РїРµСЂРµР¶РёРІР°СЋС‚ РїР°РґРµРЅРёРµ/РїРµСЂРµСЃРѕР·РґР°РЅРёРµ app-РєРѕРЅС‚РµР№РЅРµСЂР°. Р”РѕСЃС‚СѓРї Рє РѕР±СЉРµРєС‚Р°Рј вЂ” С‚РѕР»СЊРєРѕ С‡РµСЂРµР·
+  # РїСЂРёР»РѕР¶РµРЅРёРµ (РїСЂРѕРІРµСЂРєР° РїСЂР°РІ), bucket Р·Р°РєСЂС‹С‚ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Р·Р°РґР°Р№С‚Рµ MINIO_ROOT_USER РІ .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Р·Р°РґР°Р№С‚Рµ MINIO_ROOT_PASSWORD РІ .env (РјРёРЅРёРјСѓРј 8 СЃРёРјРІРѕР»РѕРІ)}
+    ports:
+      # РљРѕРЅСЃРѕР»СЊ вЂ” С‚РѕР»СЊРєРѕ РґР»СЏ РІР»Р°РґРµР»СЊС†Р°, РґРѕСЃС‚СѓРїРЅР° СЃ С…РѕСЃС‚Р° РїРѕ http://localhost:9001
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -40,7 +72,7 @@ services:
       - "${HTTP_PORT:-80}:80"
       - "${HTTPS_PORT:-443}:443"
     environment:
-      DOMAIN: ${DOMAIN:?задайте DOMAIN в .env (например, domo.example.com)}
+      DOMAIN: ${DOMAIN:?Р·Р°РґР°Р№С‚Рµ DOMAIN РІ .env (РЅР°РїСЂРёРјРµСЂ, domo.example.com)}
       DOMAIN2: ${DOMAIN2:-${DOMAIN}}
       ACME_EMAIL: ${ACME_EMAIL:-caddy@localhost}
     healthcheck:
@@ -56,5 +88,6 @@ services:
 
 volumes:
   data:
+  minio_data:
   caddy_data:
   caddy_config:

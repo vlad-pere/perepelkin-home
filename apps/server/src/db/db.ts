@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 export const MIGRATIONS: Record<number, string> = {
   1: `
@@ -93,6 +93,18 @@ export const MIGRATIONS: Record<number, string> = {
       FROM users;
     DROP TABLE users;
     ALTER TABLE users_new RENAME TO users;
+  `,
+  5: `
+    CREATE TABLE IF NOT EXISTS files (
+      id TEXT PRIMARY KEY,
+      module_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      mime TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      created_by INTEGER,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_files_module ON files(module_id);
   `,
 };
 

@@ -1,4 +1,4 @@
-services:
+﻿services:
   app:
     image: perepelkin-home:staging
     restart: unless-stopped
@@ -10,13 +10,22 @@ services:
       PORT: 3000
       DB_PATH: /app/data/perepelkin-home.db
       SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-168}
-      # Staging — по HTTP (без домена), поэтому Secure-куки выключены
+      # Staging вЂ” РїРѕ HTTP (Р±РµР· РґРѕРјРµРЅР°), РїРѕСЌС‚РѕРјСѓ Secure-РєСѓРєРё РІС‹РєР»СЋС‡РµРЅС‹
       COOKIE_SECURE: "false"
       TRUST_PROXY: "false"
       WEB_DIST: /app/apps/web/dist
       MODULES_DIR: /app/modules
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?задайте ADMIN_PASSWORD в .env staging}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Р·Р°РґР°Р№С‚Рµ ADMIN_PASSWORD РІ .env staging}
+      S3_ENDPOINT: minio:9000
+      S3_USE_SSL: "false"
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:?Р·Р°РґР°Р№С‚Рµ MINIO_ROOT_USER РІ .env}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Р·Р°РґР°Р№С‚Рµ MINIO_ROOT_PASSWORD РІ .env (РјРёРЅРёРјСѓРј 8 СЃРёРјРІРѕР»РѕРІ)}
+      S3_BUCKET: ${S3_BUCKET:-domo}
+      S3_REGION: ${S3_REGION:-us-east-1}
+    depends_on:
+      minio:
+        condition: service_healthy
     volumes:
       - staging_data:/app/data
     healthcheck:
@@ -26,5 +35,23 @@ services:
       retries: 5
       start_period: 10s
 
+  # S3-С…СЂР°РЅРёР»РёС‰Рµ С„Р°Р№Р»РѕРІ РјРѕРґСѓР»РµР№ (СЃРј. docker-compose.yml)
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Р·Р°РґР°Р№С‚Рµ MINIO_ROOT_USER РІ .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Р·Р°РґР°Р№С‚Рµ MINIO_ROOT_PASSWORD РІ .env (РјРёРЅРёРјСѓРј 8 СЃРёРјРІРѕР»РѕРІ)}
+    volumes:
+      - staging_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   staging_data:
+  staging_minio_data:

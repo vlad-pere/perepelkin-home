@@ -15,12 +15,16 @@ import { resolveSession } from './hooks.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { registerModulesFromDisk } from './modules/host.js';
+import { createFilesService, type FilesService } from './modules/files.js';
+import { createConfiguredStorage } from './modules/storage.js';
 import { ApiError } from './errors.js';
 
 export interface AppOptions {
   db: Database.Database;
   config: Config;
   logger?: boolean;
+  /** Тесты передают свою реализацию; по умолчанию создаётся из конфига. */
+  files?: FilesService;
 }
 
 export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
@@ -45,12 +49,16 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:'],
+        imgSrc: ["'self'", 'data:', 'blob:'],
         fontSrc: ["'self'"],
         connectSrc: ["'self'"],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         frameAncestors: ["'none'"],
+        // Директива из дефолта helmet ломает SPA на стенде (чистый HTTP): браузер
+        // поднимает same-origin скрипты до https и они не загружаются. У нас все
+        // ресурсы same-origin, поэтому она не нужна даже на проде (HTTPS).
+        upgradeInsecureRequests: null,
       },
     },
     referrerPolicy: { policy: 'no-referrer' },
@@ -62,6 +70,18 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
     max: 300,
     timeWindow: '15 minutes',
   });
+
+  // Тело загрузки файлов — сырые байты изображения (без multipart). Парсер даёт
+  // Buffer по всему телу; лимит размера применяется на уровне роута (`bodyLimit`).
+  app.addContentTypeParser(/^image\//, { parseAs: 'buffer' }, (_req, body, done) => {
+    done(null, body);
+  });
+  const files =
+    opts.files ??
+    (await (async () => {
+      const storage = await createConfiguredStorage(config);
+      return createFilesService({ db, storage, maxFileSize: config.maxFileSize });
+    })());
 
   app.addHook('preHandler', async (req, reply) => {
     resolveSession(db, req, reply);
@@ -91,7 +111,7 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
   registerAdminRoutes(app, core);
 
   if (config.modulesDir) {
-    await registerModulesFromDisk(app, { db, core, modulesDir: config.modulesDir });
+    await registerModulesFromDisk(app, { db, core, modulesDir: config.modulesDir, files });
   }
 
   if (config.webDist && existsSync(config.webDist)) {

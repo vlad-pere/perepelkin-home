@@ -4,6 +4,7 @@ import type { Action, ModuleManifest } from '@perepelkin-home/core';
 import type { Core } from '../core.js';
 import { csrfOk } from '../hooks.js';
 import { createEntityTableSql, registerCrudRoutes } from './crud.js';
+import { registerModuleFileRoutes, type FilesService } from './files.js';
 import { loadManifests } from './loader.js';
 
 export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -52,6 +53,8 @@ export interface MountModuleOptions {
   manifest: ModuleManifest;
   /** Только для код-модулей: регистрирует произвольные роуты через `ctx.route`. */
   register?: CodeModuleRegister;
+  /** Переиспользуемое хранилище файлов; если задано — модулю доступны роуты `/files`. */
+  files?: FilesService;
 }
 
 export async function mountModule(app: FastifyInstance, opts: MountModuleOptions): Promise<void> {
@@ -87,6 +90,14 @@ export async function mountModule(app: FastifyInstance, opts: MountModuleOptions
 
         if (manifest.kind === 'simple') {
           registerCrudRoutes(moduleApp, { db, manifest, guards: { read: readGuard, write: writeGuard } });
+        }
+
+        if (opts.files) {
+          registerModuleFileRoutes(moduleApp, {
+            files: opts.files,
+            moduleId,
+            guards: { read: readGuard, write: writeGuard },
+          });
         }
 
         if (opts.register) await opts.register(moduleApp, ctx);
@@ -147,6 +158,7 @@ export interface RegisterModulesOptions {
   modulesDir: string;
   log?: FastifyBaseLogger;
   codeLoader?: (id: string, manifest: ModuleManifest) => CodeModuleRegister | undefined;
+  files?: FilesService;
 }
 
 export interface RegisterModulesResult {
@@ -178,7 +190,7 @@ export async function registerModulesFromDisk(
   for (const manifest of modules) {
     try {
       const register = opts.codeLoader?.(manifest.id, manifest);
-      await mountModule(app, { db, core, manifest, register });
+      await mountModule(app, { db, core, manifest, register, files: opts.files });
       mounted.push(manifest.id);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

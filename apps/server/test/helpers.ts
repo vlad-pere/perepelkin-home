@@ -1,9 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import type { InjectOptions, Response as InjectResponse } from 'light-my-request';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { openDb } from '../src/db/db.js';
 import { createApp } from '../src/app.js';
 import type { Config } from '../src/config.js';
 import { buildCore, type Core } from '../src/core.js';
+import { createFilesService, type FilesService } from '../src/modules/files.js';
+import { createLocalStorage } from '../src/modules/storage.js';
 import type Database from 'better-sqlite3';
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
@@ -12,12 +17,14 @@ export interface TestWorld {
   app: FastifyInstance;
   core: Core;
   db: Database.Database;
+  files: FilesService;
   close(): Promise<void>;
 }
 
 export async function createTestWorld(opts?: { sessionTtlMs?: number }): Promise<TestWorld> {
   const db = openDb(':memory:');
   const core = buildCore(db);
+  const filesDir = mkdtempSync(join(tmpdir(), 'domo-files-'));
   const config: Config = {
     port: 0,
     host: '127.0.0.1',
@@ -27,15 +34,25 @@ export async function createTestWorld(opts?: { sessionTtlMs?: number }): Promise
     trustProxy: false,
     webDist: null,
     modulesDir: null,
+    filesDir,
+    maxFileSize: 1_048_576,
+    s3: null,
   };
-  const app = await createApp({ db, config });
+  const files = createFilesService({
+    db,
+    storage: createLocalStorage(filesDir),
+    maxFileSize: config.maxFileSize,
+  });
+  const app = await createApp({ db, config, files });
   return {
     app,
     core,
     db,
+    files,
     close: async () => {
       await app.close();
       db.close();
+      rmSync(filesDir, { recursive: true, force: true });
     },
   };
 }

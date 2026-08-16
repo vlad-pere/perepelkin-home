@@ -23,8 +23,15 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
   if (method !== 'GET' && csrfToken) {
     headers[CSRF_HEADER] = csrfToken;
   }
+  let body: BodyInit | undefined;
   if (init.body !== undefined) {
-    headers['content-type'] = 'application/json';
+    if (init.body instanceof Blob) {
+      headers['content-type'] = init.body.type || 'application/octet-stream';
+      body = init.body;
+    } else {
+      headers['content-type'] = 'application/json';
+      body = JSON.stringify(init.body);
+    }
   }
 
   let res: Response;
@@ -32,7 +39,7 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
     res = await fetch(path, {
       method,
       headers,
-      body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+      body,
       credentials: 'same-origin',
     });
   } catch {
