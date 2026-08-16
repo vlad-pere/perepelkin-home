@@ -13,9 +13,90 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>Дом Перепелкиных</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+      }
+      body {
+        background: #f4efe4;
+      }
+      .splash {
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+      .splash-inner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+      }
+      .splash-wordmark {
+        font-family: 'Spectral', Georgia, serif;
+        font-size: 40px;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        color: #2d2a24;
+        animation: splash-breathe 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+      }
+      @keyframes splash-breathe {
+        0%,
+        100% {
+          opacity: 0.4;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      .splash-track {
+        width: 120px;
+        height: 2px;
+        border-radius: 999px;
+        background: #e4ddcc;
+        overflow: hidden;
+      }
+      .splash-bar {
+        height: 100%;
+        width: 40%;
+        border-radius: inherit;
+        background: #667853;
+        animation: splash-slide 1.3s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+      }
+      @keyframes splash-slide {
+        0% {
+          transform: translateX(-110%);
+        }
+        100% {
+          transform: translateX(350%);
+        }
+      }
+      @media (max-width: 640px) {
+        .splash {
+          padding: 18px;
+        }
+        .splash-wordmark {
+          font-size: 32px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .splash-wordmark,
+        .splash-bar {
+          animation: none;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="splash">
+        <div class="splash-inner">
+          <span class="splash-wordmark">Дом Перепелкиных</span>
+          <div class="splash-track" aria-hidden="true"><div class="splash-bar"></div></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
