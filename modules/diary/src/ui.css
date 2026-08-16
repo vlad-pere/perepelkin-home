@@ -304,6 +304,13 @@
   font-weight: 600;
 }
 
+.diary-author {
+  margin-left: auto;
+  color: var(--ink-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
 .diary-entry-title {
   margin: 0;
   font-family: var(--font-display);

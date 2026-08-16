@@ -11,6 +11,7 @@ import './crud.css';
 interface CrudRow {
   id: number;
   created_by: number | null;
+  created_by_username: string | null;
   created_at: string;
   updated_at: string;
   [key: string]: unknown;
@@ -235,6 +236,10 @@ function EntitySection({
                     </div>
                   ))}
                 </div>
+
+                {row.created_by_username !== null && (
+                  <div className="crud-row-meta">Записал(а): {row.created_by_username}</div>
+                )}
 
                 {canWrite && (
                   <div className="crud-row-actions">

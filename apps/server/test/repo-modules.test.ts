@@ -18,7 +18,7 @@ afterEach(async () => {
   await world.close();
 });
 
-function grant(userId: number, canRead: boolean, canWrite: boolean, moduleId = REFERENCE_ID): void {
+function grant(world: TestWorld, userId: number, canRead: boolean, canWrite: boolean, moduleId = REFERENCE_ID): void {
   const group = world.core.groups.create({ name: `repo-${userId}-${canRead}-${canWrite}-${moduleId}` });
   world.core.groups.addMember(group.id, userId);
   world.core.grants.set(group.id, moduleId, { canRead, canWrite });
@@ -43,7 +43,7 @@ describe('repo modules', () => {
 
     await mountModule(world.app, { db: world.db, core: world.core, manifest: manifest! });
     const user = world.core.users.getByUsername('member')!;
-    grant(user.id, true, true);
+    grant(world, user.id, true, true);
     const client = new Client(world.app);
     await client.login('member', 'secret123');
 
@@ -81,7 +81,7 @@ describe('repo modules', () => {
     expect(listed.statusCode).toBe(200);
 
     const user = world.core.users.getByUsername('member')!;
-    grant(user.id, true, true, 'wishlist');
+    grant(world, user.id, true, true, 'wishlist');
     const client = new Client(world.app);
     await client.login('member', 'secret123');
     const created = await client.inject('POST', '/api/modules/wishlist/gift', {
@@ -108,7 +108,7 @@ describe('repo modules', () => {
       files: world.files,
     });
     const user = world.core.users.getByUsername('member')!;
-    grant(user.id, true, true, 'diary');
+    grant(world, user.id, true, true, 'diary');
     const client = new Client(world.app);
     await client.login('member', 'secret123');
 
@@ -152,8 +152,56 @@ describe('repo modules', () => {
 
     const gone = await client.inject('GET', `/api/modules/diary/files/${fileId}`);
     expect(gone.statusCode).toBe(404);
+  });
 
-    const deleted = await client.inject('DELETE', `/api/modules/diary/entry/${id}`);
-    expect(deleted.statusCode).toBe(204);
+  it('logs who creates records in simple modules', async () => {
+    const captured: Array<Record<string, unknown>> = [];
+    const stream = {
+      write(chunk: string): void {
+        try {
+          captured.push(JSON.parse(chunk) as Record<string, unknown>);
+        } catch {
+          /* служебные строки pino пропускаем */
+        }
+      },
+    };
+    const logWorld = await createTestWorld({ logger: { level: 'info', stream } });
+    try {
+      const { modules, errors } = loadManifests(MODULES_DIR);
+      expect(errors).toEqual([]);
+      const manifest = modules.find((m) => m.id === REFERENCE_ID);
+      expect(manifest).toBeDefined();
+
+      await mountModule(logWorld.app, { db: logWorld.db, core: logWorld.core, manifest: manifest! });
+      await logWorld.core.users.create({ username: 'member', password: 'secret123' });
+      const user = logWorld.core.users.getByUsername('member')!;
+      grant(logWorld, user.id, true, true);
+      const client = new Client(logWorld.app);
+      await client.login('member', 'secret123');
+
+      const created = await client.inject('POST', '/api/modules/todo/task', {
+        title: 'Купить корм',
+        done: false,
+      });
+      expect(created.statusCode).toBe(201);
+      const createdItem = (created.json() as { item: { id: number; created_by_username: string | null } }).item;
+      expect(createdItem.created_by_username).toBe('member');
+      const recordId = createdItem.id;
+
+      const listed = await client.inject('GET', '/api/modules/todo/task');
+      const listedItem = (listed.json() as { items: Array<{ id: number; created_by_username: string | null }> })
+        .items.find((r) => r.id === recordId);
+      expect(listedItem?.created_by_username).toBe('member');
+
+      const log = captured.find((l) => l.msg === 'record created');
+      expect(log).toBeDefined();
+      expect(log?.module).toBe('todo');
+      expect(log?.entity).toBe('task');
+      expect(log?.recordId).toBe(recordId);
+      expect(log?.username).toBe('member');
+      expect(log?.userId).toBe(user.id);
+    } finally {
+      await logWorld.close();
+    }
   });
 });

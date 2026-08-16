@@ -208,6 +208,12 @@
   margin-top: 12px;
 }
 
+.crud-row-meta {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
 .crud-confirm {
   display: flex;
   align-items: center;

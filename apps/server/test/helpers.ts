@@ -21,7 +21,10 @@ export interface TestWorld {
   close(): Promise<void>;
 }
 
-export async function createTestWorld(opts?: { sessionTtlMs?: number }): Promise<TestWorld> {
+export async function createTestWorld(opts?: {
+  sessionTtlMs?: number;
+  logger?: boolean | { level?: string; stream?: { write(chunk: string): void } };
+}): Promise<TestWorld> {
   const db = openDb(':memory:');
   const core = buildCore(db);
   const filesDir = mkdtempSync(join(tmpdir(), 'domo-files-'));
@@ -43,7 +46,7 @@ export async function createTestWorld(opts?: { sessionTtlMs?: number }): Promise
     storage: createLocalStorage(filesDir),
     maxFileSize: config.maxFileSize,
   });
-  const app = await createApp({ db, config, files });
+  const app = await createApp({ db, config, files, logger: opts?.logger });
   return {
     app,
     core,

@@ -17,6 +17,7 @@ interface TaskRow {
   note: string | null;
   when: string | null;
   done: boolean;
+  created_by_username: string | null;
 }
 
 interface ManifestInfo {
@@ -259,6 +260,11 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
                     )}
                     {row.note !== null && row.note !== '' && (
                       <span className="todo-row-note">{row.note}</span>
+                    )}
+                    {row.created_by_username !== null && (
+                      <span className="todo-row-author" title="Кто записал">
+                        Записал(а): {row.created_by_username}
+                      </span>
                     )}
                   </div>
                   {canWrite && (

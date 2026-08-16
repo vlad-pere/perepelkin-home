@@ -179,6 +179,13 @@
   overflow-wrap: anywhere;
 }
 
+.todo-row-author {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
 .todo-row-actions {
   display: flex;
   align-items: center;

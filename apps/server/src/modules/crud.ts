@@ -135,6 +135,14 @@ function parseRowId(raw: unknown): number {
   return id;
 }
 
+function resolveUsername(db: Database.Database, userId: unknown): string | null {
+  if (userId === null || userId === undefined) return null;
+  const row = db.prepare('SELECT username FROM users WHERE id = ?').get(userId) as
+    | { username: string }
+    | undefined;
+  return row?.username ?? null;
+}
+
 export function registerCrudRoutes(
   app: FastifyInstance,
   opts: { db: Database.Database; manifest: ModuleManifest; guards: CrudGuards },
@@ -156,10 +164,14 @@ export function registerCrudRoutes(
       `INSERT INTO "${table}" (${columns.map((c) => `"${c}"`).join(', ')}, created_by)
        VALUES (${columns.map(() => '?').join(', ')}, ?)`,
     );
+    const enrich = (row: Record<string, unknown>): Record<string, unknown> => ({
+      ...toRow(row, entity),
+      created_by_username: resolveUsername(db, row.created_by),
+    });
 
     app.get(`/${entity.name}`, { preHandler: guards.read }, async () => {
       const rows = listStmt.all() as Array<Record<string, unknown>>;
-      return { items: rows.map((row) => toRow(row, entity)) };
+      return { items: rows.map(enrich) };
     });
 
     app.post(`/${entity.name}`, { preHandler: guards.write }, async (req, reply) => {
@@ -170,7 +182,17 @@ export function registerCrudRoutes(
       });
       const result = insertStmt.run(...values, req.user?.id ?? null);
       const row = getStmt.get(result.lastInsertRowid) as Record<string, unknown>;
-      return reply.code(201).send({ item: toRow(row, entity) });
+      app.log.info(
+        {
+          module: manifest.id,
+          entity: entity.name,
+          recordId: result.lastInsertRowid,
+          userId: req.user?.id ?? null,
+          username: req.user?.username ?? null,
+        },
+        'record created',
+      );
+      return reply.code(201).send({ item: enrich(row) });
     });
 
     app.patch(`/${entity.name}/:rowId`, { preHandler: guards.write }, async (req) => {
@@ -191,7 +213,7 @@ export function registerCrudRoutes(
       const result = stmt.run(...values, rowId);
       if (result.changes === 0) throw notFound('Запись не найдена');
       const row = getStmt.get(rowId) as Record<string, unknown>;
-      return { item: toRow(row, entity) };
+      return { item: enrich(row) };
     });
 
     app.delete(`/${entity.name}/:rowId`, { preHandler: guards.write }, async (req, reply) => {

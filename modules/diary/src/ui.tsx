@@ -28,6 +28,7 @@ interface EntryRow {
   category: string | null;
   photos: string | null;
   created_by: number | null;
+  created_by_username: string | null;
   created_at: string;
 }
 
@@ -375,6 +376,11 @@ export default function DiaryModule({ moduleId, api, canWrite }: DiaryUiProps) {
                           )}
                           {row.category !== null && row.category.trim() !== '' && (
                             <span className="diary-cat">{row.category.trim()}</span>
+                          )}
+                          {row.created_by_username !== null && (
+                            <span className="diary-author" title="Кто записал">
+                              {row.created_by_username}
+                            </span>
                           )}
                         </div>
                         <h3 className="diary-entry-title">{row.title}</h3>
