@@ -93,6 +93,50 @@ export function Move({ moduleId, api, canWrite, public: isPublic }: MoveProps) {
 
 /* ---------- Публичная страница ---------- */
 
+function VideoPlayer({ src }: { src: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(true);
+
+  return (
+    <div className="move-video-wrap">
+      <video
+        ref={ref}
+        className="move-video"
+        src={src}
+        autoPlay
+        muted={muted}
+        loop
+        playsInline
+      />
+      <button
+        className="move-sound-btn"
+        type="button"
+        aria-label={muted ? 'Включить звук' : 'Выключить звук'}
+        onClick={() => {
+          const v = ref.current;
+          if (!v) return;
+          v.muted = !muted;
+          setMuted((m) => !m);
+        }}
+      >
+        {muted ? (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+            <line x1="23" y1="9" x2="17" y2="15" />
+            <line x1="17" y1="9" x2="23" y2="15" />
+          </svg>
+        ) : (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+          </svg>
+        )}
+      </button>
+    </div>
+  );
+}
+
 function MovePublic({
   title,
   location,
@@ -109,18 +153,7 @@ function MovePublic({
         <h1 className="move-title">{title}</h1>
       </header>
 
-      {videoUrl !== null && (
-        <div className="move-video-wrap">
-          <video
-            className="move-video"
-            src={videoUrl}
-            autoPlay
-            muted
-            loop
-            playsInline
-          />
-        </div>
-      )}
+      {videoUrl !== null && <VideoPlayer src={videoUrl} />}
 
       {location !== null && location !== '' && (
         <p className="move-location">{location}</p>
