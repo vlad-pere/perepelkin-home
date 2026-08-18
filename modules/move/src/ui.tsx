@@ -97,6 +97,17 @@ function VideoPlayer({ src }: { src: string }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
 
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    const onPlay = (): void => {
+      v.muted = false;
+      setMuted(false);
+    };
+    v.addEventListener('play', onPlay, { once: true });
+    return () => v.removeEventListener('play', onPlay);
+  }, []);
+
   return (
     <div className="move-video-wrap">
       <video
