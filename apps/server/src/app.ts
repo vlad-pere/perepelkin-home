@@ -50,6 +50,7 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", 'data:', 'blob:'],
+        mediaSrc: ["'self'", 'blob:'],
         fontSrc: ["'self'"],
         connectSrc: ["'self'"],
         objectSrc: ["'none'"],
@@ -71,9 +72,9 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
     timeWindow: '15 minutes',
   });
 
-  // Тело загрузки файлов — сырые байты изображения (без multipart). Парсер даёт
+  // Тело загрузки файлов — сырые байты изображений/видео (без multipart). Парсер даёт
   // Buffer по всему телу; лимит размера применяется на уровне роута (`bodyLimit`).
-  app.addContentTypeParser(/^image\//, { parseAs: 'buffer' }, (_req, body, done) => {
+  app.addContentTypeParser(/^(image|video)\//, { parseAs: 'buffer' }, (_req, body, done) => {
     done(null, body);
   });
   const files =

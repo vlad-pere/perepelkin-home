@@ -1,0 +1,18 @@
+{
+  "id": "move",
+  "name": "Переезд",
+  "description": "Посадочная страница о переезде",
+  "kind": "simple",
+  "publicRead": true,
+  "entities": [
+    {
+      "name": "page",
+      "label": "Страница",
+      "fields": [
+        { "name": "title", "label": "Заголовок", "type": "text", "required": true },
+        { "name": "location", "label": "Описание локации", "type": "textarea" },
+        { "name": "video_id", "label": "ID видео", "type": "text" }
+      ]
+    }
+  ]
+}

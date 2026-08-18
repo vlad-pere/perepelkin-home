@@ -19,6 +19,7 @@ const CODE_UI: Record<string, LazyExoticComponent<ModuleUiComponent>> = {
   todo: lazy(() => import('@perepelkin-home/module-todo/ui')),
   wishlist: lazy(() => import('@perepelkin-home/module-wishlist/ui')),
   diary: lazy(() => import('@perepelkin-home/module-diary/ui')),
+  move: lazy(() => import('@perepelkin-home/module-move/ui')),
 };
 
 export function resolveModuleUi(id: string, kind: ModuleKind): ModuleUiComponent | null {

@@ -6,8 +6,8 @@ import type { ByteStorage } from './storage.js';
 import { badRequest, notFound, payloadTooLarge } from '../errors.js';
 
 /**
- * Допустимые типы файлов модулей. Только растровые изображения: SVG исключён
- * (скриптовые возможности), pdf/doc и т.п. не нужны для фото-дневника.
+ * Допустимые типы файлов модулей: растровые изображения и видео.
+ * SVG исключён (скриптовые возможности).
  */
 export const ALLOWED_FILE_MIMES = [
   'image/jpeg',
@@ -15,6 +15,9 @@ export const ALLOWED_FILE_MIMES = [
   'image/webp',
   'image/gif',
   'image/avif',
+  'video/mp4',
+  'video/webm',
+  'video/quicktime',
 ] as const;
 
 const FILE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;

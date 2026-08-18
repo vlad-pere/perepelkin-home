@@ -15,6 +15,7 @@
     "@perepelkin-home/module-todo": "*",
     "@perepelkin-home/module-wishlist": "*",
     "@perepelkin-home/module-diary": "*",
+    "@perepelkin-home/module-move": "*",
     "@fontsource/manrope": "^5",
     "@fontsource/spectral": "^5",
     "@fontsource/spectral": "^5.3.0",

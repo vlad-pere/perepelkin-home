@@ -7,6 +7,7 @@ import { LoginPage } from './pages/Login';
 import { HomePage } from './pages/Home';
 import { ProfilePage } from './pages/Profile';
 import { WishlistPublicPage } from './pages/Wishlist';
+import { MovePublicPage } from './pages/Move';
 import { Splash } from './components/Splash';
 import { ModuleUnavailable, resolveModuleUi } from './modules/registry';
 
@@ -17,6 +18,7 @@ function Root() {
   return (
     <Routes>
       <Route path="/wishlist" element={<WishlistPublicPage />} />
+      <Route path="/move" element={<MovePublicPage />} />
       {status === 'loading' ? (
         <Route path="*" element={<Splash />} />
       ) : (
