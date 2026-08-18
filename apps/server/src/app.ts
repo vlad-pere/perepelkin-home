@@ -34,7 +34,7 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: opts.logger ?? false,
     trustProxy: config.trustProxy,
-    bodyLimit: 64 * 1024,
+    bodyLimit: 128 * 1024 * 1024,
   });
 
   app.decorateRequest('core', { getter: () => core });

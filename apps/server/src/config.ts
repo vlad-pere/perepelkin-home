@@ -51,7 +51,7 @@ function parseSessionTtl(raw: string | undefined): number {
 }
 
 function parseFileSizeMb(raw: string | undefined): number {
-  const mb = Number.parseFloat(raw ?? '8');
+  const mb = Number.parseFloat(raw ?? '256');
   if (!Number.isFinite(mb) || mb <= 0 || mb > 256) {
     throw new Error(`Invalid MAX_FILE_SIZE_MB "${raw}"`);
   }
