@@ -154,6 +154,59 @@ describe('repo modules', () => {
     expect(gone.statusCode).toBe(404);
   });
 
+  it('shopping module mounts and enforces required RICE fields', async () => {
+    const { modules, errors } = loadManifests(MODULES_DIR);
+    expect(errors).toEqual([]);
+    const manifest = modules.find((m) => m.id === 'shopping');
+    expect(manifest).toBeDefined();
+    expect(manifest!.kind).toBe('simple');
+    expect(manifest!.entities.map((e) => e.name)).toEqual(['item']);
+
+    await mountModule(world.app, { db: world.db, core: world.core, manifest: manifest! });
+    const user = world.core.users.getByUsername('member')!;
+    grant(world, user.id, true, true, 'shopping');
+    const client = new Client(world.app);
+    await client.login('member', 'secret123');
+
+    const created = await client.inject('POST', '/api/modules/shopping/item', {
+      title: 'Стиральная машина',
+      status: 1,
+      reach: 5,
+      impact: 5,
+      confidence: 5,
+      cost: 3,
+      complexity: 3,
+      price: 45000,
+      link: 'https://example.com/washer',
+      comment: 'С сушкой не обязательно',
+    });
+    expect(created.statusCode).toBe(201);
+    const id = (created.json() as { item: { id: number } }).item.id;
+
+    const missingRating = await client.inject('POST', '/api/modules/shopping/item', {
+      title: 'Ковер',
+      status: 1,
+      impact: 3,
+      confidence: 4,
+      cost: 2,
+      complexity: 2,
+    });
+    expect(missingRating.statusCode).toBe(400);
+
+    const planned = await client.inject('PATCH', `/api/modules/shopping/item/${id}`, {
+      status: 2,
+    });
+    expect(planned.statusCode).toBe(200);
+    expect((planned.json() as { item: { status: number } }).item.status).toBe(2);
+
+    const listed = await client.inject('GET', '/api/modules/shopping/item');
+    expect(listed.statusCode).toBe(200);
+    expect((listed.json() as { items: unknown[] }).items).toHaveLength(1);
+
+    const deleted = await client.inject('DELETE', `/api/modules/shopping/item/${id}`);
+    expect(deleted.statusCode).toBe(204);
+  });
+
   it('logs who creates records in simple modules', async () => {
     const captured: Array<Record<string, unknown>> = [];
     const stream = {

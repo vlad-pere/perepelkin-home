@@ -13,13 +13,13 @@
     "node": ">=24"
   },
   "scripts": {
-    "build": "npm run build -w @perepelkin-home/core && npm run build -w @perepelkin-home/module-admin && npm run build -w @perepelkin-home/module-todo && npm run build -w @perepelkin-home/module-wishlist && npm run build -w @perepelkin-home/module-diary && npm run build -w @perepelkin-home/module-move && npm run build -w @perepelkin-home/server && npm run build -w @perepelkin-home/web",
-    "dev": "npm run build -w @perepelkin-home/core && npm run build -w @perepelkin-home/module-admin && npm run build -w @perepelkin-home/module-todo && npm run build -w @perepelkin-home/module-wishlist && npm run build -w @perepelkin-home/module-diary && npm run build -w @perepelkin-home/module-move && concurrently -n server,web -c auto \"npm:dev:server\" \"npm:dev:web\"",
+    "build": "npm run build -w @perepelkin-home/core && npm run build -w @perepelkin-home/module-admin && npm run build -w @perepelkin-home/module-todo && npm run build -w @perepelkin-home/module-wishlist && npm run build -w @perepelkin-home/module-diary && npm run build -w @perepelkin-home/module-move && npm run build -w @perepelkin-home/module-shopping && npm run build -w @perepelkin-home/server && npm run build -w @perepelkin-home/web",
+    "dev": "npm run build -w @perepelkin-home/core && npm run build -w @perepelkin-home/module-admin && npm run build -w @perepelkin-home/module-todo && npm run build -w @perepelkin-home/module-wishlist && npm run build -w @perepelkin-home/module-diary && npm run build -w @perepelkin-home/module-move && npm run build -w @perepelkin-home/module-shopping && concurrently -n server,web -c auto \"npm:dev:server\" \"npm:dev:web\"",
     "dev:server": "npm run dev -w @perepelkin-home/server",
     "dev:web": "npm run dev -w @perepelkin-home/web",
     "seed": "npm run seed -w @perepelkin-home/server",
-    "typecheck": "npm run typecheck -w @perepelkin-home/core -w @perepelkin-home/module-admin -w @perepelkin-home/module-todo -w @perepelkin-home/module-wishlist -w @perepelkin-home/module-diary -w @perepelkin-home/module-move -w @perepelkin-home/server -w @perepelkin-home/web",
-    "test": "npm run test -w @perepelkin-home/core -w @perepelkin-home/server"
+    "typecheck": "npm run typecheck -w @perepelkin-home/core -w @perepelkin-home/module-admin -w @perepelkin-home/module-todo -w @perepelkin-home/module-wishlist -w @perepelkin-home/module-diary -w @perepelkin-home/module-move -w @perepelkin-home/module-shopping -w @perepelkin-home/server -w @perepelkin-home/web",
+    "test": "npm run test -w @perepelkin-home/core -w @perepelkin-home/server -w @perepelkin-home/module-shopping"
   },
   "devDependencies": {
     "@types/node": "^24",

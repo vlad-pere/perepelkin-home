@@ -1,5 +1,5 @@
 import Fastify from 'fastify';
-import type { FastifyError, FastifyInstance } from 'fastify';
+import type { FastifyError, FastifyInstance, FastifyServerOptions } from 'fastify';
 import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -22,7 +22,8 @@ import { ApiError } from './errors.js';
 export interface AppOptions {
   db: Database.Database;
   config: Config;
-  logger?: boolean;
+  /** false (по умолчанию), true или опции pino-логгера — тесты передают свой stream. */
+  logger?: FastifyServerOptions['logger'];
   /** Тесты передают свою реализацию; по умолчанию создаётся из конфига. */
   files?: FilesService;
 }

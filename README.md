@@ -5,6 +5,7 @@
 ## Возможности
 
 - **Модульная система.** Простые модули — один файл `manifest.json` без кода; сложные — код (Fastify-плагин + React). Пример простого модуля: список дел в доме.
+- **Покупки для дома (RICE).** Список желаемых покупок с приоритизацией: каждую вещь оценивают по шкале 1–5 (охват, польза, уверенность, деньги, сложность), балл `(охват × польза × уверенность) ÷ затраты` считается сам и выстраивает порядок покупок; статусы «хочу → в планах → куплено» с архивом.
 - **Автогенерация UI.** Простые модули получают CRUD-интерфейс автоматически из манифеста, без пересборки фронтенда.
 - **Доступ по группам.** `пользователи → группы → модули`. Права чтения/записи на модуль задаются на уровне группы.
 - **Безопасность.** Сессии (httpOnly + Secure), per-session CSRF, bcrypt, rate limiting, security-заголовки.
@@ -140,12 +141,12 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 
 | Команда | Что делает |
 | --- | --- |
-| `npm run dev` | Сборка core/admin/todo/wishlist/diary + сервер (3000) и фронтенд (5173) одновременно |
+| `npm run dev` | Сборка core/admin/todo/wishlist/diary/move/shopping + сервер (3000) и фронтенд (5173) одновременно |
 | `npm run dev:server` / `npm run dev:web` | Только сервер / только фронтенд |
 | `npm run seed` | Создаёт администратора и группы «Семья»/«Гости» |
-| `npm run build` | Сборка core, module-admin, module-todo, module-wishlist, module-diary, server, web |
+| `npm run build` | Сборка core, module-admin, module-todo, module-wishlist, module-diary, module-move, module-shopping, server, web |
 | `npm run typecheck` | Проверка типов во всех workspace-пакетах |
-| `npm test` | Vitest: core + server |
+| `npm test` | Vitest: core + server + module-shopping (логика RICE) |
 
 ## Тесты и проверки
 
