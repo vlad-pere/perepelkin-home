@@ -12,9 +12,11 @@ COPY modules/admin/package.json modules/admin/package.json
 COPY modules/todo/package.json modules/todo/package.json
 COPY modules/wishlist/package.json modules/wishlist/package.json
 COPY modules/diary/package.json modules/diary/package.json
-# --ignore-scripts: в дереве нет пакетов с нужными lifecycle-скриптами,
-# а better-sqlite3/esbuild используют prebuilds/optionalDependencies,
-# node-gyp-сборка в образе не требуется.
+COPY modules/move/package.json modules/move/package.json
+COPY modules/shopping/package.json modules/shopping/package.json
+# --ignore-scripts: при первом слое не запускаются lifecycle-скрипты пакетов,
+# но better-sqlite3/esbuild берут prebuilds/optionalDependencies,
+# node-gyp-сборка не нужна благодаря предсобранным бинарникам.
 RUN npm ci --ignore-scripts
 
 COPY . .
@@ -33,6 +35,8 @@ COPY modules/admin/package.json modules/admin/package.json
 COPY modules/todo/package.json modules/todo/package.json
 COPY modules/wishlist/package.json modules/wishlist/package.json
 COPY modules/diary/package.json modules/diary/package.json
+COPY modules/move/package.json modules/move/package.json
+COPY modules/shopping/package.json modules/shopping/package.json
 RUN npm ci --omit=dev --ignore-scripts
 
 COPY --from=build /app/packages/core/dist packages/core/dist
@@ -42,6 +46,8 @@ COPY --from=build /app/modules/admin/dist modules/admin/dist
 COPY modules/todo/manifest.json modules/todo/manifest.json
 COPY modules/wishlist/manifest.json modules/wishlist/manifest.json
 COPY modules/diary/manifest.json modules/diary/manifest.json
+COPY modules/move/manifest.json modules/move/manifest.json
+COPY modules/shopping/manifest.json modules/shopping/manifest.json
 
 # Сервер импортирует admin-модуль через workspace-симлинк node_modules.
 # Делаем его реальным каталогом, чтобы хост-маунт ./modules не подменил
