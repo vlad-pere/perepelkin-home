@@ -3,6 +3,8 @@ import {
   clampRating,
   effortOf,
   formatScore,
+  isRated,
+  moneyCoefficient,
   scoreOf,
   sortActive,
   sortBought,
@@ -20,7 +22,6 @@ function item(patch: Partial<RiceItem> = {}): RiceItem {
     reach: 3,
     impact: 3,
     confidence: 3,
-    cost: 3,
     complexity: 3,
     price: null,
     link: null,
@@ -50,34 +51,94 @@ describe('clampRating', () => {
   });
 });
 
+describe('moneyCoefficient', () => {
+  it('дешёвая покупка — 1, дорогая — 5, середина (геометрически) — 3', () => {
+    const pool = [30000, 45000];
+    expect(moneyCoefficient(30000, pool)).toBeCloseTo(1, 5);
+    expect(moneyCoefficient(45000, pool)).toBeCloseTo(5, 5);
+    const mid = Math.sqrt(30000 * 45000);
+    expect(moneyCoefficient(mid, pool)).toBeCloseTo(3, 3);
+  });
+
+  it('шкала логарифмическая: удвоение цены даёт одинаковый сдвиг на любом участке', () => {
+    const pool = [5000, 10000, 20000, 40000, 80000];
+    const low = moneyCoefficient(10000, pool)!;
+    const mid = moneyCoefficient(20000, pool)!;
+    expect(low).toBeGreaterThan(1);
+    expect(mid - low).toBeGreaterThan(0);
+  });
+
+  it('без других покупок или при равных ценах коэффициент нейтральный', () => {
+    expect(moneyCoefficient(45000, [])).toBe(3);
+    expect(moneyCoefficient(45000, [45000])).toBe(3);
+    expect(moneyCoefficient(45000, [45000, 45000])).toBe(3);
+  });
+
+  it('цены вне пула зажимаются в 1..5, мусор даёт null', () => {
+    const pool = [30000, 45000];
+    expect(moneyCoefficient(100, pool)).toBe(1);
+    expect(moneyCoefficient(9000000, pool)).toBe(5);
+    expect(moneyCoefficient(null, pool)).toBeNull();
+    expect(moneyCoefficient(undefined, pool)).toBeNull();
+    expect(moneyCoefficient(0, pool)).toBeNull();
+    expect(moneyCoefficient(-5, pool)).toBeNull();
+  });
+});
+
 describe('effortOf', () => {
-  it('среднее денег и сложности с шагом 0.5', () => {
+  it('среднее денежного коэффициента и сложности; деньги могут быть дробными', () => {
     expect(effortOf(4, 4)).toBe(4);
-    expect(effortOf(2, 5)).toBe(3.5);
+    expect(effortOf(2.4, 5)).toBe(3.7);
     expect(effortOf(1, 1)).toBe(1);
   });
 
-  it('учитывает границы шкалы через clamp', () => {
-    expect(effortOf(0, 99)).toBe(3);
+  it('сложность держит границы шкалы через clamp', () => {
+    expect(effortOf(1, 99)).toBe(3);
   });
 });
 
 describe('scoreOf', () => {
-  it('считает (R × I × C) / Effort по примерам из методички', () => {
-    const fridge = { reach: 5, impact: 5, confidence: 5, cost: 4, complexity: 4 };
-    expect(scoreOf(fridge)).toBeCloseTo(31.25, 5);
+  it('считает (R × I × C) / Effort с денежным коэффициентом из пула цен', () => {
+    const washer = item({ reach: 5, impact: 5, confidence: 5, complexity: 2, price: 45000 });
+    expect(scoreOf(washer, [30000, 45000])).toBeCloseTo(125 / 3.5, 5);
 
-    const washer = { reach: 5, impact: 5, confidence: 5, cost: 3, complexity: 3 };
-    expect(scoreOf(washer)).toBeCloseTo(125 / 3, 5);
+    const cheap = item({ reach: 3, impact: 3, confidence: 2, complexity: 5, price: 30000 });
+    expect(scoreOf(cheap, [30000, 45000])).toBeCloseTo(18 / 3, 5);
 
-    const thermostat = { reach: 3, impact: 3, confidence: 2, cost: 5, complexity: 5 };
-    expect(scoreOf(thermostat)).toBeCloseTo(3.6, 5);
+    const minimum = item({ reach: 1, impact: 1, confidence: 1, complexity: 5, price: 30000 });
+    expect(scoreOf(minimum, [30000, 45000])).toBeCloseTo(1 / 3, 5);
 
-    const minimum = { reach: 1, impact: 1, confidence: 1, cost: 5, complexity: 5 };
-    expect(scoreOf(minimum)).toBeCloseTo(0.2, 5);
+    const maximum = item({ reach: 5, impact: 5, confidence: 5, complexity: 1, price: 45000 });
+    expect(scoreOf(maximum, [30000, 45000])).toBe(125 / 3);
+  });
 
-    const maximum = { reach: 5, impact: 5, confidence: 5, cost: 1, complexity: 1 };
-    expect(scoreOf(maximum)).toBe(125);
+  it('возвращает null, пока не готовы четыре оценки и сумма', () => {
+    const pool = [30000, 45000];
+    expect(scoreOf(item(), pool)).toBeNull();
+    expect(
+      scoreOf(item({ reach: undefined, impact: undefined, confidence: undefined }), pool),
+    ).toBeNull();
+    expect(
+      scoreOf(
+        item({ reach: undefined, impact: undefined, confidence: undefined, complexity: undefined, price: 45000 }),
+        pool,
+      ),
+    ).toBeNull();
+    expect(
+      scoreOf(item({ reach: 4, impact: 4, confidence: 4, complexity: undefined, price: 45000 }), pool),
+    ).toBeNull();
+    expect(scoreOf(item({ reach: 4, impact: 4, confidence: 4, complexity: 2 }), pool)).toBeNull();
+  });
+});
+
+describe('isRated', () => {
+  it('true только когда четыре оценки и положительная сумма на месте', () => {
+    expect(isRated(item({ price: 12000 }))).toBe(true);
+    expect(isRated(item())).toBe(false);
+    expect(isRated(item({ reach: undefined }))).toBe(false);
+    expect(isRated(item({ impact: null }))).toBe(false);
+    expect(isRated(item({ price: 0 }))).toBe(false);
+    expect(isRated(item({ price: -3 }))).toBe(false);
   });
 });
 
@@ -89,23 +150,35 @@ describe('formatScore', () => {
     expect(formatScore(125 / 3)).toBe('41.7');
     expect(formatScore(0.2)).toBe('0.2');
   });
+
+  it('без оценки прочерк', () => {
+    expect(formatScore(null)).toBe('—');
+  });
 });
 
 describe('sortActive', () => {
   it('сортирует по баллу по убыванию, при равенстве — по id', () => {
-    const low = item({ id: 1, title: 'Подушки' }); // 27 / 3 = 9
-    const oldHigh = item({ id: 2, title: 'Старая стиралка', confidence: 5 }); // 45/3 = 15
-    const newHigh = item({ id: 3, title: 'Новая стиралка', confidence: 5 }); // тот же балл
-    const sorted = sortActive([low, newHigh, oldHigh]);
+    const pool = [30000, 45000, 45000];
+    const low = item({ id: 1, title: 'Подушки', reach: 1, impact: 1, confidence: 1, complexity: 5, price: 30000 }); // 1/3 ≈ 0.33
+    const oldHigh = item({ id: 2, title: 'Старая стиралка', reach: 5, impact: 5, confidence: 5, complexity: 2, price: 45000 }); // 125/3.5
+    const newHigh = item({ id: 3, title: 'Новая стиралка', reach: 5, impact: 5, confidence: 5, complexity: 2, price: 45000 });
+    const sorted = sortActive([low, newHigh, oldHigh], pool);
     expect(sorted.map((r) => r.id)).toEqual([2, 3, 1]);
   });
 
   it('не мутирует исходный массив', () => {
-    const a = item({ id: 1 });
-    const b = item({ id: 2, confidence: 5 });
+    const a = item({ id: 1, price: 30000 });
+    const b = item({ id: 2, confidence: 5, price: 45000 });
     const original = [a, b];
-    sortActive(original);
+    sortActive(original, [30000, 45000]);
     expect(original.map((r) => r.id)).toEqual([1, 2]);
+  });
+
+  it('неоценённые всегда ниже оценённых и не ломают сортировку', () => {
+    const rated = item({ id: 1, confidence: 1, price: 30000 }); // 3/3 = 1
+    const unrated = item({ id: 2, title: 'Идея', reach: undefined });
+    const sorted = sortActive([unrated, rated], [30000]);
+    expect(sorted.map((r) => r.id)).toEqual([1, 2]);
   });
 });
 

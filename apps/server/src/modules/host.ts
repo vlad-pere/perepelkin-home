@@ -3,7 +3,7 @@ import type Database from 'better-sqlite3';
 import type { Action, ModuleManifest } from '@perepelkin-home/core';
 import type { Core } from '../core.js';
 import { csrfOk } from '../hooks.js';
-import { createEntityTableSql, registerCrudRoutes } from './crud.js';
+import { ensureEntityTable, registerCrudRoutes } from './crud.js';
 import { registerModuleFileRoutes, type FilesService } from './files.js';
 import { loadManifests } from './loader.js';
 
@@ -147,7 +147,7 @@ export function syncModule(db: Database.Database, manifest: ModuleManifest): voi
     }
 
     for (const entity of manifest.entities) {
-      db.exec(createEntityTableSql(manifest.id, entity));
+      ensureEntityTable(db, manifest.id, entity);
     }
   })();
 }

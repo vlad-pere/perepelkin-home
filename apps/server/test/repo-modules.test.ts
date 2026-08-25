@@ -154,7 +154,7 @@ describe('repo modules', () => {
     expect(gone.statusCode).toBe(404);
   });
 
-  it('shopping module mounts and enforces required RICE fields', async () => {
+  it('shopping module mounts and allows unrated backlog ideas', async () => {
     const { modules, errors } = loadManifests(MODULES_DIR);
     expect(errors).toEqual([]);
     const manifest = modules.find((m) => m.id === 'shopping');
@@ -174,7 +174,6 @@ describe('repo modules', () => {
       reach: 5,
       impact: 5,
       confidence: 5,
-      cost: 3,
       complexity: 3,
       price: 45000,
       link: 'https://example.com/washer',
@@ -183,15 +182,13 @@ describe('repo modules', () => {
     expect(created.statusCode).toBe(201);
     const id = (created.json() as { item: { id: number } }).item.id;
 
-    const missingRating = await client.inject('POST', '/api/modules/shopping/item', {
+    const backlogIdea = await client.inject('POST', '/api/modules/shopping/item', {
       title: 'Ковер',
       status: 1,
-      impact: 3,
-      confidence: 4,
-      cost: 2,
-      complexity: 2,
     });
-    expect(missingRating.statusCode).toBe(400);
+    expect(backlogIdea.statusCode).toBe(201);
+    const backlogId = (backlogIdea.json() as { item: { id: number } }).item.id;
+    expect(backlogId).not.toBe(id);
 
     const planned = await client.inject('PATCH', `/api/modules/shopping/item/${id}`, {
       status: 2,
@@ -201,10 +198,64 @@ describe('repo modules', () => {
 
     const listed = await client.inject('GET', '/api/modules/shopping/item');
     expect(listed.statusCode).toBe(200);
-    expect((listed.json() as { items: unknown[] }).items).toHaveLength(1);
+    expect((listed.json() as { items: unknown[] }).items).toHaveLength(2);
+
+    const removedIdea = await client.inject('DELETE', `/api/modules/shopping/item/${backlogId}`);
+    expect(removedIdea.statusCode).toBe(204);
 
     const deleted = await client.inject('DELETE', `/api/modules/shopping/item/${id}`);
     expect(deleted.statusCode).toBe(204);
+  });
+
+  it('shopping module rebuilds a legacy NOT NULL table to match the manifest', async () => {
+    const { modules, errors } = loadManifests(MODULES_DIR);
+    expect(errors).toEqual([]);
+    const manifest = modules.find((m) => m.id === 'shopping')!;
+
+    world.db.exec(`CREATE TABLE module_shopping_item (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      status REAL NOT NULL,
+      reach REAL NOT NULL,
+      impact REAL NOT NULL,
+      confidence REAL NOT NULL,
+      cost REAL NOT NULL,
+      complexity REAL NOT NULL,
+      price REAL,
+      link TEXT,
+      comment TEXT,
+      created_by INTEGER,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    )`);
+    world.db
+      .prepare(
+        `INSERT INTO module_shopping_item (title, status, reach, impact, confidence, cost, complexity, price)
+         VALUES ('Старая покупка', 1, 4, 4, 4, 2, 2, 1000)`,
+      )
+      .run();
+
+    await mountModule(world.app, { db: world.db, core: world.core, manifest });
+    const user = world.core.users.getByUsername('member')!;
+    grant(world, user.id, true, true, 'shopping');
+    const client = new Client(world.app);
+    await client.login('member', 'secret123');
+
+    const idea = await client.inject('POST', '/api/modules/shopping/item', {
+      title: 'Свежая идея',
+      status: 1,
+    });
+    expect(idea.statusCode).toBe(201);
+
+    const listed = await client.inject('GET', '/api/modules/shopping/item');
+    expect(listed.statusCode).toBe(200);
+    const items = (listed.json() as { items: Array<Record<string, unknown>> }).items;
+    expect(items).toHaveLength(2);
+    const legacy = items.find((i) => i.title === 'Старая покупка');
+    expect(legacy).toMatchObject({ reach: 4, impact: 4, confidence: 4, complexity: 2, price: 1000 });
+    expect(legacy).not.toHaveProperty('cost');
+    const fresh = items.find((i) => i.title === 'Свежая идея');
+    expect(fresh?.reach ?? null).toBeFalsy();
   });
 
   it('logs who creates records in simple modules', async () => {

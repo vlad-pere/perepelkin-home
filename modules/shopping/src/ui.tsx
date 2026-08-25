@@ -1,8 +1,18 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import './ui.css';
 import {
   clampRating,
   formatScore,
+  isRated,
+  moneyCoefficient,
   RATING_PARAMS,
   scoreOf,
   sortActive,
@@ -12,7 +22,6 @@ import {
   STATUS_PLANNED,
   STATUS_WANT,
   type Rating,
-  type RatingFieldName,
   type RiceItem,
   type StatusValue,
 } from './rice.js';
@@ -32,14 +41,15 @@ interface ManifestInfo {
   description: string;
 }
 
+type RatingValue = Rating | null;
+
 interface ItemValues {
   title: string;
   status: StatusValue;
-  reach: Rating;
-  impact: Rating;
-  confidence: Rating;
-  cost: Rating;
-  complexity: Rating;
+  reach: RatingValue;
+  impact: RatingValue;
+  confidence: RatingValue;
+  complexity: RatingValue;
   price: string;
   link: string;
   comment: string;
@@ -50,11 +60,10 @@ const SCALE = [1, 2, 3, 4, 5] as const;
 const DEFAULT_VALUES: ItemValues = {
   title: '',
   status: STATUS_WANT,
-  reach: 3,
-  impact: 3,
-  confidence: 3,
-  cost: 3,
-  complexity: 3,
+  reach: null,
+  impact: null,
+  confidence: null,
+  complexity: null,
   price: '',
   link: '',
   comment: '',
@@ -71,42 +80,50 @@ function normalizeStatus(value: number): StatusValue {
   return STATUS_WANT;
 }
 
+function ratingFromRow(value: number | null | undefined): RatingValue {
+  return typeof value === 'number' && Number.isFinite(value) ? clampRating(value) : null;
+}
+
 function fromRow(row: RiceItem): ItemValues {
   return {
     title: row.title ?? '',
     status: normalizeStatus(row.status),
-    reach: clampRating(row.reach),
-    impact: clampRating(row.impact),
-    confidence: clampRating(row.confidence),
-    cost: clampRating(row.cost),
-    complexity: clampRating(row.complexity),
+    reach: ratingFromRow(row.reach),
+    impact: ratingFromRow(row.impact),
+    confidence: ratingFromRow(row.confidence),
+    complexity: ratingFromRow(row.complexity),
     price: row.price === null || row.price === undefined ? '' : String(row.price),
     link: row.link ?? '',
     comment: row.comment ?? '',
   };
 }
 
+function parsePrice(values: ItemValues): number | null {
+  const raw = values.price.trim();
+  if (raw === '') return null;
+  const num = Number(raw);
+  return Number.isFinite(num) && num > 0 ? num : null;
+}
+
 function buildPayload(values: ItemValues): Record<string, unknown> {
   const payload: Record<string, unknown> = {
     title: values.title.trim(),
     status: values.status,
-    reach: values.reach,
-    impact: values.impact,
-    confidence: values.confidence,
-    cost: values.cost,
-    complexity: values.complexity,
     link: values.link.trim(),
     comment: values.comment.trim(),
   };
-  const price = values.price.trim();
-  if (price !== '' && Number.isFinite(Number(price))) {
-    payload.price = Number(price);
+  for (const p of RATING_PARAMS) {
+    const value = values[p.name];
+    if (value !== null) payload[p.name] = value;
   }
+  const price = parsePrice(values);
+  if (price !== null) payload.price = price;
   return payload;
 }
 
-function ratingsLine(row: RiceItem): string {
-  return RATING_PARAMS.map((p) => `${p.label} ${clampRating(row[p.name as RatingFieldName])}`).join(' · ');
+function formatCoef(coef: number | null): string | null {
+  if (coef === null) return null;
+  return Number(coef.toFixed(1)).toString();
 }
 
 function formatPrice(price: number | null): string | null {
@@ -117,10 +134,11 @@ function formatPrice(price: number | null): string | null {
 function formatDate(value: string): string {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
 }
 
-function safeHttpUrl(value: string): string | null {
+function safeHttpUrl(value: string | null): string | null {
+  if (value === null || value === '') return null;
   try {
     const parsed = new URL(value);
     if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.toString();
@@ -130,6 +148,36 @@ function safeHttpUrl(value: string): string | null {
   return null;
 }
 
+function InfoIcon(): ReactNode {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <line x1="12" y1="10.5" x2="12" y2="16.5" />
+      <line x1="12" y1="7.2" x2="12" y2="7.3" />
+    </svg>
+  );
+}
+
+function DotsIcon(): ReactNode {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <circle cx="12" cy="5" r="1.7" />
+      <circle cx="12" cy="12" r="1.7" />
+      <circle cx="12" cy="19" r="1.7" />
+    </svg>
+  );
+}
+
+function LinkIcon(): ReactNode {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 5h5v5" />
+      <path d="M19 5l-8.5 8.5" />
+      <path d="M15.5 13.5V17a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6.5a2 2 0 0 1 2-2h3.5" />
+    </svg>
+  );
+}
+
 export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiProps) {
   const base = `/api/modules/${moduleId}/item`;
   const [meta, setMeta] = useState<ManifestInfo | null>(null);
@@ -137,7 +185,6 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<RiceItem | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<RiceItem | null>(null);
   const [formKey, setFormKey] = useState(0);
   const [addOpen, setAddOpen] = useState(false);
   const [showBought, setShowBought] = useState(false);
@@ -160,10 +207,6 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
     void loadAll();
   }, [loadAll]);
 
-  const fail = (err: unknown, fallback: string): void => {
-    setError(err instanceof Error ? err.message : fallback);
-  };
-
   const run = useCallback(
     async (action: () => Promise<void>, fallback: string): Promise<void> => {
       if (busy) return;
@@ -172,7 +215,7 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
       try {
         await action();
       } catch (err) {
-        fail(err, fallback);
+        setError(err instanceof Error ? err.message : fallback);
       } finally {
         setBusy(false);
       }
@@ -188,7 +231,6 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
     void run(async () => {
       await api(base, { method: 'POST', body: buildPayload(values) });
       setFormKey((k) => k + 1);
-      setAddOpen(false);
       await loadAll();
     }, 'Не удалось добавить покупку');
   };
@@ -215,18 +257,42 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
   const onDelete = (row: RiceItem): void => {
     void run(async () => {
       await api(`${base}/${row.id}`, { method: 'DELETE' });
-      setConfirmDelete(null);
+      setEditing(null);
       await loadAll();
     }, 'Не удалось удалить покупку');
   };
 
+  const all = items ?? [];
   const active = useMemo(
-    () => sortActive((items ?? []).filter((i) => normalizeStatus(i.status) !== STATUS_BOUGHT)),
-    [items],
+    () =>
+      sortActive(
+        all.filter(
+          (i) => normalizeStatus(i.status) !== STATUS_BOUGHT && isRated(i),
+        ),
+        all.map((i) => i.price),
+      ),
+    [all],
+  );
+  const backlog = useMemo(
+    () =>
+      sortActive(
+        all.filter(
+          (i) => normalizeStatus(i.status) !== STATUS_BOUGHT && !isRated(i),
+        ),
+        all.map((i) => i.price),
+      ),
+    [all],
   );
   const bought = useMemo(
-    () => sortBought((items ?? []).filter((i) => normalizeStatus(i.status) === STATUS_BOUGHT)),
-    [items],
+    () => sortBought(all.filter((i) => normalizeStatus(i.status) === STATUS_BOUGHT)),
+    [all],
+  );
+  const pricePool = useMemo(
+    () =>
+      active
+        .map((i) => i.price)
+        .filter((p): p is number => typeof p === 'number' && Number.isFinite(p) && p > 0),
+    [active],
   );
 
   if (error !== null && items === null) {
@@ -250,10 +316,24 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
     );
   }
 
+  const rowCommon = {
+    busy,
+    canWrite,
+    editingId: editing?.id ?? null,
+    prices: pricePool,
+    onEdit: (row: RiceItem) => {
+      setEditing(row);
+      setAddOpen(false);
+    },
+    onCancelEdit: () => setEditing(null),
+    onSave,
+    onSetStatus,
+    onDelete,
+  };
+
   return (
     <main className="shopping">
       <h1 className="shopping-title">{meta.name}</h1>
-      {meta.description !== '' && <p className="shopping-sub">{meta.description}</p>}
 
       {error !== null && (
         <p className="auth-error" role="alert">
@@ -261,12 +341,15 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
         </p>
       )}
 
-      {(active.length > 0 || bought.length > 0) && (
+      {(active.length > 0 || backlog.length > 0 || bought.length > 0) && (
         <p className="shopping-stats">
-          {active.length > 0
-            ? `В списке ${active.length} · в планах ${active.filter((i) => i.status === STATUS_PLANNED).length}`
-            : 'Активных покупок нет'}
-          {bought.length > 0 && ` · куплено ${bought.length}`}
+          {[
+            active.length > 0 ? `в списке ${active.length}` : null,
+            backlog.length > 0 ? `идеи ${backlog.length}` : null,
+            bought.length > 0 ? `куплено ${bought.length}` : null,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
         </p>
       )}
 
@@ -274,11 +357,15 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
         <div className="shopping-add">
           {addOpen ? (
             <ItemForm
-              key={formKey}
+              key={`add-${formKey}`}
               initial={DEFAULT_VALUES}
-              submitLabel="Добавить покупку"
+              labels={{ rated: 'Добавить с оценкой', unrated: 'Записать идею в бэклог' }}
+              pricePool={pricePool}
               busy={busy}
-              onSubmit={onCreate}
+              onSubmit={(values) => {
+                onCreate(values);
+                setAddOpen(false);
+              }}
               onCancel={() => setAddOpen(false)}
             />
           ) : (
@@ -298,7 +385,7 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
           <p className="shopping-empty-title">Пока пусто</p>
           <p className="shopping-empty-text">
             {canWrite
-              ? 'Добавьте первую покупку, оцените её по шкале — и список сам выстроится по приоритету.'
+              ? 'Записывайте любые идеи — от мелочей до крупной техники. Оценённые покупки сами выстроятся по приоритету.'
               : 'Список пока не заполнен.'}
           </p>
         </div>
@@ -310,32 +397,35 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
               <span className="shopping-section-count">{active.length}</span>
             </div>
             {active.length === 0 ? (
-              <p className="shopping-hint">Активных покупок нет — новые появятся здесь.</p>
+              <p className="shopping-hint">
+                Пока никто ничего не оценил — оцените идеи из бэклога, и здесь появится порядок.
+              </p>
             ) : (
               <ul className="shopping-list">
                 {active.map((row) => (
-                  <ItemRow
-                    key={row.id}
-                    row={row}
-                    busy={busy}
-                    canWrite={canWrite}
-                    editing={editing?.id === row.id}
-                    confirmDelete={confirmDelete?.id === row.id}
-                    onEdit={() => {
-                      setEditing(row);
-                      setConfirmDelete(null);
-                    }}
-                    onCancelEdit={() => setEditing(null)}
-                    onSave={onSave}
-                    onSetStatus={(status) => onSetStatus(row, status)}
-                    onAskDelete={() => setConfirmDelete(row)}
-                    onCancelDelete={() => setConfirmDelete(null)}
-                    onDelete={() => onDelete(row)}
-                  />
+                  <ItemRow key={row.id} row={row} {...rowCommon} />
                 ))}
               </ul>
             )}
           </section>
+
+          {backlog.length > 0 && (
+            <section aria-label="Идеи без оценок">
+              <div className="shopping-section-head">
+                <h2 className="shopping-section-title">Идеи без оценок</h2>
+                <span className="shopping-section-count">{backlog.length}</span>
+              </div>
+              <p className="shopping-section-hint">
+                Накидывайте всё подряд: чтобы идея попала в список, нужны четыре оценки и примерная
+                сумма — денежный коэффициент посчитается сам относительно других покупок.
+              </p>
+              <ul className="shopping-list">
+                {backlog.map((row) => (
+                  <BacklogRow key={row.id} row={row} {...rowCommon} />
+                ))}
+              </ul>
+            </section>
+          )}
 
           {bought.length > 0 && (
             <section className="shopping-archive" aria-label="Куплено">
@@ -350,24 +440,7 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
               {showBought && (
                 <ul className="shopping-list">
                   {bought.map((row) => (
-                    <ItemRow
-                      key={row.id}
-                      row={row}
-                      busy={busy}
-                      canWrite={canWrite}
-                      editing={editing?.id === row.id}
-                      confirmDelete={confirmDelete?.id === row.id}
-                      onEdit={() => {
-                        setEditing(row);
-                        setConfirmDelete(null);
-                      }}
-                      onCancelEdit={() => setEditing(null)}
-                      onSave={onSave}
-                      onSetStatus={(status) => onSetStatus(row, status)}
-                      onAskDelete={() => setConfirmDelete(row)}
-                      onCancelDelete={() => setConfirmDelete(null)}
-                      onDelete={() => onDelete(row)}
-                    />
+                    <ItemRow key={row.id} row={row} {...rowCommon} />
                   ))}
                 </ul>
               )}
@@ -379,31 +452,169 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
   );
 }
 
-interface ItemRowProps {
-  row: RiceItem;
+interface RowShared {
   busy: boolean;
   canWrite: boolean;
-  editing: boolean;
-  confirmDelete: boolean;
-  onEdit: () => void;
+  editingId: number | null;
+  prices: number[];
+  onEdit: (row: RiceItem) => void;
   onCancelEdit: () => void;
   onSave: (row: RiceItem, values: ItemValues) => void;
+  onSetStatus: (row: RiceItem, status: StatusValue) => void;
+  onDelete: (row: RiceItem) => void;
+}
+
+interface ItemMenuProps {
+  row: RiceItem;
+  busy: boolean;
+  showStatuses: boolean;
   onSetStatus: (status: StatusValue) => void;
-  onAskDelete: () => void;
-  onCancelDelete: () => void;
+  onEdit: () => void;
   onDelete: () => void;
 }
 
-function ItemRow(props: ItemRowProps) {
-  const { row, busy, canWrite, editing, confirmDelete } = props;
+function ItemMenu({ row, busy, showStatuses, onSetStatus, onEdit, onDelete }: ItemMenuProps) {
+  const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
-  if (editing) {
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent): void => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  const act = (fn: () => void): void => {
+    setOpen(false);
+    fn();
+  };
+
+  const current = normalizeStatus(row.status);
+
+  return (
+    <div className="shopping-menu-wrap" ref={rootRef}>
+      <button
+        className="shopping-iconbtn"
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Действия с покупкой"
+        disabled={busy}
+        onClick={() => {
+          setConfirming(false);
+          setOpen((v) => !v);
+        }}
+      >
+        <DotsIcon />
+      </button>
+      {open && (
+        <div className="shopping-menu" role="menu" aria-label="Действия с покупкой">
+          {confirming ? (
+            <div className="shopping-menu-confirm">
+              <span>Удалить безвозвратно?</span>
+              <div className="shopping-menu-confirm-actions">
+                <button
+                  className="btn-danger-solid shopping-menu-btn"
+                  type="button"
+                  role="menuitem"
+                  disabled={busy}
+                  onClick={() => act(onDelete)}
+                >
+                  Удалить
+                </button>
+                <button
+                  className="btn-ghost shopping-menu-btn"
+                  type="button"
+                  role="menuitem"
+                  disabled={busy}
+                  onClick={() => setConfirming(false)}
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {showStatuses &&
+                STATUS_OPTIONS.filter((o) => o.value !== current).map((o) => (
+                  <button
+                    key={o.value}
+                    className="shopping-menu-item"
+                    type="button"
+                    role="menuitem"
+                    disabled={busy}
+                    onClick={() => act(() => onSetStatus(o.value))}
+                  >
+                    {o.value === STATUS_BOUGHT && current !== STATUS_BOUGHT
+                      ? 'Купить'
+                      : o.label}
+                  </button>
+                ))}
+              {showStatuses && (
+                <button
+                  className="shopping-menu-item on"
+                  type="button"
+                  role="menuitem"
+                  aria-current="true"
+                  disabled
+                >
+                  {STATUS_LABELS[current]} ✓
+                </button>
+              )}
+              {showStatuses && <div className="shopping-menu-sep" role="separator" />}
+              <button
+                className="shopping-menu-item"
+                type="button"
+                role="menuitem"
+                disabled={busy}
+                onClick={() => act(onEdit)}
+              >
+                Изменить
+              </button>
+              <div className="shopping-menu-sep" role="separator" />
+              <button
+                className="shopping-menu-item danger"
+                type="button"
+                role="menuitem"
+                disabled={busy}
+                onClick={() => setConfirming(true)}
+              >
+                Удалить…
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ItemRowProps extends RowShared {
+  row: RiceItem;
+}
+
+function ItemRow(props: ItemRowProps) {
+  const { row, busy, canWrite, editingId } = props;
+  const [infoOpen, setInfoOpen] = useState(false);
+
+  if (editingId === row.id) {
     return (
       <li className="shopping-row">
         <ItemForm
           key={row.id}
           initial={fromRow(row)}
-          submitLabel="Сохранить"
+          labels={{ rated: 'Сохранить с оценкой', unrated: 'Сохранить и убрать в бэклог' }}
+          pricePool={props.prices}
           busy={busy}
           onSubmit={(values) => props.onSave(row, values)}
           onCancel={props.onCancelEdit}
@@ -413,111 +624,160 @@ function ItemRow(props: ItemRowProps) {
   }
 
   const price = formatPrice(row.price);
-  const href = row.link !== null && row.link !== '' ? safeHttpUrl(row.link) : null;
-  const statusActions: Array<{ to: StatusValue; label: string }> =
-    row.status === STATUS_BOUGHT
-      ? [{ to: STATUS_WANT, label: 'Вернуть' }]
-      : [
-          ...(normalizeStatus(row.status) === STATUS_WANT
-            ? [{ to: STATUS_PLANNED as StatusValue, label: 'В планы' }]
-            : [{ to: STATUS_WANT as StatusValue, label: 'Хочу' }]),
-          { to: STATUS_BOUGHT, label: 'Куплено' },
-        ];
+  const href = safeHttpUrl(row.link);
+  const done = row.status === STATUS_BOUGHT;
 
   return (
-    <li className={`shopping-row${row.status === STATUS_BOUGHT ? ' done' : ''}`}>
+    <li className={`shopping-row${done ? ' done' : ''}`}>
       <div className="shopping-score" title="Балл приоритета RICE">
-        <span className="shopping-score-num">{formatScore(scoreOf(row))}</span>
+        <span className="shopping-score-num">{formatScore(scoreOf(row, props.prices))}</span>
         <span className="shopping-score-cap">балл</span>
       </div>
-      <div className="shopping-row-body">
+      <div className="shopping-row-main">
         <span className="shopping-row-title">{row.title}</span>
-        <div className="shopping-row-meta">
-          {row.status !== STATUS_BOUGHT && (
-            <span className={`shopping-chip${row.status === STATUS_PLANNED ? ' planned' : ''}`}>
-              {STATUS_LABELS[normalizeStatus(row.status)]}
-            </span>
-          )}
-          <span className="shopping-ratings" title="Оценки по шкале от 1 до 5">
-            {ratingsLine(row)}
-          </span>
-          {row.status === STATUS_BOUGHT && (
-            <span className="shopping-bought-at">с {formatDate(row.updated_at)}</span>
-          )}
-        </div>
-
-        {(price !== null || href !== null || (row.comment !== null && row.comment !== '')) && (
-          <div className="shopping-facts">
-            {price !== null && <span className="shopping-price">{price}</span>}
-            {href !== null && (
-              <a className="shopping-link" href={href} target="_blank" rel="noopener noreferrer">
-                ссылка на магазин
-              </a>
-            )}
-            {row.comment !== null && row.comment !== '' && (
-              <span className="shopping-note">{row.comment}</span>
-            )}
-          </div>
+        {price !== null && <span className="shopping-price">{price}</span>}
+      </div>
+      <div className="shopping-tools">
+        {href !== null && (
+          <a
+            className="shopping-iconbtn"
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Открыть ссылку: ${row.title}`}
+            title="Ссылка на магазин"
+          >
+            <LinkIcon />
+          </a>
         )}
-
-        {row.created_by_username !== null && (
-          <span className="shopping-author" title="Кто добавил">
-            Записал(а): {row.created_by_username}
-          </span>
-        )}
-
+        <button
+          className="shopping-iconbtn"
+          type="button"
+          aria-expanded={infoOpen}
+          aria-controls={`shopping-info-${row.id}`}
+          aria-label="Подробнее о покупке"
+          onClick={() => setInfoOpen((v) => !v)}
+        >
+          <InfoIcon />
+        </button>
         {canWrite && (
-          <div className="shopping-actions">
-            {statusActions.map((a) => (
-              <button
-                key={a.to}
-                className="btn-ghost"
-                type="button"
-                disabled={busy}
-                onClick={() => props.onSetStatus(a.to)}
-              >
-                {a.label}
-              </button>
-            ))}
-            <button className="btn-ghost" type="button" disabled={busy} onClick={props.onEdit}>
-              Изменить
-            </button>
-            <button
-              className="btn-ghost btn-danger"
-              type="button"
-              disabled={busy}
-              onClick={props.onAskDelete}
-            >
-              Удалить
-            </button>
-          </div>
-        )}
-
-        {confirmDelete && (
-          <div className="shopping-confirm">
-            <span>Удалить покупку? Действие необратимо.</span>
-            <button className="btn-danger-solid" type="button" disabled={busy} onClick={props.onDelete}>
-              {busy ? 'Удаляем…' : 'Удалить'}
-            </button>
-            <button className="btn-ghost" type="button" disabled={busy} onClick={props.onCancelDelete}>
-              Отмена
-            </button>
-          </div>
+          <ItemMenu
+            row={row}
+            busy={busy}
+            showStatuses
+            onSetStatus={(status) => props.onSetStatus(row, status)}
+            onEdit={() => props.onEdit(row)}
+            onDelete={() => props.onDelete(row)}
+          />
         )}
       </div>
+      {infoOpen && (
+        <div className="shopping-info" id={`shopping-info-${row.id}`}>
+          <div className="shopping-info-grid">
+            {RATING_PARAMS.map((p) => (
+              <span key={p.name} className="shopping-info-param">
+                <i>{p.label}</i> {clampRating(row[p.name as keyof RiceItem])}/5
+              </span>
+            ))}
+            {(() => {
+              const coef = formatCoef(moneyCoefficient(row.price, props.prices));
+              return (
+                <>
+                  <span className="shopping-info-param">
+                    <i>Деньги</i> {coef === null ? '—' : `${coef} · из суммы`}
+                  </span>
+                  {price !== null && <span className="shopping-info-param"><i>Сумма</i> ~{price.replace('~ ', '')}</span>}
+                </>
+              );
+            })()}
+          </div>
+          <div className="shopping-info-facts">
+            <span>
+              Статус: {STATUS_LABELS[normalizeStatus(row.status)]}
+              {done && ` с ${formatDate(row.updated_at)}`}
+            </span>
+            {href !== null && (
+              <a href={href} target="_blank" rel="noopener noreferrer" className="shopping-link">
+                открыть магазин ↗
+              </a>
+            )}
+            {row.created_by_username !== null && (
+              <span>
+                Записал(а): {row.created_by_username} · {formatDate(row.created_at)}
+              </span>
+            )}
+          </div>
+          {row.comment !== null && row.comment !== '' && (
+            <p className="shopping-note">{row.comment}</p>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
+
+function BacklogRow(props: ItemRowProps) {
+  const { row, busy, canWrite, editingId } = props;
+
+  if (editingId === row.id) {
+    return (
+      <li className="shopping-row backlog">
+        <ItemForm
+          key={row.id}
+          initial={fromRow(row)}
+          labels={{ rated: 'Оценить и добавить в список', unrated: 'Сохранить без оценки' }}
+          pricePool={props.prices}
+          busy={busy}
+          onSubmit={(values) => props.onSave(row, values)}
+          onCancel={props.onCancelEdit}
+        />
+      </li>
+    );
+  }
+
+  const price = formatPrice(row.price);
+
+  return (
+    <li className="shopping-row backlog">
+      <div className="shopping-row-main">
+        <span className="shopping-row-title">{row.title}</span>
+        {price !== null && <span className="shopping-price">{price}</span>}
+      </div>
+      {canWrite && (
+        <div className="shopping-tools">
+          <button
+            className="btn-primary shopping-evaluate"
+            type="button"
+            disabled={busy}
+            onClick={() => props.onEdit(row)}
+          >
+            Оценить
+          </button>
+          <ItemMenu
+            row={row}
+            busy={busy}
+            showStatuses={false}
+            onSetStatus={(status) => props.onSetStatus(row, status)}
+            onEdit={() => props.onEdit(row)}
+            onDelete={() => props.onDelete(row)}
+          />
+        </div>
+      )}
     </li>
   );
 }
 
 function ItemForm({
   initial,
-  submitLabel,
+  labels,
+  pricePool,
   busy,
   onSubmit,
   onCancel,
 }: {
   initial: ItemValues;
-  submitLabel: string;
+  labels: { rated: string; unrated: string };
+  pricePool: number[];
   busy: boolean;
   onSubmit: (values: ItemValues) => void;
   onCancel?: () => void;
@@ -528,7 +788,10 @@ function ItemForm({
     setValues((v) => ({ ...v, [name]: value }));
   };
 
-  const preview = scoreOf(values);
+  const price = parsePrice(values);
+  const complete = isRated({ ...values, price });
+  const previewScore = complete ? scoreOf({ ...values, price }, [...pricePool]) : null;
+  const moneyNow = formatCoef(moneyCoefficient(price, pricePool));
 
   return (
     <form
@@ -550,28 +813,10 @@ function ItemForm({
         />
       </label>
 
-      <div
-        className="shopping-seg"
-        role="radiogroup"
-        aria-label="Статус"
-      >
-        {STATUS_OPTIONS.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            role="radio"
-            aria-checked={values.status === o.value}
-            className={`shopping-seg-btn${values.status === o.value ? ' on' : ''}`}
-            disabled={busy}
-            onClick={() => setValue('status', o.value)}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-
       <fieldset className="shopping-ratings-fieldset">
-        <legend className="shopping-ratings-legend">Оценки по шкале от 1 до 5</legend>
+        <legend className="shopping-ratings-legend">
+          Оценки от 1 до 5 — можно оставить на потом
+        </legend>
         {RATING_PARAMS.map((p) => (
           <RatingPicker
             key={p.name}
@@ -582,41 +827,55 @@ function ItemForm({
             onChange={(v) => setValue(p.name, v)}
           />
         ))}
-      </fieldset>
-
-      <p className="shopping-preview" aria-live="polite">
-        Предварительный балл: <strong>{formatScore(preview)}</strong>
-        <span className="shopping-preview-formula">
-          (охват × польза × уверенность) ÷ ((деньги + сложность) ÷ 2)
-        </span>
-      </p>
-
-      <div className="shopping-form-duo">
-        <label className="field">
-          <span className="field-label">Цена (~₽)</span>
+        <div className="shopping-money">
+          <div className="shopping-rp-head">
+            <span className="shopping-rp-label">Деньги</span>
+            <span className="shopping-rp-hint">
+              впишите сумму — коэффициент посчитается сам относительно других покупок
+              {moneyNow !== null && ` · сейчас ${moneyNow} из 5`}
+            </span>
+          </div>
           <input
-            className="field-input"
+            className="field-input shopping-money-input"
             type="number"
-            min="0"
+            min="1"
             step="any"
             inputMode="decimal"
             value={values.price}
+            disabled={busy}
             onChange={(e) => setValue('price', e.target.value)}
-            placeholder="Сколько примерно стоит"
+            placeholder="₽ примерно"
+            aria-label="Примерная сумма в рублях"
           />
-        </label>
-        <label className="field">
-          <span className="field-label">Ссылка на магазин</span>
-          <input
-            className="field-input"
-            type="url"
-            inputMode="url"
-            value={values.link}
-            onChange={(e) => setValue('link', e.target.value)}
-            placeholder="https://…"
-          />
-        </label>
-      </div>
+        </div>
+      </fieldset>
+
+      {complete ? (
+        <p className="shopping-preview" aria-live="polite">
+          Предварительный балл: <strong>{formatScore(previewScore)}</strong>
+          <span className="shopping-preview-formula">
+            (охват × польза × уверенность) ÷ ((деньги + сложность) ÷ 2), деньги — из суммы
+          </span>
+        </p>
+      ) : (
+        <p className="shopping-preview shopping-preview-empty" aria-live="polite">
+          {moneyNow === null && values.reach !== null && values.impact !== null && values.confidence !== null && values.complexity !== null
+            ? 'Осталось указать сумму — и покупка займёт место в списке.'
+            : 'Без полной оценки и суммы покупка попадёт в бэклог идей — вернуться к ней можно в любой момент.'}
+        </p>
+      )}
+
+      <label className="field">
+        <span className="field-label">Ссылка на магазин</span>
+        <input
+          className="field-input"
+          type="url"
+          inputMode="url"
+          value={values.link}
+          onChange={(e) => setValue('link', e.target.value)}
+          placeholder="https://…"
+        />
+      </label>
 
       <label className="field">
         <span className="field-label">Комментарий</span>
@@ -631,7 +890,7 @@ function ItemForm({
 
       <div className="shopping-form-actions">
         <button className="btn-primary" type="submit" disabled={busy}>
-          {busy ? 'Сохраняем…' : submitLabel}
+          {busy ? 'Сохраняем…' : complete ? labels.rated : labels.unrated}
         </button>
         {onCancel && (
           <button className="btn-ghost" type="button" onClick={onCancel} disabled={busy}>
@@ -652,9 +911,9 @@ function RatingPicker({
 }: {
   label: string;
   hint: string;
-  value: Rating;
+  value: RatingValue;
   disabled: boolean;
-  onChange: (value: Rating) => void;
+  onChange: (value: RatingValue) => void;
 }) {
   return (
     <div className="shopping-rp" role="radiogroup" aria-label={`${label}: ${hint}`}>
@@ -672,7 +931,7 @@ function RatingPicker({
             title={`${label}: ${v}`}
             className={`shopping-rp-btn${value === v ? ' on' : ''}`}
             disabled={disabled}
-            onClick={() => onChange(v)}
+            onClick={() => onChange(value === v ? null : v)}
           >
             {v}
           </button>

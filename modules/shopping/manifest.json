@@ -1,7 +1,7 @@
 {
   "id": "shopping",
   "name": "Покупки для дома",
-  "description": "Что купить для дома и в каком порядке. Каждую покупку оцениваем по RICE: охват (кто и как часто пользуется), польза, уверенность и затраты — балл считается сам и выстраивает список от важного к второстепенному.",
+  "description": "Приоритеты домашних покупок по RICE: идеи без оценок ждут в бэклоге; деньги считаются из суммы автоматически относительно других покупок.",
   "kind": "simple",
   "entities": [
     {
@@ -10,12 +10,11 @@
       "fields": [
         { "name": "title", "label": "Что купить", "type": "text", "required": true },
         { "name": "status", "label": "Статус", "type": "number", "required": true },
-        { "name": "reach", "label": "Охват", "type": "number", "required": true },
-        { "name": "impact", "label": "Польза", "type": "number", "required": true },
-        { "name": "confidence", "label": "Уверенность", "type": "number", "required": true },
-        { "name": "cost", "label": "Деньги", "type": "number", "required": true },
-        { "name": "complexity", "label": "Сложность", "type": "number", "required": true },
-        { "name": "price", "label": "Цена (~₽)", "type": "number" },
+        { "name": "reach", "label": "Охват", "type": "number" },
+        { "name": "impact", "label": "Польза", "type": "number" },
+        { "name": "confidence", "label": "Уверенность", "type": "number" },
+        { "name": "complexity", "label": "Сложность", "type": "number" },
+        { "name": "price", "label": "Примерная сумма (₽)", "type": "number" },
         { "name": "link", "label": "Ссылка на магазин", "type": "url" },
         { "name": "comment", "label": "Комментарий", "type": "textarea" }
       ]

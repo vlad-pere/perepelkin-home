@@ -39,6 +39,53 @@ export function createEntityTableSql(moduleId: string, entity: ManifestEntity): 
   );`;
 }
 
+interface ColumnInfo {
+  name: string;
+  notnull: number;
+}
+
+/**
+ * Создаёт таблицу сущности и приводит уже существующую к текущему манифесту:
+ * если у поля изменилась обязательность, таблица пересоздаётся с переносом данных
+ * (SQLite не умеет ALTER COLUMN).
+ */
+export function ensureEntityTable(db: Database.Database, moduleId: string, entity: ManifestEntity): void {
+  db.exec(createEntityTableSql(moduleId, entity));
+  const info = db
+    .prepare(`PRAGMA table_info("${tableName(moduleId, entity.name)}")`)
+    .all() as ColumnInfo[];
+  const actual = new Map(info.map((c) => [c.name, c.notnull === 1]));
+  const drift = entity.fields.some((f) => {
+    const isNotNull = actual.get(f.name);
+    return isNotNull !== undefined && isNotNull !== f.required;
+  });
+  if (!drift) return;
+
+  const table = tableName(moduleId, entity.name);
+  const tmp = `${table}__rebuild`;
+  const createTmpSql = createEntityTableSql(moduleId, entity).replace(
+    `IF NOT EXISTS "${table}"`,
+    `"${tmp}"`,
+  );
+  const existingColumns = new Set(info.map((c) => c.name));
+  const copyColumns = [
+    'id',
+    ...entity.fields.filter((f) => existingColumns.has(f.name)).map((f) => f.name),
+    'created_by',
+    'created_at',
+    'updated_at',
+  ]
+    .map((c) => `"${c}"`)
+    .join(', ');
+  db.transaction(() => {
+    db.exec(`DROP TABLE IF EXISTS "${tmp}"`);
+    db.exec(createTmpSql);
+    db.exec(`INSERT INTO "${tmp}" (${copyColumns}) SELECT ${copyColumns} FROM "${table}"`);
+    db.exec(`DROP TABLE "${table}"`);
+    db.exec(`ALTER TABLE "${tmp}" RENAME TO "${table}"`);
+  })();
+}
+
 function validateFieldValue(field: ManifestField, value: unknown): string | null {
   switch (field.type) {
     case 'text':
