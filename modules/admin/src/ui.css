@@ -2,26 +2,6 @@
   padding-top: 40px;
 }
 
-.admin-eyebrow {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-  animation: fade-up 0.7s var(--ease) both;
-}
-
-.admin-title {
-  margin: 8px 0 0;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 36px;
-  line-height: 1.12;
-  letter-spacing: 0.005em;
-  animation: fade-up 0.7s var(--ease) 0.04s both;
-}
-
 .admin-sub {
   margin: 12px 0 0;
   color: var(--ink-soft);
@@ -468,10 +448,6 @@
 @media (max-width: 640px) {
   .admin {
     padding-top: 28px;
-  }
-
-  .admin-title {
-    font-size: 30px;
   }
 
   .admin-form {

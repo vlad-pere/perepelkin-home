@@ -333,7 +333,6 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
 
   return (
     <main className="shopping">
-      <h1 className="shopping-title">{meta.name}</h1>
 
       {error !== null && (
         <p className="auth-error" role="alert">

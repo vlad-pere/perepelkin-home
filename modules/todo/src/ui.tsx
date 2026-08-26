@@ -165,7 +165,6 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
 
   return (
     <main className="todo">
-      <h1 className="todo-title">{meta.name}</h1>
       {meta.description !== '' && <p className="todo-sub">{meta.description}</p>}
 
       {error !== null && (

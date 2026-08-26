@@ -66,7 +66,6 @@ export function CrudModule({ moduleId, api, canWrite }: CrudModuleProps) {
 
   return (
     <main className="crud">
-      <h1 className="crud-title">{manifest.name}</h1>
       {manifest.description !== '' && <p className="crud-sub">{manifest.description}</p>}
 
       <div className="crud-entities">

@@ -2,17 +2,6 @@
   padding-top: 40px;
 }
 
-.diary-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 36px;
-  line-height: 1.12;
-  letter-spacing: 0.005em;
-  overflow-wrap: anywhere;
-  animation: fade-up 0.7s var(--ease) both;
-}
-
 .diary-sub {
   margin: 12px 0 0;
   color: var(--ink-soft);
@@ -407,10 +396,6 @@
 @media (max-width: 640px) {
   .diary {
     padding-top: 28px;
-  }
-
-  .diary-title {
-    font-size: 30px;
   }
 
   .diary-toolbar {

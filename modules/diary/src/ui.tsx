@@ -266,7 +266,6 @@ export default function DiaryModule({ moduleId, api, canWrite }: DiaryUiProps) {
 
   return (
     <main className="diary">
-      <h1 className="diary-title">{meta.name}</h1>
       {meta.description !== '' && <p className="diary-sub">{meta.description}</p>}
 
       {error !== null && (

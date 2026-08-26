@@ -82,8 +82,6 @@ export function AdminPage({ api, currentUserId }: AdminPageProps) {
 
   return (
     <main className="admin">
-      <p className="admin-eyebrow">администрирование</p>
-      <h1 className="admin-title">{meta[tab].title}</h1>
       <p className="admin-sub">{meta[tab].sub}</p>
 
       <nav className="admin-tabs" role="tablist" aria-label="Разделы администрирования">

@@ -8,7 +8,7 @@ export function ProfilePage() {
 
   return (
     <div className="shell">
-      <Topbar />
+      <Topbar breadcrumb={{ label: 'Профиль' }} />
 
       <main className="profile">
         <h1 className="profile-title">{user.username}</h1>

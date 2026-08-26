@@ -2,17 +2,6 @@
   padding-top: 40px;
 }
 
-.todo-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 36px;
-  line-height: 1.12;
-  letter-spacing: 0.005em;
-  overflow-wrap: anywhere;
-  animation: fade-up 0.7s var(--ease) both;
-}
-
 .todo-sub {
   margin: 12px 0 0;
   color: var(--ink-soft);
@@ -238,10 +227,6 @@
 @media (max-width: 640px) {
   .todo {
     padding-top: 28px;
-  }
-
-  .todo-title {
-    font-size: 30px;
   }
 
   .todo-progress {

@@ -2,15 +2,29 @@ import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth';
 
-export function Topbar({ children }: { children?: ReactNode }) {
+export function Topbar({
+  children,
+  breadcrumb,
+}: {
+  children?: ReactNode;
+  breadcrumb?: { label: string };
+}) {
   const { me } = useAuth();
   const user = me?.user;
 
   return (
     <header className="topbar">
-      <Link className="topbar-wordmark" to="/">
-        Дом Перепелкиных
-      </Link>
+      <div className="topbar-left">
+        <Link className="topbar-wordmark" to="/">
+          Дом Перепелкиных
+        </Link>
+        {breadcrumb && (
+          <>
+            <span className="topbar-separator">/</span>
+            <span className="topbar-breadcrumb">{breadcrumb.label}</span>
+          </>
+        )}
+      </div>
       <div className="topbar-right">
         {children}
         {user && (

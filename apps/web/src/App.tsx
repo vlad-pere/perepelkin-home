@@ -36,7 +36,7 @@ function Root() {
             element={
               isAdmin ? (
                 <div className="shell">
-                  <Topbar />
+                  <Topbar breadcrumb={{ label: 'Администрирование' }} />
                   <AdminPage api={api} currentUserId={me!.user.id} />
                 </div>
               ) : (
@@ -76,7 +76,7 @@ function ModulePage() {
   const Ui = resolveModuleUi(module.id, module.kind);
   return (
     <div className="shell">
-      <Topbar />
+      <Topbar breadcrumb={{ label: module.name }} />
       {Ui ? (
         <Ui
           moduleId={module.id}
