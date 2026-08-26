@@ -176,6 +176,15 @@ function toRow(row: Record<string, unknown>, entity: ManifestEntity): Record<str
   return out;
 }
 
+function pluralRu(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 19) return many;
+  if (mod10 === 1) return one;
+  if (mod10 >= 2 && mod10 <= 4) return few;
+  return many;
+}
+
 function parseRowId(raw: unknown): number {
   const id = Number.parseInt(String(raw), 10);
   if (!Number.isInteger(id) || id <= 0) throw badRequest('Invalid row id');
@@ -268,6 +277,33 @@ export function registerCrudRoutes(
       const result = deleteStmt.run(rowId);
       if (result.changes === 0) throw notFound('Запись не найдена');
       return reply.code(204).send();
+    });
+  }
+
+  // ---- summary: count + status for the primary entity ----
+  const primary = manifest.entities[0];
+  if (primary) {
+    const pTable = tableName(manifest.id, primary.name);
+    const cfg = manifest.summary;
+
+    let whereSql = '';
+    if (cfg?.filter) {
+      const m = cfg.filter.match(/^([a-z_][a-zA-Z0-9_]*)\s*(<|>|=)\s*(-?\d+)$/);
+      if (m) {
+        const op = m[2] === '=' ? '=' : m[2];
+        whereSql = ` WHERE "${m[1]}" ${op} ${m[3]}`;
+      }
+    }
+
+    const countStmt = db.prepare(`SELECT COUNT(*) AS n FROM "${pTable}"${whereSql}`);
+
+    app.get('/summary', { preHandler: guards.read }, async () => {
+      const { n } = countStmt.get() as { n: number };
+      const emptyText = cfg?.emptyText ?? 'Нет записей';
+      const status = n === 0
+        ? emptyText
+        : `${n} ${pluralRu(n, cfg?.labelOne ?? 'запись', cfg?.labelFew ?? 'записи', cfg?.labelMany ?? 'записей')}`;
+      return { count: n, status };
     });
   }
 }

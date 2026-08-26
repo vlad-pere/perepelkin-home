@@ -1,8 +1,16 @@
 {
   "id": "diary",
-  "name": "Дневник дома",
+  "name": "Дневник",
   "description": "Летопись дома: события, ремонт, гости, сад и всё, что стоит запомнить.",
   "kind": "simple",
+  "icon": "book-open",
+  "color": "#8b7b6b",
+  "summary": {
+    "labelOne": "запись",
+    "labelFew": "записи",
+    "labelMany": "записей",
+    "emptyText": "Пока ничего"
+  },
   "entities": [
     {
       "name": "entry",

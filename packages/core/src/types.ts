@@ -27,6 +27,8 @@ export interface ModuleInfo {
   id: string;
   name: string;
   description: string;
+  icon?: string;
+  color?: string;
 }
 
 export interface Grant {
@@ -39,6 +41,13 @@ export interface ModuleAccess extends ModuleInfo, Grant {
   kind: ModuleKind;
   /** Фронтовый маршрут, по которому открывается модуль. */
   route: string;
+}
+
+export interface ModuleSummary {
+  /** Количество записей основной сущности модуля. */
+  count: number;
+  /** Короткая строка-статус для отображения на карточке. */
+  status: string;
 }
 
 export interface MeResponse {

@@ -23,6 +23,23 @@ export interface ManifestEntity {
   defaultSort?: ManifestEntitySort;
 }
 
+/**
+ * Декларативная конфигурация summary для карточки на дашборде.
+ * Поддерживаемые фильтры: `field = value`, `field < value`, `field > value`.
+ */
+export interface ManifestSummary {
+  /** SQL-подобный фильтр (простые паттерны: `done = 0`, `status < 3`). */
+  filter?: string;
+  /** Текст при count = 1 (напр. «напоминает», «запись», «покупка»). */
+  labelOne: string;
+  /** Текст при count 2–4 (напр. «напоминают», «записи», «покупки»). */
+  labelFew: string;
+  /** Текст при count 5+ (напр. «напоминают», «записей», «покупок»). */
+  labelMany: string;
+  /** Текст при нулевом count. */
+  emptyText?: string;
+}
+
 export interface ModuleManifest {
   id: string;
   name: string;
@@ -30,6 +47,12 @@ export interface ModuleManifest {
   kind: ModuleKind;
   /** Если true — GET-роуты модуля (манифест и списки сущностей) доступны без входа. */
   publicRead?: boolean;
+  /** Идентификатор иконки (например, имя компонента из библиотеки иконок). */
+  icon?: string;
+  /** CSS-цвет акцента модуля (hex или CSS-переменная). */
+  color?: string;
+  /** Конфигурация summary для карточки на дашборде. */
+  summary?: ManifestSummary;
   entities: ManifestEntity[];
 }
 
@@ -43,10 +66,12 @@ export class ManifestError extends Error {
 const FIELD_TYPES: readonly string[] = ['text', 'textarea', 'number', 'date', 'boolean', 'url'];
 const RESERVED_FIELD_NAMES = new Set(['id', 'created_at', 'updated_at', 'created_by']);
 const NAME_PATTERN = /^[a-z][a-zA-Z0-9_]{0,63}$/;
-const TOP_LEVEL_KEYS = ['id', 'name', 'description', 'kind', 'publicRead', 'entities'] as const;
+const TOP_LEVEL_KEYS = ['id', 'name', 'description', 'kind', 'publicRead', 'icon', 'color', 'summary', 'entities'] as const;
 const ENTITY_KEYS = ['name', 'label', 'fields', 'defaultSort'] as const;
 const FIELD_KEYS = ['name', 'label', 'type', 'required'] as const;
 const SORT_KEYS = ['field', 'direction'] as const;
+const SUMMARY_KEYS = ['filter', 'labelOne', 'labelFew', 'labelMany', 'emptyText'] as const;
+const SUMMARY_FILTER_RE = /^[a-z_][a-zA-Z0-9_]*\s*[<>=]+\s*-?\d+$/;
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -176,12 +201,39 @@ export function validateManifest(input: unknown): ModuleManifest {
     });
   }
 
+  const icon = input.icon === undefined ? undefined : str(input.icon, 'icon', 64, 1);
+  const color = input.color === undefined ? undefined : str(input.color, 'color', 32, 1);
+
+  let summary: ManifestSummary | undefined;
+  if (input.summary !== undefined) {
+    if (!isPlainObject(input.summary)) fail('summary must be an object');
+    rejectUnknownKeys(input.summary, SUMMARY_KEYS, 'summary');
+    const sLabelOne = str(input.summary.labelOne, 'summary.labelOne', 64, 1);
+    const sLabelFew = str(input.summary.labelFew, 'summary.labelFew', 64, 1);
+    const sLabelMany = str(input.summary.labelMany, 'summary.labelMany', 64, 1);
+    const sFilter = input.summary.filter === undefined ? undefined : str(input.summary.filter, 'summary.filter', 128, 1);
+    const sEmptyText = input.summary.emptyText === undefined ? undefined : str(input.summary.emptyText, 'summary.emptyText', 64, 1);
+    if (sFilter !== undefined && !SUMMARY_FILTER_RE.test(sFilter)) {
+      fail('summary.filter must match pattern: field = value, field < value, or field > value');
+    }
+    summary = {
+      labelOne: sLabelOne,
+      labelFew: sLabelFew,
+      labelMany: sLabelMany,
+      ...(sFilter === undefined ? {} : { filter: sFilter }),
+      ...(sEmptyText === undefined ? {} : { emptyText: sEmptyText }),
+    };
+  }
+
   return {
     id,
     name,
     description,
     kind: kind as ModuleKind,
     ...(input.publicRead === undefined ? {} : { publicRead: input.publicRead }),
+    ...(icon === undefined ? {} : { icon }),
+    ...(color === undefined ? {} : { color }),
+    ...(summary === undefined ? {} : { summary }),
     entities,
   };
 }

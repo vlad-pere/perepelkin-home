@@ -109,7 +109,13 @@ export async function mountModule(app: FastifyInstance, opts: MountModuleOptions
   );
 
   if (registerError !== undefined) throw registerError;
-  core.registerModule({ id: moduleId, name: manifest.name, description: manifest.description });
+  core.registerModule({
+    id: moduleId,
+    name: manifest.name,
+    description: manifest.description,
+    ...(manifest.icon === undefined ? {} : { icon: manifest.icon }),
+    ...(manifest.color === undefined ? {} : { color: manifest.color }),
+  });
 }
 
 /** Персистит манифест в `modules`/`module_migrations` и создаёт entity-таблицы. */

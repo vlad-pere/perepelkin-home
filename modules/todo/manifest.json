@@ -3,6 +3,15 @@
   "name": "Список дел",
   "description": "Общий список дел: по дому, по переезду, куда угодно.",
   "kind": "simple",
+  "icon": "clipboard-check",
+  "color": "#7c8c6e",
+  "summary": {
+    "filter": "done = 0",
+    "labelOne": "напоминает",
+    "labelFew": "напоминают",
+    "labelMany": "напоминают",
+    "emptyText": "Всё готово"
+  },
   "entities": [
     {
       "name": "task",

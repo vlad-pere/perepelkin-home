@@ -10,16 +10,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/manrope": "^5",
+    "@fontsource/spectral": "^5.3.0",
     "@perepelkin-home/core": "*",
     "@perepelkin-home/module-admin": "*",
-    "@perepelkin-home/module-todo": "*",
-    "@perepelkin-home/module-wishlist": "*",
     "@perepelkin-home/module-diary": "*",
     "@perepelkin-home/module-move": "*",
     "@perepelkin-home/module-shopping": "*",
-    "@fontsource/manrope": "^5",
-    "@fontsource/spectral": "^5",
-    "@fontsource/spectral": "^5.3.0",
+    "@perepelkin-home/module-todo": "*",
+    "@perepelkin-home/module-wishlist": "*",
+    "lucide-react": "^1.34.0",
     "react": "^19",
     "react-dom": "^19",
     "react-router-dom": "^7"

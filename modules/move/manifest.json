@@ -4,6 +4,14 @@
   "description": "Посадочная страница о переезде",
   "kind": "simple",
   "publicRead": true,
+  "icon": "truck",
+  "color": "#7a8b9a",
+  "summary": {
+    "labelOne": "страница",
+    "labelFew": "страницы",
+    "labelMany": "страниц",
+    "emptyText": "Пока ничего"
+  },
   "entities": [
     {
       "name": "page",

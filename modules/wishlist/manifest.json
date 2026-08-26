@@ -4,6 +4,14 @@
   "description": "Мы переезжаем в новый дом, а у нашей дочери скоро первый день рождения. Если вы захотите порадовать нас подарком — вот несколько идей.",
   "kind": "simple",
   "publicRead": true,
+  "icon": "gift",
+  "color": "#c49072",
+  "summary": {
+    "labelOne": "идея",
+    "labelFew": "идеи",
+    "labelMany": "идей",
+    "emptyText": "Пока ничего"
+  },
   "entities": [
     {
       "name": "gift",

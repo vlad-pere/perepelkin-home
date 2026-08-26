@@ -7,6 +7,7 @@ export type {
   ModuleInfo,
   Grant,
   ModuleAccess,
+  ModuleSummary,
   MeResponse,
   Action,
 } from './types.js';
@@ -20,6 +21,7 @@ export type {
   ManifestEntity,
   ManifestField,
   ManifestEntitySort,
+  ManifestSummary,
   ModuleKind,
   FieldType,
   SortDirection,
