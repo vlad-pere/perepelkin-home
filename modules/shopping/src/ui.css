@@ -231,7 +231,7 @@
   gap: 8px 14px;
   padding: 12px 4px;
   border-top: 1px solid var(--line);
-  animation: fade-up 0.6s var(--ease) both;
+  animation: fade-up 0.6s var(--ease) backwards;
 }
 
 .shopping-row:last-child {
