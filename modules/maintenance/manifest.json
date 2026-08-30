@@ -1,0 +1,40 @@
+{
+  "id": "maintenance",
+  "name": "Обслуживание",
+  "description": "Периодические задачи: замена фильтров, ТО машины, ревизия техники.",
+  "kind": "code",
+  "icon": "wrench",
+  "color": "#8b7355",
+  "summary": {
+    "labelOne": "задача требует внимания",
+    "labelFew": "задачи требуют внимания",
+    "labelMany": "задач требуют внимания",
+    "emptyText": "Всё под контролем"
+  },
+  "entities": [
+    {
+      "name": "task",
+      "label": "Задача",
+      "fields": [
+        { "name": "title", "label": "Название", "type": "text", "required": true },
+        { "name": "description", "label": "Описание", "type": "textarea" },
+        { "name": "category", "label": "Категория", "type": "number", "required": true },
+        { "name": "interval_months", "label": "Интервал (мес.)", "type": "number" },
+        { "name": "next_due", "label": "Следующая дата", "type": "date" },
+        { "name": "notes", "label": "Заметки", "type": "textarea" }
+      ],
+      "defaultSort": { "field": "next_due", "direction": "asc" }
+    },
+    {
+      "name": "completion",
+      "label": "Выполнение",
+      "fields": [
+        { "name": "task_id", "label": "Задача", "type": "number", "required": true },
+        { "name": "completed_at", "label": "Дата", "type": "date", "required": true },
+        { "name": "notes", "label": "Комментарий", "type": "textarea" },
+        { "name": "amount", "label": "Сумма", "type": "number" }
+      ],
+      "defaultSort": { "field": "completed_at", "direction": "desc" }
+    }
+  ]
+}

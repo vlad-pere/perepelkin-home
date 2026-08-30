@@ -15,6 +15,7 @@ import { resolveSession } from './hooks.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { registerModulesFromDisk } from './modules/host.js';
+import type { CodeModuleRegister } from './modules/host.js';
 import { createFilesService, type FilesService } from './modules/files.js';
 import { createConfiguredStorage } from './modules/storage.js';
 import { ApiError } from './errors.js';
@@ -113,7 +114,24 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
   registerAdminRoutes(app, core);
 
   if (config.modulesDir) {
-    await registerModulesFromDisk(app, { db, core, modulesDir: config.modulesDir, files });
+    let maintenanceRegister: CodeModuleRegister | undefined;
+    try {
+      const mod = await import('@perepelkin-home/module-maintenance');
+      maintenanceRegister = (moduleApp, ctx) => mod.default(moduleApp, ctx, db);
+    } catch (err) {
+      app.log.error({ err }, 'Failed to import maintenance module');
+    }
+
+    if (maintenanceRegister) {
+      const codeLoader = (id: string) => {
+        if (id === 'maintenance') return maintenanceRegister;
+        return undefined;
+      };
+      await registerModulesFromDisk(app, { db, core, modulesDir: config.modulesDir, files, codeLoader });
+    } else {
+      app.log.warn('Maintenance module disabled — build module first');
+      await registerModulesFromDisk(app, { db, core, modulesDir: config.modulesDir, files });
+    }
   }
 
   if (config.webDist && existsSync(config.webDist)) {

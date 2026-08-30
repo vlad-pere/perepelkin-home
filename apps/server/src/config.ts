@@ -96,3 +96,4 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     s3: parseS3Config(env),
   };
 }
+

@@ -7,6 +7,7 @@ import {
   BookOpen,
   Gift,
   Truck,
+  Wrench,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../auth';
@@ -19,6 +20,7 @@ const ICONS: Record<string, LucideIcon> = {
   'book-open': BookOpen,
   'gift': Gift,
   'truck': Truck,
+  'wrench': Wrench,
 };
 
 export function HomePage() {

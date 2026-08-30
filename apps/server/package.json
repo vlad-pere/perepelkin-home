@@ -19,6 +19,7 @@
     "@fastify/static": "^10",
     "@perepelkin-home/core": "*",
     "@perepelkin-home/module-admin": "*",
+    "@perepelkin-home/module-maintenance": "*",
     "bcryptjs": "^3",
     "better-sqlite3": "^13",
     "fastify": "^5",

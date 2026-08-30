@@ -163,7 +163,7 @@ export interface RegisterModulesOptions {
   core: Core;
   modulesDir: string;
   log?: FastifyBaseLogger;
-  codeLoader?: (id: string, manifest: ModuleManifest) => CodeModuleRegister | undefined;
+  codeLoader?: (id: string, manifest: ModuleManifest) => CodeModuleRegister | Promise<CodeModuleRegister> | undefined;
   files?: FilesService;
 }
 
@@ -195,7 +195,7 @@ export async function registerModulesFromDisk(
 
   for (const manifest of modules) {
     try {
-      const register = opts.codeLoader?.(manifest.id, manifest);
+      const register = await Promise.resolve(opts.codeLoader?.(manifest.id, manifest));
       await mountModule(app, { db, core, manifest, register, files: opts.files });
       mounted.push(manifest.id);
     } catch (err) {
