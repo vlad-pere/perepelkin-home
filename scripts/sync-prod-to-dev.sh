@@ -5,32 +5,33 @@
 # Usage:
 #   ./scripts/sync-prod-to-dev.sh
 #
-# Requires SSH access to the production server.
-# Set PROD_SSH_HOST to override (default: user@your-server).
+# Requires WSL with Docker access to the production containers.
 
 set -euo pipefail
 
-REMOTE_HOST="${PROD_SSH_HOST:-user@your-server}"
-REMOTE_DIR="/home/user/docker/apps/perepelkin-home"
-REMOTE_DB="app:/app/data/perepelkin-home.db"
+DB_PATH="/app/data/perepelkin-home.db"
 LOCAL_DB="apps/server/data/perepelkin-home.db"
 
 echo "=== Sync prod → local dev (DB) ==="
 
-# 1. Copy DB from prod container to host on server
-echo "[1/3] Copying production DB on server..."
-ssh "$REMOTE_HOST" "
-  cd $REMOTE_DIR
-  docker compose cp $REMOTE_DB /tmp/perepelkin-dev-sync.db
+# 1. Create clean backup via SQLite
+echo "[1/3] Backing up production DB..."
+wsl bash -c "
+  docker compose -f /home/user/docker/apps/perepelkin-home/docker-compose.yml \
+    exec -T app node -e \"
+const Database = require('better-sqlite3');
+const db = new Database('${DB_PATH}', { readonly: true });
+db.backup('/tmp/prod_dev_backup.db').then(() => { db.close(); console.log('OK'); });
+\"
 "
 
-# 2. SCP to local machine
-echo "[2/3] Downloading..."
+# 2. Copy to host
+echo "[2/3] Copying to local..."
 mkdir -p "$(dirname "$LOCAL_DB")"
-scp "$REMOTE_HOST:/tmp/perepelkin-dev-sync.db" "$LOCAL_DB"
-
-# 3. Cleanup on server
-ssh "$REMOTE_HOST" "rm -f /tmp/perepelkin-dev-sync.db"
+wsl bash -c "docker cp perepelkin-home-app-1:/tmp/prod_dev_backup.db /mnt/c/dev/perepelkin-home/.scratch/prod_dev_backup.db"
+cp ".scratch/prod_dev_backup.db" "$LOCAL_DB"
+rm -f ".scratch/prod_dev_backup.db"
+wsl bash -c "docker exec perepelkin-home-app-1 rm -f /tmp/prod_dev_backup.db"
 
 echo "[3/3] Done. Local DB: $LOCAL_DB"
 echo "  Restart dev server to pick up changes."
