@@ -8,6 +8,7 @@ import {
   Gift,
   Truck,
   Wrench,
+  Heart,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../auth';
@@ -21,6 +22,7 @@ const ICONS: Record<string, LucideIcon> = {
   'gift': Gift,
   'truck': Truck,
   'wrench': Wrench,
+  'heart': Heart,
 };
 
 export function HomePage() {

@@ -1,0 +1,28 @@
+{
+  "id": "wife-wishlist",
+  "name": "Мои хотелки",
+  "description": "Личный вишлист хозяйки дома: сюда она складывает, что хочется, а родные исполняют и переносят в архив.",
+  "kind": "simple",
+  "icon": "heart",
+  "color": "#c49072",
+  "summary": {
+    "filter": "done = 0",
+    "labelOne": "хотелка",
+    "labelFew": "хотелки",
+    "labelMany": "хотелок",
+    "emptyText": "Все хотелки исполнены"
+  },
+  "entities": [
+    {
+      "name": "item",
+      "label": "Хотелка",
+      "fields": [
+        { "name": "title", "label": "Что хочется", "type": "text", "required": true },
+        { "name": "note", "label": "Описание", "type": "textarea" },
+        { "name": "link", "label": "Где посмотреть", "type": "url" },
+        { "name": "done", "label": "Исполнено", "type": "boolean" }
+      ],
+      "defaultSort": { "field": "done", "direction": "asc" }
+    }
+  ]
+}

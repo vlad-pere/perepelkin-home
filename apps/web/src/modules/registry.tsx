@@ -17,6 +17,7 @@ export type ModuleUiComponent = ComponentType<ModuleUiProps>;
 
 const CODE_UI: Record<string, LazyExoticComponent<ModuleUiComponent>> = {
   todo: lazy(() => import('@perepelkin-home/module-todo/ui')),
+  'wife-wishlist': lazy(() => import('@perepelkin-home/module-wife-wishlist/ui')),
   wishlist: lazy(() => import('@perepelkin-home/module-wishlist/ui')),
   diary: lazy(() => import('@perepelkin-home/module-diary/ui')),
   move: lazy(() => import('@perepelkin-home/module-move/ui')),

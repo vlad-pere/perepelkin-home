@@ -1,0 +1,312 @@
+.wl {
+  padding-top: 40px;
+}
+
+.wl-hint {
+  margin: 18px 0 0;
+  color: var(--ink-muted);
+  animation: fade-up 0.5s var(--ease) both;
+}
+
+.wl .auth-error {
+  margin-top: 20px;
+}
+
+.wl-retry {
+  margin-top: 14px;
+}
+
+.wl-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 40px;
+  line-height: 1.12;
+  letter-spacing: 0.005em;
+  overflow-wrap: anywhere;
+  animation: fade-up 0.7s var(--ease) both;
+}
+
+.wl-sub {
+  margin: 12px 0 0;
+  max-width: 560px;
+  color: var(--ink-soft);
+  animation: fade-up 0.7s var(--ease) 0.08s both;
+}
+
+/* ---------- Добавление ---------- */
+
+.wl-add {
+  margin-top: 28px;
+  animation: fade-up 0.7s var(--ease) 0.12s both;
+}
+
+.wl-add-toggle {
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.wl-form {
+  padding: 2px 0 4px;
+  display: grid;
+  gap: 14px 16px;
+}
+
+.wl-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---------- Секции и карточки ---------- */
+
+.wl-section {
+  margin-top: 44px;
+  animation: fade-up 0.7s var(--ease) both;
+}
+
+.wl-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.wl-section-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 24px;
+  letter-spacing: 0.005em;
+}
+
+.wl-section-title-archive {
+  color: var(--ink-muted);
+}
+
+.wl-section-hint {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+
+.wl-section-archive .wl-card {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--line-strong);
+  opacity: 0.85;
+}
+
+.wl-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 14px;
+}
+
+.wl-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  animation: fade-up 0.6s var(--ease) both;
+}
+
+.wl-card-done {
+  align-items: center;
+}
+
+.wl-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.wl-card-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 19px;
+  line-height: 1.35;
+  letter-spacing: 0.005em;
+  overflow-wrap: anywhere;
+}
+
+.wl-card-done .wl-card-name {
+  color: var(--ink-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--line-strong);
+}
+
+.wl-card-desc {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.wl-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.2s var(--ease);
+}
+
+.wl-card-link:hover {
+  opacity: 0.78;
+}
+
+.wl-card-arrow {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.wl-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.wl-confirm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--error-line);
+  border-radius: 12px;
+  background: var(--error-bg);
+  color: var(--error-text);
+  font-size: 14px;
+  animation: fade-up 0.3s var(--ease) both;
+}
+
+.wl-empty {
+  padding: 32px 24px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 16px;
+  text-align: center;
+  animation: fade-up 0.6s var(--ease) 0.1s both;
+}
+
+.wl-empty-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 19px;
+}
+
+.wl-empty-text {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+/* ---------- Кнопка «исполнить» ---------- */
+
+.wl-done,
+.wl-dot {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  margin-top: 2px;
+  border-radius: 50%;
+}
+
+.wl-done {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: transparent;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.wl-done:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.wl-done.on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.wl-dot {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+}
+
+.wl-dot.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.wl button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .wl {
+    padding-top: 28px;
+  }
+
+  .wl-title {
+    font-size: 32px;
+  }
+
+  .wl-form {
+    gap: 12px;
+  }
+
+  .wl-form-actions {
+    width: 100%;
+  }
+
+  .wl-form-actions .btn-primary {
+    flex: 1;
+  }
+
+  .wl-add-toggle {
+    width: 100%;
+  }
+
+  .wl-section {
+    margin-top: 36px;
+  }
+
+  .wl-card {
+    flex-direction: column;
+    gap: 10px;
+    padding: 18px;
+  }
+
+  .wl-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .wl-card-actions .btn-ghost {
+    min-height: 44px;
+  }
+}
