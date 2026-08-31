@@ -10,6 +10,7 @@ COPY apps/web/package.json apps/web/package.json
 COPY packages/core/package.json packages/core/package.json
 COPY modules/admin/package.json modules/admin/package.json
 COPY modules/todo/package.json modules/todo/package.json
+COPY modules/wife-wishlist/package.json modules/wife-wishlist/package.json
 COPY modules/wishlist/package.json modules/wishlist/package.json
 COPY modules/diary/package.json modules/diary/package.json
 COPY modules/move/package.json modules/move/package.json
@@ -33,6 +34,7 @@ COPY apps/web/package.json apps/web/package.json
 COPY packages/core/package.json packages/core/package.json
 COPY modules/admin/package.json modules/admin/package.json
 COPY modules/todo/package.json modules/todo/package.json
+COPY modules/wife-wishlist/package.json modules/wife-wishlist/package.json
 COPY modules/wishlist/package.json modules/wishlist/package.json
 COPY modules/diary/package.json modules/diary/package.json
 COPY modules/move/package.json modules/move/package.json
@@ -44,6 +46,7 @@ COPY --from=build /app/apps/server/dist apps/server/dist
 COPY --from=build /app/apps/web/dist apps/web/dist
 COPY --from=build /app/modules/admin/dist modules/admin/dist
 COPY modules/todo/manifest.json modules/todo/manifest.json
+COPY modules/wife-wishlist/manifest.json modules/wife-wishlist/manifest.json
 COPY modules/wishlist/manifest.json modules/wishlist/manifest.json
 COPY modules/diary/manifest.json modules/diary/manifest.json
 COPY modules/move/manifest.json modules/move/manifest.json
