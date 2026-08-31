@@ -1,7 +1,9 @@
+import { Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { AdminPage } from '@perepelkin-home/module-admin/ui';
 import { AuthProvider, useAuth } from './auth';
 import { api } from './api';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Topbar } from './components/Topbar';
 import { LoginPage } from './pages/Login';
 import { HomePage } from './pages/Home';
@@ -78,12 +80,16 @@ function ModulePage() {
     <div className="shell">
       <Topbar breadcrumb={{ label: module.name }} />
       {Ui ? (
-        <Ui
-          moduleId={module.id}
-          api={api}
-          currentUserId={me!.user.id}
-          canWrite={module.canWrite}
-        />
+        <ErrorBoundary key={module.id}>
+          <Suspense fallback={<Splash />}>
+            <Ui
+              moduleId={module.id}
+              api={api}
+              currentUserId={me!.user.id}
+              canWrite={module.canWrite}
+            />
+          </Suspense>
+        </ErrorBoundary>
       ) : (
         <ModuleUnavailable module={module} />
       )}
@@ -94,9 +100,11 @@ function ModulePage() {
 export function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Root />
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <Root />
+        </AuthProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

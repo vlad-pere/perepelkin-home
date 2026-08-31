@@ -107,6 +107,37 @@ button {
   }
 }
 
+/* ---------- Error screen ---------- */
+
+.error-screen {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.error-screen-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 420px;
+  text-align: center;
+}
+
+.error-screen-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.error-screen-text {
+  margin: 0 0 8px;
+  color: var(--ink-soft);
+}
+
 /* ---------- Auth ---------- */
 
 .auth {
