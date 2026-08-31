@@ -2,7 +2,7 @@
 
 ## Project Snapshot
 
-- **domo** — модульное веб-приложение для дома: пользователь добавляет/убирает функционал (модули), разные группы людей (семья, друзья) видят разные наборы модулей. Примеры: графики обслуживания вещей в доме (семья), игры (друзья).
+- **perepelkin-home** — модульное веб-приложение для дома: пользователь добавляет/убирает функционал (модули), разные группы людей (семья, друзья) видят разные наборы модулей. Примеры: графики обслуживания вещей в доме (семья), игры (друзья).
 - **Стек (зафиксирован):** TypeScript, npm workspaces (monorepo). Backend — Fastify, frontend — React + Vite (SPA), хранилище — SQLite (better-sqlite3), деплой — Docker Compose (приложение + Caddy reverse proxy с авто-HTTPS). Окружение: Node v24.13.0, npm 11.6.2, Docker 29.4.3, Windows (PowerShell).
 - **Доступ:** приложение доступно из открытого интернета, доступы к модулям раздаются вручную (admin), self-registration нет. Масштаб — до ~10 пользователей. Прод-деплой — Docker Compose + Caddy (`Dockerfile`, `docker-compose.yml`, `Caddyfile`, `docker-entrypoint.sh`); запуск `docker compose up -d --build`, конфиг из `.env` (см. `.env.example`), каталог `modules/` монтируется read-only.
 - **CI/CD и стенд (установлены по явному запросу):** пуш в `main` авто-деплоит прод через workflow `Deploy` (`.github/workflows/deploy.yml`, self-hosted runner `win-vm-wsl`). Тестовый стенд — изолированный стек `docker-compose.staging.yml` (отдельный volume `staging_data`) на порту `3080`, доступен только из домашней сети; деплой — workflow `Staging` (вручную или пуш в ветку `staging`). Подробности — `README.md`, разделы «Автодеплой (CI/CD)» и «Тестовый стенд (staging)».
