@@ -1,0 +1,8 @@
+{
+  "id": "homeassistant",
+  "name": "Умный дом",
+  "description": "Устройства Home Assistant: свет, розетки, климат.",
+  "kind": "code",
+  "icon": "bulb",
+  "color": "#b5894f"
+}

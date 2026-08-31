@@ -10,6 +10,7 @@
 - **Доступ по группам.** `пользователи → группы → модули`. Права чтения/записи на модуль задаются на уровне группы.
 - **Безопасность.** Сессии (httpOnly + Secure), per-session CSRF, bcrypt, rate limiting, security-заголовки.
 - **Хранение файлов.** Платформенные файловые роуты (`GET/POST/DELETE /api/modules/<id>/files...`) монтируются для каждого модуля под его правами read/write. В проде файлы живут в отдельном S3-совместимом хранилище (MinIO-контейнер), в разработке — на локальном диске. Метаданные файлов — в БД, байты — в хранилище, так что файлы переживают пересоздание контейнера приложения.
+- **Умный дом (Home Assistant).** Код-модуль `homeassistant` подключается к Home Assistant и позволяет управлять светом, розетками, климатом и шторами через веб-интерфейс. Устройства обнаруживаются автоматически; серверные промежуточные слои хранят HA_URL/HA_TOKEN только на сервере (не раскрывая клиенту).
 
 ## Стек
 
@@ -141,10 +142,10 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 
 | Команда | Что делает |
 | --- | --- |
-| `npm run dev` | Сборка core/admin/todo/wishlist/diary/move/shopping + сервер (3000) и фронтенд (5173) одновременно |
+| `npm run dev` | Сборка core/admin/todo/wishlist/diary/move/shopping/homeassistant + сервер (3000) и фронтенд (5173) одновременно |
 | `npm run dev:server` / `npm run dev:web` | Только сервер / только фронтенд |
 | `npm run seed` | Создаёт администратора и группы «Семья»/«Гости» |
-| `npm run build` | Сборка core, module-admin, module-todo, module-wishlist, module-diary, module-move, module-shopping, server, web |
+| `npm run build` | Сборка core, module-admin, module-todo, module-wishlist, module-diary, module-move, module-shopping, module-homeassistant, server, web |
 | `npm run typecheck` | Проверка типов во всех workspace-пакетах |
 | `npm test` | Vitest: core + server + module-shopping (логика RICE) |
 
@@ -160,7 +161,7 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 
 Примечание для домашнего роутера Xiaomi (прошивка 3.x): пробросить наружу порт 80 нельзя — его занимает админка роутера, ограничение прошивки. Пробрасывается только 443 → хост. Caddy получает сертификат по TLS-ALPN (порт 443), поэтому сайт открывается строго по `https://домен`; ввод домена без схемы (порт 80) из интернета не работает.
 
-1. **Настроить окружение.** Скопировать `.env.example` в `.env` и заполнить: `DOMAIN` (домен, на котором будет доступно приложение; A/AAAA-запись должна указывать на сервер), `ADMIN_PASSWORD` (8–72 символа), при желании `ADMIN_USERNAME`, `ACME_EMAIL`. Для хранилища файлов задать `MINIO_ROOT_USER` и `MINIO_ROOT_PASSWORD` (имя и пароль суперпользователя MinIO) и `S3_BUCKET` (имя bucket'а приложения); `S3_ENDPOINT` выставлять не нужно — compose подставляет его сам. Хост-порты `HTTP_PORT`/`HTTPS_PORT` по умолчанию 80/443.
+1. **Настроить окружение.** Скопировать `.env.example` в `.env` и заполнить: `DOMAIN` (домен, на котором будет доступно приложение; A/AAAA-запись должна указывать на сервер), `ADMIN_PASSWORD` (8–72 символа), при желании `ADMIN_USERNAME`, `ACME_EMAIL`. Для хранилища файлов задать `MINIO_ROOT_USER` и `MINIO_ROOT_PASSWORD` (имя и пароль суперпользователя MinIO) и `S3_BUCKET` (имя bucket'а приложения); `S3_ENDPOINT` выставлять не нужно — compose подставляет его сам. Хост-порты `HTTP_PORT`/`HTTPS_PORT` по умолчанию 80/443. Для модуля «Умный дом» задать `HA_URL` (адрес Home Assistant, напр. `http://192.168.0.10:8123`) и `HA_TOKEN` (Long-Lived Access Token из профиля HA); если оставить пустыми, модуль доступен, но не подключён.
 
 2. **Запустить:**
 
@@ -198,7 +199,7 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 
 - **Dockerfile** — мультистейдж: `build` (npm ci + сборка core → module-admin → server → web) и `runtime` (только prod-зависимости, артефакты сборки, не-root пользователь `node`). `npm ci` идёт с `--ignore-scripts`: better-sqlite3 и esbuild используют prebuilds/optionalDependencies, компилятор в образе не нужен.
 - **`docker-compose.yml`** — сервис `app` (healthcheck через `GET /api/auth/me`), сервис `caddy` (ждёт healthy, раздаёт по `DOMAIN`, авто-HTTPS), сервис `minio` (S3-совместимое хранилище, консоль только на `127.0.0.1:9001`, volume `minio_data`; приложение ждёт его healthcheck и само создаёт bucket). Секреты/конфиг — из `.env`.
-- **Монтирование модулей.** Код-модуль `admin` импортируется сервером из `node_modules` (не из смонтированного каталога), поэтому хост-маунт `./modules` не ломает импорт.
+- **Монтирование модулей.** Код-модули `admin` и `homeassistant` импортируются сервером из `node_modules` (не из смонтированного каталога), поэтому хост-маунт `./modules` не ломает импорт.
 
 Переменные окружения сервера: см. `apps/server/.env.example`.
 

@@ -15,6 +15,7 @@
     "@perepelkin-home/core": "*",
     "@perepelkin-home/module-admin": "*",
     "@perepelkin-home/module-diary": "*",
+    "@perepelkin-home/module-homeassistant": "*",
     "@perepelkin-home/module-maintenance": "*",
     "@perepelkin-home/module-move": "*",
     "@perepelkin-home/module-shopping": "*",

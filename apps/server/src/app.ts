@@ -114,7 +114,14 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
   registerAdminRoutes(app, core);
 
   if (config.modulesDir) {
+    let haRegister: CodeModuleRegister | undefined;
     let maintenanceRegister: CodeModuleRegister | undefined;
+    try {
+      const haMod = await import('@perepelkin-home/module-homeassistant');
+      haRegister = (moduleApp, ctx) => haMod.default(moduleApp, ctx);
+    } catch (err) {
+      app.log.error({ err }, 'Failed to import homeassistant module');
+    }
     try {
       const mod = await import('@perepelkin-home/module-maintenance');
       maintenanceRegister = (moduleApp, ctx) => mod.default(moduleApp, ctx, db);
@@ -122,14 +129,15 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
       app.log.error({ err }, 'Failed to import maintenance module');
     }
 
-    if (maintenanceRegister) {
+    if (haRegister || maintenanceRegister) {
       const codeLoader = (id: string) => {
+        if (id === 'homeassistant') return haRegister;
         if (id === 'maintenance') return maintenanceRegister;
         return undefined;
       };
       await registerModulesFromDisk(app, { db, core, modulesDir: config.modulesDir, files, codeLoader });
     } else {
-      app.log.warn('Maintenance module disabled — build module first');
+      app.log.warn('Code modules disabled — build modules first');
       await registerModulesFromDisk(app, { db, core, modulesDir: config.modulesDir, files });
     }
   }

@@ -16,6 +16,9 @@
       TRUST_PROXY: ${TRUST_PROXY:-true}
       WEB_DIST: /app/apps/web/dist
       MODULES_DIR: /app/modules
+      # умный дом (Home Assistant); пусто — модуль доступен, но не подключён к HA
+      HA_URL: ${HA_URL:-}
+      HA_TOKEN: ${HA_TOKEN:-}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Р·Р°РґР°Р№С‚Рµ ADMIN_PASSWORD РІ .env}
       # Р¤Р°Р№Р»С‹ РјРѕРґСѓР»РµР№ (С„РѕС‚Рѕ РґРЅРµРІРЅРёРєР°) вЂ” РІ S3 (MinIO), Р° РЅРµ РЅР° РґРёСЃРєРµ РїСЂРёР»РѕР¶РµРЅРёСЏ

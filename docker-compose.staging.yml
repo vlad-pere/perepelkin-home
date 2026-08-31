@@ -15,6 +15,8 @@
       TRUST_PROXY: "false"
       WEB_DIST: /app/apps/web/dist
       MODULES_DIR: /app/modules
+      HA_URL: ${HA_URL:-}
+      HA_TOKEN: ${HA_TOKEN:-}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Р·Р°РґР°Р№С‚Рµ ADMIN_PASSWORD РІ .env staging}
       S3_ENDPOINT: minio:9000
