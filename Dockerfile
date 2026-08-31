@@ -47,6 +47,7 @@ COPY --from=build /app/packages/core/dist packages/core/dist
 COPY --from=build /app/apps/server/dist apps/server/dist
 COPY --from=build /app/apps/web/dist apps/web/dist
 COPY --from=build /app/modules/admin/dist modules/admin/dist
+COPY --from=build /app/modules/homeassistant/dist modules/homeassistant/dist
 COPY modules/todo/manifest.json modules/todo/manifest.json
 COPY modules/wife-wishlist/manifest.json modules/wife-wishlist/manifest.json
 COPY modules/wishlist/manifest.json modules/wishlist/manifest.json
