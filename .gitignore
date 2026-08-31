@@ -8,3 +8,5 @@ data/
 .scratch/
 .DS_Store
 Thumbs.db
+.10x/
+.superpowers/
