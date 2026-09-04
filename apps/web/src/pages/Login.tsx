@@ -5,7 +5,7 @@ import { ApiError } from '../api';
 type LoginMode = 'pin' | 'password';
 
 const PIN_LENGTH = 6;
-const KEYPAD_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'back'];
+const KEYPAD_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'back'];
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -44,6 +44,7 @@ export function LoginPage() {
 
   const onSubmit = (e: FormEvent): void => {
     e.preventDefault();
+    if (isPin) return;
     void submit(secret);
   };
 
@@ -60,11 +61,17 @@ export function LoginPage() {
     setSecret((s) => s.slice(0, -1));
   };
 
+  const pressClear = (): void => {
+    if (pending) return;
+    setSecret('');
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (!isPin) return;
       if (e.key >= '0' && e.key <= '9') pressDigit(e.key);
       else if (e.key === 'Backspace') pressBackspace();
+      else if (e.key.toLowerCase() === 'c') pressClear();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -99,6 +106,7 @@ export function LoginPage() {
             type="button"
             className={`auth-mode-btn${isPin ? ' active' : ''}`}
             aria-pressed={isPin}
+            disabled={pending}
             onClick={() => switchMode('pin')}
           >
             Пинкод
@@ -107,6 +115,7 @@ export function LoginPage() {
             type="button"
             className={`auth-mode-btn${!isPin ? ' active' : ''}`}
             aria-pressed={!isPin}
+            disabled={pending}
             onClick={() => switchMode('password')}
           >
             Пароль
@@ -127,8 +136,17 @@ export function LoginPage() {
 
             <div className="keypad" aria-label="Клавиатура пинкода">
               {KEYPAD_KEYS.map((key) =>
-                key === '' ? (
-                  <span key="spacer" />
+                key === 'clear' ? (
+                  <button
+                    key="clear"
+                    type="button"
+                    className="keypad-btn clear"
+                    aria-label="Очистить"
+                    disabled={pending}
+                    onClick={pressClear}
+                  >
+                    C
+                  </button>
                 ) : key === 'back' ? (
                   <button
                     key="back"

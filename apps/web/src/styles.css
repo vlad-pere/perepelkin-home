@@ -217,8 +217,13 @@ button {
     color 0.2s var(--ease);
 }
 
-.auth-mode-btn:hover {
+.auth-mode-btn:hover:not(:disabled) {
   color: var(--ink);
+}
+
+.auth-mode-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .auth-mode-btn.active {
@@ -290,6 +295,12 @@ button {
 .keypad-btn.backspace {
   color: var(--ink-soft);
   font-size: 20px;
+}
+
+.keypad-btn.clear {
+  color: var(--ink-soft);
+  font-size: 18px;
+  font-weight: 500;
 }
 
 .auth-foot {
