@@ -66,8 +66,27 @@ const setGrantSchema = {
 
 const paramsId = { type: 'object', additionalProperties: false, properties: { id: { type: 'integer', minimum: 1 } } };
 
+function pluralRu(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+}
+
 export function registerAdminRoutes(app: FastifyInstance, core: Core): void {
   const admin = { preHandler: requireAdmin, config: { rateLimit: { max: 60, timeWindow: '15 minutes' } } };
+
+  // ---- summary for the dashboard card ----
+
+  app.get('/api/modules/admin/summary', admin, async () => {
+    const users = core.users.list().length;
+    const groups = core.groups.list().length;
+    return {
+      count: users,
+      status: `${users} ${pluralRu(users, 'пользователь', 'пользователя', 'пользователей')} · ${groups} ${pluralRu(groups, 'группа', 'группы', 'групп')}`,
+    };
+  });
 
   // ---- users ----
 

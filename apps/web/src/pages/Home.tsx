@@ -9,6 +9,8 @@ import {
   Truck,
   Wrench,
   Heart,
+  Lightbulb,
+  Settings,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../auth';
@@ -23,12 +25,15 @@ const ICONS: Record<string, LucideIcon> = {
   'truck': Truck,
   'wrench': Wrench,
   'heart': Heart,
+  'bulb': Lightbulb,
+  'settings': Settings,
 };
 
 export function HomePage() {
   const { me } = useAuth();
   const modules = me?.modules ?? [];
   const [summaries, setSummaries] = useState<Record<string, ModuleSummary>>({});
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     if (modules.length === 0) return;
@@ -45,6 +50,7 @@ export function HomePage() {
         if (results[i]) map[m.id] = results[i]!;
       });
       setSummaries(map);
+      setLoaded(true);
     });
 
     return () => { cancelled = true; };
@@ -56,16 +62,17 @@ export function HomePage() {
 
       <main className="home">
         {modules.length > 0 ? (
-          <div className="dashboard">
+          <ul className="dashboard">
             {modules.map((m, i) => (
               <DashboardCard
                 key={m.id}
                 module={m}
                 summary={summaries[m.id]}
+                loaded={loaded}
                 style={{ animationDelay: `${i * 0.06}s` }}
               />
             ))}
-          </div>
+          </ul>
         ) : (
           <div className="empty">
             <p className="empty-title">Пока пусто</p>
@@ -82,24 +89,29 @@ export function HomePage() {
 function DashboardCard({
   module: m,
   summary,
+  loaded,
   style,
 }: {
   module: ModuleAccess;
   summary?: ModuleSummary;
+  loaded: boolean;
   style?: React.CSSProperties;
 }) {
   const Icon = ICONS[m.icon ?? ''] ?? ClipboardCheck;
   const color = m.color ?? 'var(--accent)';
+  const iconBg = m.color ? m.color + '18' : undefined;
 
   return (
     <li className="dashboard-card" style={style}>
       <Link className="dashboard-card-link" to={m.route}>
-        <div className="dashboard-card-icon" style={{ backgroundColor: color + '18', color }}>
+        <div className="dashboard-card-icon" style={{ backgroundColor: iconBg, color }}>
           <Icon size={20} strokeWidth={1.8} />
         </div>
         <h2 className="dashboard-card-name">{m.name}</h2>
         {summary ? (
           <p className="dashboard-card-status">{summary.status}</p>
+        ) : loaded ? (
+          <p className="dashboard-card-status">—</p>
         ) : (
           <p className="dashboard-card-status dashboard-card-status--loading">&nbsp;</p>
         )}
