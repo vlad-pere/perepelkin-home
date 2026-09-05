@@ -43,6 +43,7 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
   const [confirmDelete, setConfirmDelete] = useState<TaskRow | null>(null);
   const [formKey, setFormKey] = useState(0);
   const [addOpen, setAddOpen] = useState(false);
+  const [showDone, setShowDone] = useState(false);
 
   const loadAll = useCallback(async (): Promise<void> => {
     try {
@@ -134,7 +135,13 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
     }
   };
 
-  const sorted = useMemo(() => sortTasks(items ?? []), [items]);
+  const { active, done: doneItems } = useMemo(() => {
+    const all = sortTasks(items ?? []);
+    return {
+      active: all.filter((t) => !t.done),
+      done: all.filter((t) => t.done),
+    };
+  }, [items]);
 
   if (error !== null && items === null) {
     return (
@@ -222,100 +229,57 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
           )}
         </div>
       ) : (
-        <ul className="todo-list">
-          {sorted.map((row) => (
-            <li className={`todo-row${row.done ? ' done' : ''}`} key={row.id}>
-              {editing?.id === row.id ? (
-                <TaskForm
-                  key={row.id}
-                  initial={fromRow(row)}
-                  submitLabel="Сохранить"
-                  busy={busy}
-                  onSubmit={(values) => void onSave(row, values)}
-                  onCancel={() => setEditing(null)}
-                />
-              ) : (
-                <div className="todo-row-main">
-                  {canWrite ? (
-                    <input
-                      className="todo-check"
-                      type="checkbox"
-                      checked={row.done}
-                      disabled={busy}
-                      onChange={() => void onToggle(row)}
-                      aria-label={row.title}
-                    />
-                  ) : (
-                    <span
-                      className={`todo-dot${row.done ? ' on' : ''}`}
-                      role="img"
-                      aria-label={row.done ? 'Выполнено' : 'Не выполнено'}
-                    />
-                  )}
-                  <div className="todo-row-body">
-                    <span className="todo-row-title">{row.title}</span>
-                    {row.when !== null && row.when !== '' && (
-                      <span className="todo-row-when">{formatDate(row.when)}</span>
-                    )}
-                    {row.note !== null && row.note !== '' && (
-                      <span className="todo-row-note">{row.note}</span>
-                    )}
-                    {row.created_by_username !== null && (
-                      <span className="todo-row-author" title="Кто записал">
-                        Записал(а): {row.created_by_username}
-                      </span>
-                    )}
-                  </div>
-                  {canWrite && (
-                    <div className="todo-row-actions">
-                      <button
-                        className="btn-ghost"
-                        type="button"
-                        disabled={busy}
-                        onClick={() => {
-                          setEditing(row);
-                          setConfirmDelete(null);
-                        }}
-                      >
-                        Изменить
-                      </button>
-                      <button
-                        className="btn-ghost btn-danger"
-                        type="button"
-                        disabled={busy}
-                        onClick={() => setConfirmDelete(row)}
-                      >
-                        Удалить
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+        <>
+          <ul className="todo-list">
+            {active.map((row) => (
+              <TaskRowItem
+                key={row.id}
+                row={row}
+                canWrite={canWrite}
+                busy={busy}
+                editing={editing}
+                confirmDelete={confirmDelete}
+                onToggle={onToggle}
+                onSave={onSave}
+                setEditing={setEditing}
+                setConfirmDelete={setConfirmDelete}
+                onDelete={onDelete}
+              />
+            ))}
+          </ul>
 
-              {confirmDelete?.id === row.id && (
-                <div className="todo-confirm">
-                  <span>Удалить дело? Действие необратимо.</span>
-                  <button
-                    className="btn-danger-solid"
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void onDelete(row)}
-                  >
-                    {busy ? 'Удаляем…' : 'Удалить'}
-                  </button>
-                  <button
-                    className="btn-ghost"
-                    type="button"
-                    disabled={busy}
-                    onClick={() => setConfirmDelete(null)}
-                  >
-                    Отмена
-                  </button>
-                </div>
+          {doneItems.length > 0 && (
+            <section className="todo-archive" aria-label="Готово">
+              <button
+                className="btn-ghost todo-archive-toggle"
+                type="button"
+                aria-expanded={showDone}
+                onClick={() => setShowDone((v) => !v)}
+              >
+                Готово ({doneItems.length}) {showDone ? '▴' : '▾'}
+              </button>
+              {showDone && (
+                <ul className="todo-list">
+                  {doneItems.map((row) => (
+                    <TaskRowItem
+                      key={row.id}
+                      row={row}
+                      canWrite={canWrite}
+                      busy={busy}
+                      editing={editing}
+                      confirmDelete={confirmDelete}
+                      onToggle={onToggle}
+                      onSave={onSave}
+                      setEditing={setEditing}
+                      setConfirmDelete={setConfirmDelete}
+                      onDelete={onDelete}
+                    />
+                  ))}
+                </ul>
               )}
-            </li>
-          ))}
-        </ul>
+            </section>
+          )}
+        </>
       )}
     </main>
   );
@@ -390,6 +354,123 @@ function TaskForm({
         )}
       </div>
     </form>
+  );
+}
+
+function TaskRowItem({
+  row,
+  canWrite,
+  busy,
+  editing,
+  confirmDelete,
+  onToggle,
+  onSave,
+  setEditing,
+  setConfirmDelete,
+  onDelete,
+}: {
+  row: TaskRow;
+  canWrite: boolean;
+  busy: boolean;
+  editing: TaskRow | null;
+  confirmDelete: TaskRow | null;
+  onToggle: (row: TaskRow) => void;
+  onSave: (row: TaskRow, values: TaskValues) => void;
+  setEditing: (row: TaskRow | null) => void;
+  setConfirmDelete: (row: TaskRow | null) => void;
+  onDelete: (row: TaskRow) => void;
+}) {
+  return (
+    <li className={`todo-row${row.done ? ' done' : ''}`}>
+      {editing?.id === row.id ? (
+        <TaskForm
+          key={row.id}
+          initial={fromRow(row)}
+          submitLabel="Сохранить"
+          busy={busy}
+          onSubmit={(values) => void onSave(row, values)}
+          onCancel={() => setEditing(null)}
+        />
+      ) : (
+        <div className="todo-row-main">
+          {canWrite ? (
+            <input
+              className="todo-check"
+              type="checkbox"
+              checked={row.done}
+              disabled={busy}
+              onChange={() => void onToggle(row)}
+              aria-label={row.title}
+            />
+          ) : (
+            <span
+              className={`todo-dot${row.done ? ' on' : ''}`}
+              role="img"
+              aria-label={row.done ? 'Выполнено' : 'Не выполнено'}
+            />
+          )}
+          <div className="todo-row-body">
+            <span className="todo-row-title">{row.title}</span>
+            {row.when !== null && row.when !== '' && (
+              <span className="todo-row-when">{formatDate(row.when)}</span>
+            )}
+            {row.note !== null && row.note !== '' && (
+              <span className="todo-row-note">{row.note}</span>
+            )}
+            {row.created_by_username !== null && (
+              <span className="todo-row-author" title="Кто записал">
+                Записал(а): {row.created_by_username}
+              </span>
+            )}
+          </div>
+          {canWrite && (
+            <div className="todo-row-actions">
+              <button
+                className="btn-ghost"
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setEditing(row);
+                  setConfirmDelete(null);
+                }}
+              >
+                Изменить
+              </button>
+              <button
+                className="btn-ghost btn-danger"
+                type="button"
+                disabled={busy}
+                onClick={() => setConfirmDelete(row)}
+              >
+                Удалить
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {confirmDelete?.id === row.id && (
+        <div className="todo-confirm">
+          <span>Удалить дело? Действие необратимо.</span>
+          <button
+            className="btn-danger-solid"
+            type="button"
+            disabled={busy}
+            onClick={() => void onDelete(row)}
+          >
+            {busy ? 'Удаляем…' : 'Удалить'}
+          </button>
+          <button
+            className="btn-ghost"
+            type="button"
+            disabled={busy}
+            onClick={() => setConfirmDelete(null)}
+          >
+            Отмена
+          </button>
+        </div>
+      )}
+    </li>
   );
 }
 

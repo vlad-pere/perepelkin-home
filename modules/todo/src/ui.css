@@ -182,6 +182,15 @@
   flex-shrink: 0;
 }
 
+.todo-archive {
+  margin-top: 24px;
+}
+
+.todo-archive-toggle {
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+
 .todo-confirm {
   display: flex;
   align-items: center;
