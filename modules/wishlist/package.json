@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    },
     "./ui": {
       "types": "./dist/ui.d.ts",
       "import": "./dist/ui.js"
@@ -20,7 +24,9 @@
     "react": "^19"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7",
     "@types/react": "^19",
+    "better-sqlite3": "^13",
     "typescript": "^5"
   }
 }

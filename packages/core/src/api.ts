@@ -15,6 +15,8 @@ export interface CoreApi {
     list(): UserWithGroups[];
     getById(id: number): User | undefined;
     groupIds(id: number): number[];
+    /** Проверяет 6-значный пинкод пользователя по логину. Возвращает id при успехе, иначе `null`. */
+    verifyPin(username: string, pin: string): Promise<number | null>;
   };
   groups: {
     list(): GroupListEntry[];
@@ -32,4 +34,6 @@ export interface CoreApi {
   registerModule(info: ModuleInfo): void;
   listModules(): ModuleInfo[];
   isModuleRegistered(moduleId: string): boolean;
+  /** Подписка на удаление пользователя: модуль чистит свои данные под этим id. */
+  onUserDelete(handler: (userId: number) => void): void;
 }

@@ -71,10 +71,16 @@ describe('repo modules', () => {
     expect(errors).toEqual([]);
     const manifest = modules.find((m) => m.id === 'wishlist');
     expect(manifest).toBeDefined();
-    expect(manifest!.kind).toBe('simple');
+    expect(manifest!.kind).toBe('code');
     expect(manifest!.publicRead).toBe(true);
 
-    await mountModule(world.app, { db: world.db, core: world.core, manifest: manifest! });
+    const { default: wishlistModule } = await import('@perepelkin-home/module-wishlist');
+    await mountModule(world.app, {
+      db: world.db,
+      core: world.core,
+      manifest: manifest!,
+      register: (moduleApp, ctx) => wishlistModule(moduleApp, ctx, world.db),
+    });
 
     const anonymous = new Client(world.app);
     const listed = await anonymous.inject('GET', '/api/modules/wishlist/gift');

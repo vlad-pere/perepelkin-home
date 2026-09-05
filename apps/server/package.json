@@ -21,6 +21,7 @@
     "@perepelkin-home/module-admin": "*",
     "@perepelkin-home/module-homeassistant": "*",
     "@perepelkin-home/module-maintenance": "*",
+    "@perepelkin-home/module-wishlist": "*",
     "bcryptjs": "^3",
     "better-sqlite3": "^13",
     "fastify": "^5",

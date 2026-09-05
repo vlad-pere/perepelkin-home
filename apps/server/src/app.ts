@@ -116,6 +116,7 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
   if (config.modulesDir) {
     let haRegister: CodeModuleRegister | undefined;
     let maintenanceRegister: CodeModuleRegister | undefined;
+    let wishlistRegister: CodeModuleRegister | undefined;
     try {
       const haMod = await import('@perepelkin-home/module-homeassistant');
       haRegister = (moduleApp, ctx) => haMod.default(moduleApp, ctx);
@@ -128,11 +129,18 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
     } catch (err) {
       app.log.error({ err }, 'Failed to import maintenance module');
     }
+    try {
+      const mod = await import('@perepelkin-home/module-wishlist');
+      wishlistRegister = (moduleApp, ctx) => mod.default(moduleApp, ctx, db);
+    } catch (err) {
+      app.log.error({ err }, 'Failed to import wishlist module');
+    }
 
-    if (haRegister || maintenanceRegister) {
+    if (haRegister || maintenanceRegister || wishlistRegister) {
       const codeLoader = (id: string) => {
         if (id === 'homeassistant') return haRegister;
         if (id === 'maintenance') return maintenanceRegister;
+        if (id === 'wishlist') return wishlistRegister;
         return undefined;
       };
       await registerModulesFromDisk(app, { db, core, modulesDir: config.modulesDir, files, codeLoader });

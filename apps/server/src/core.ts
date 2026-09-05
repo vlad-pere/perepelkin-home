@@ -7,7 +7,7 @@ import {
   listModules as listModulesPkg,
   registerModule as registerModulePkg,
 } from '@perepelkin-home/core';
-import { hashSecret } from './auth/passwords.js';
+import { hashSecret, verifyPinSecret } from './auth/passwords.js';
 import { deleteSessionsForUser } from './db/sessions.js';
 
 export interface UserRow {
@@ -63,6 +63,7 @@ export interface Core extends CoreApi {
 }
 
 export function buildCore(db: Database.Database): Core {
+  const userDeleteHandlers: Array<(userId: number) => void> = [];
   // users
   const usersAll = db.prepare('SELECT * FROM users ORDER BY id');
   const userById = db.prepare('SELECT * FROM users WHERE id = ?');
@@ -150,6 +151,15 @@ export function buildCore(db: Database.Database): Core {
       getByUsername(username: string): UserRow | undefined {
         return userByUsername.get(username) as UserRow | undefined;
       },
+      async verifyPin(username: string, pin: string): Promise<number | null> {
+        const user = userByUsername.get(username) as UserRow | undefined;
+        if (user === undefined) {
+          await verifyPinSecret(pin, { pin_hash: null });
+          return null;
+        }
+        if (!(await verifyPinSecret(pin, user))) return null;
+        return user.id;
+      },
       async create(input: { username: string; isAdmin?: boolean; pin?: string; password?: string }): Promise<User> {
         const [passwordHash, pinHash] = await Promise.all([
           input.password !== undefined ? hashSecret(input.password) : Promise.resolve(null),
@@ -172,6 +182,7 @@ export function buildCore(db: Database.Database): Core {
         deleteSessionsForUser(db, id);
       },
       delete(id: number): void {
+        for (const handler of userDeleteHandlers) handler(id);
         deleteUser.run(id);
       },
       groupIds(id: number): number[] {
@@ -248,6 +259,9 @@ export function buildCore(db: Database.Database): Core {
     registerModule: registerModulePkg,
     listModules: listModulesPkg,
     isModuleRegistered: isModuleRegisteredPkg,
+    onUserDelete: (handler: (userId: number) => void): void => {
+      userDeleteHandlers.push(handler);
+    },
   };
 }
 

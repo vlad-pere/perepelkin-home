@@ -251,6 +251,105 @@
   font-size: 14px;
 }
 
+/* ---------- Бронирование ---------- */
+
+.wish-book {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.wish-book-btn {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.wish-book-badge {
+  padding: 7px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.wish-card--form {
+  flex-direction: column;
+}
+
+.wish-card--form .wish-book {
+  width: 100%;
+  align-items: stretch;
+}
+
+.wish-cred {
+  padding: 4px 2px;
+}
+
+.wish-cred-copy {
+  margin: 0 0 12px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.wish-cred-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 14px;
+}
+
+.wish-cred-error {
+  margin: 10px 0 0;
+  color: var(--error-text);
+  font-size: 13px;
+}
+
+.wish-cred-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.wish-cred-actions .btn-ghost {
+  min-height: 42px;
+}
+
+.wish-card-reserved {
+  margin: 10px 0 0;
+  display: inline-flex;
+  padding: 5px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.wish-assign {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.wish-assign-error {
+  margin: 0;
+  color: var(--error-text);
+  font-size: 13px;
+}
+
+.wish-assign-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .wish button:disabled {
   opacity: 0.5;
   cursor: default;
@@ -319,6 +418,33 @@
   .wish-card-actions {
     width: 100%;
     justify-content: flex-end;
+  }
+
+  .wish-book {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .wish-book .btn-primary,
+  .wish-book .btn-ghost {
+    justify-content: center;
+  }
+
+  .wish-book-badge {
+    align-self: flex-start;
+  }
+
+  .wish-cred-fields {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .wish-cred-actions {
+    width: 100%;
+  }
+
+  .wish-cred-actions .btn-primary {
+    flex: 1;
   }
 
   .wish-foot {

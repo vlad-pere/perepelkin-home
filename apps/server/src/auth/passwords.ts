@@ -53,3 +53,18 @@ export async function verifyLogin(
   }
   return false;
 }
+
+/** Хеш заведомо неверного пинкода: сравнение с ним маскирует отсутствие логина/пинкода по времени ответа. */
+export const DUMMY_PIN_HASH = bcrypt.hashSync('123456', SALT_ROUNDS);
+
+/**
+ * Проверка пинкода (6 цифр) за фиксированную дорогую стоимость. При отсутствии
+ * пинкода сравнивается с `DUMMY_PIN_HASH`, поэтому время ответа одинаково для
+ * существующего и несуществующего логина. Возвращает `true` только когда пинкод
+ * задан и совпал.
+ */
+export async function verifyPinSecret(pin: string, user: { pin_hash: string | null }): Promise<boolean> {
+  const hash = user.pin_hash ?? DUMMY_PIN_HASH;
+  const matched = await bcrypt.compare(pin, hash);
+  return user.pin_hash !== null && matched;
+}

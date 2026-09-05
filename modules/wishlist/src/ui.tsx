@@ -19,6 +19,11 @@ interface GiftRow {
   description: string | null;
   link: string | null;
   category: string | null;
+  reserved_by: number | null;
+  reserved_at: string | null;
+  reserved_by_name: string | null;
+  /** true — метку поставил владелец списка за гостя (имя без аккаунта). */
+  assigned: boolean;
 }
 
 interface ManifestInfo {
@@ -37,6 +42,11 @@ interface Section {
   category: string;
   hint: string;
   gifts: GiftRow[];
+}
+
+interface CredentialsFor {
+  gift: GiftRow;
+  mode: 'book' | 'unbook';
 }
 
 const CATEGORIES = ['Новоселье', 'Дочке'] as const;
@@ -58,6 +68,12 @@ export function Wishlist({ moduleId, api, canWrite, public: isPublic }: Wishlist
   const [confirmDelete, setConfirmDelete] = useState<GiftRow | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
+  const [credentialsFor, setCredentialsFor] = useState<CredentialsFor | null>(null);
+  const [credentialsError, setCredentialsError] = useState<string | null>(null);
+  const [credentialsBusy, setCredentialsBusy] = useState(false);
+  const [assignFor, setAssignFor] = useState<GiftRow | null>(null);
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [assignBusy, setAssignBusy] = useState(false);
 
   const loadAll = useCallback(async (): Promise<void> => {
     try {
@@ -132,6 +148,53 @@ export function Wishlist({ moduleId, api, canWrite, public: isPublic }: Wishlist
       await loadAll();
     } catch (err) {
       fail(err, 'Не удалось удалить подарок');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onCredentials = async (gift: GiftRow, mode: 'book' | 'unbook', username: string, pin: string): Promise<void> => {
+    if (credentialsBusy) return;
+    setCredentialsBusy(true);
+    setCredentialsError(null);
+    try {
+      await api(`${base}/${gift.id}/${mode === 'book' ? 'book' : 'unbook'}`, {
+        method: 'POST',
+        body: { username, pin },
+      });
+      setCredentialsFor(null);
+      await loadAll();
+    } catch (err) {
+      setCredentialsError(err instanceof Error ? err.message : 'Не получилось, попробуйте ещё раз');
+    } finally {
+      setCredentialsBusy(false);
+    }
+  };
+
+  const onAssign = async (gift: GiftRow, name: string): Promise<void> => {
+    if (assignBusy) return;
+    setAssignBusy(true);
+    setAssignError(null);
+    try {
+      await api(`${base}/${gift.id}/assign`, { method: 'POST', body: { name } });
+      setAssignFor(null);
+      await loadAll();
+    } catch (err) {
+      setAssignError(err instanceof Error ? err.message : 'Не получилось, попробуйте ещё раз');
+    } finally {
+      setAssignBusy(false);
+    }
+  };
+
+  const onRelease = async (gift: GiftRow): Promise<void> => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api(`${base}/${gift.id}/release`, { method: 'POST' });
+      await loadAll();
+    } catch (err) {
+      fail(err, 'Не удалось снять метку');
     } finally {
       setBusy(false);
     }
@@ -233,7 +296,12 @@ export function Wishlist({ moduleId, api, canWrite, public: isPublic }: Wishlist
                       />
                     </li>
                   ) : (
-                    <li className="wish-card" key={gift.id}>
+                    <li
+                      className={`wish-card${
+                        credentialsFor?.gift.id === gift.id || assignFor?.id === gift.id ? ' wish-card--form' : ''
+                      }`}
+                      key={gift.id}
+                    >
                       <div className="wish-card-main">
                         <h3 className="wish-card-name">{gift.name}</h3>
                         {gift.description !== null && gift.description !== '' && (
@@ -252,28 +320,107 @@ export function Wishlist({ moduleId, api, canWrite, public: isPublic }: Wishlist
                             </span>
                           </a>
                         )}
+                        {!isPublic && gift.reserved_by_name !== null && (
+                          <p className="wish-card-reserved">Подарит: {gift.reserved_by_name}</p>
+                        )}
                       </div>
+                      {isPublic && (
+                        <div className="wish-book">
+                          {credentialsFor?.gift.id === gift.id ? (
+                            <CredForm
+                              mode={credentialsFor.mode}
+                              busy={credentialsBusy}
+                              error={credentialsError}
+                              onSubmit={(username, pin) =>
+                                void onCredentials(gift, credentialsFor.mode, username, pin)
+                              }
+                              onCancel={() => {
+                                setCredentialsFor(null);
+                                setCredentialsError(null);
+                              }}
+                            />
+                          ) : gift.reserved_by_name !== null ? (
+                            <>
+                              <span className="wish-book-badge">
+                                Подарит: {gift.reserved_by_name}
+                              </span>
+                              {!gift.assigned && (
+                                <button
+                                  className="btn-ghost"
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => setCredentialsFor({ gift, mode: 'unbook' })}
+                                >
+                                  Снять бронь
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <button
+                              className="btn-primary wish-book-btn"
+                              type="button"
+                              disabled={busy}
+                              onClick={() => setCredentialsFor({ gift, mode: 'book' })}
+                            >
+                              Я подарю
+                            </button>
+                          )}
+                        </div>
+                      )}
                       {!isPublic && canWrite && (
                         <div className="wish-card-actions">
-                          <button
-                            className="btn-ghost"
-                            type="button"
-                            disabled={busy}
-                            onClick={() => {
-                              setEditing(gift);
-                              setConfirmDelete(null);
-                            }}
-                          >
-                            Изменить
-                          </button>
-                          <button
-                            className="btn-ghost btn-danger"
-                            type="button"
-                            disabled={busy}
-                            onClick={() => setConfirmDelete(gift)}
-                          >
-                            Удалить
-                          </button>
+                          {assignFor?.id === gift.id ? (
+                            <AssignForm
+                              busy={assignBusy}
+                              error={assignError}
+                              onSubmit={(name) => void onAssign(gift, name)}
+                              onCancel={() => {
+                                setAssignFor(null);
+                                setAssignError(null);
+                              }}
+                            />
+                          ) : (
+                            <>
+                              {gift.reserved_by_name !== null ? (
+                                <button
+                                  className="btn-ghost"
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => void onRelease(gift)}
+                                >
+                                  Снять
+                                </button>
+                              ) : (
+                                <button
+                                  className="btn-ghost"
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => setAssignFor(gift)}
+                                >
+                                  Назначить гостя
+                                </button>
+                              )}
+                              <button
+                                className="btn-ghost"
+                                type="button"
+                                disabled={busy}
+                                onClick={() => {
+                                  setEditing(gift);
+                                  setConfirmDelete(null);
+                                }}
+                              >
+                                Изменить
+                              </button>
+                              <button
+                                className="btn-ghost btn-danger"
+                                type="button"
+                                disabled={busy}
+                                onClick={() => setConfirmDelete(gift)}
+                              >
+                                Удалить
+                              </button>
+                            </>
+                          )}
                         </div>
                       )}
                       {confirmDelete?.id === gift.id && (
@@ -393,6 +540,124 @@ function GiftForm({
             Отмена
           </button>
         )}
+      </div>
+    </form>
+  );
+}
+
+function CredForm({
+  mode,
+  busy,
+  error,
+  onSubmit,
+  onCancel,
+}: {
+  mode: 'book' | 'unbook';
+  busy: boolean;
+  error: string | null;
+  onSubmit: (username: string, pin: string) => void;
+  onCancel: () => void;
+}) {
+  const [username, setUsername] = useState('');
+  const [pin, setPin] = useState('');
+  const book = mode === 'book';
+
+  return (
+    <form
+      className="wish-cred"
+      onSubmit={(e: FormEvent) => {
+        e.preventDefault();
+        onSubmit(username.trim(), pin.trim());
+      }}
+    >
+      {book && <p className="wish-cred-copy">Войдите, чтобы подарить этот подарок.</p>}
+      <div className="wish-cred-fields">
+        <label className="field">
+          <span className="field-label">Логин</span>
+          <input
+            className="field-input"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoComplete="username"
+            placeholder="Ваш логин"
+            autoFocus
+            required
+          />
+        </label>
+        <label className="field">
+          <span className="field-label">Пинкод</span>
+          <input
+            className="field-input"
+            type="password"
+            inputMode="numeric"
+            maxLength={6}
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            autoComplete="one-time-code"
+            placeholder="6 цифр"
+            required
+          />
+        </label>
+      </div>
+      {error !== null && (
+        <p className="wish-cred-error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="wish-cred-actions">
+        <button className="btn-primary" type="submit" disabled={busy}>
+          {busy ? 'Проверяем…' : book ? 'Подарить' : 'Снять бронь'}
+        </button>
+        <button className="btn-ghost" type="button" onClick={onCancel} disabled={busy}>
+          Отмена
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function AssignForm({
+  busy,
+  error,
+  onSubmit,
+  onCancel,
+}: {
+  busy: boolean;
+  error: string | null;
+  onSubmit: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState('');
+
+  return (
+    <form
+      className="wish-assign"
+      onSubmit={(e: FormEvent) => {
+        e.preventDefault();
+        onSubmit(name.trim());
+      }}
+    >
+      <input
+        className="field-input"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Имя гостя"
+        maxLength={64}
+        autoFocus
+        required
+      />
+      {error !== null && (
+        <p className="wish-assign-error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="wish-assign-actions">
+        <button className="btn-primary" type="submit" disabled={busy}>
+          {busy ? 'Назначаем…' : 'Назначить'}
+        </button>
+        <button className="btn-ghost" type="button" onClick={onCancel} disabled={busy}>
+          Отмена
+        </button>
       </div>
     </form>
   );

@@ -13,11 +13,20 @@ export interface RouteSpec {
   method: HttpMethod;
   path: string;
   action: Action;
+  /**
+   * Публичный роут без входа и без CSRF: модуль сам аутентифицирует запрос
+   * (например, логин+пинкод). Применяется для мутаций «гостевого» характера.
+   */
+  public?: boolean;
+  /** Доп. опции Fastify-роута (например, per-route rate limit). */
+  config?: Record<string, unknown>;
 }
 
 export interface ModuleContext {
   /** Регистрирует произвольный роут код-модуля под защитой гарда на `action`. */
   route(spec: RouteSpec, handler: (req: FastifyRequest, reply: FastifyReply) => void | Promise<void>): void;
+  /** Ядро платформы (контракт `CoreApi`): подписки на удаление пользователей и др. */
+  core: Core;
 }
 
 export type CodeModuleRegister = (app: FastifyInstance, ctx: ModuleContext) => void | Promise<void>;
@@ -80,10 +89,12 @@ export async function mountModule(app: FastifyInstance, opts: MountModuleOptions
             moduleApp.route({
               method: spec.method,
               url: spec.path,
-              preHandler: guardFor(spec.action),
+              preHandler: spec.public ? noopGuard : guardFor(spec.action),
+              ...(spec.config === undefined ? {} : { config: spec.config }),
               handler,
             });
           },
+          core,
         };
 
         moduleApp.get('/manifest', { preHandler: readGuard }, async () => ({ manifest }));
