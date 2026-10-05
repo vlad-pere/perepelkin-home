@@ -38,7 +38,7 @@ export default function register(app: any, ctx: RouteCtx, db: Database.Database)
 
   // --- Task CRUD ---
 
-  ctx.route({ method: 'GET', path: '/task', action: 'read' }, async (_req: any, reply: any) => {
+  ctx.route({ method: 'GET', path: '/task', action: 'read' }, async (_req: any, _reply: any) => {
     const rows = listStmt.all() as Array<Record<string, unknown>>;
     return { items: rows.map(enrichTask) };
   });
@@ -175,7 +175,7 @@ export default function register(app: any, ctx: RouteCtx, db: Database.Database)
 
   // --- Digest ---
 
-  ctx.route({ method: 'GET', path: '/digest', action: 'read' }, async (_req: any, reply: any) => {
+  ctx.route({ method: 'GET', path: '/digest', action: 'read' }, async (_req: any, _reply: any) => {
     const today = new Date().toISOString().slice(0, 10);
     const rows = listStmt.all() as Array<Record<string, unknown>>;
     const enriched = rows.map(enrichTask);
@@ -211,7 +211,7 @@ export default function register(app: any, ctx: RouteCtx, db: Database.Database)
 
   // --- Summary (for dashboard card) ---
 
-  ctx.route({ method: 'GET', path: '/summary', action: 'read' }, async (_req: any, reply: any) => {
+  ctx.route({ method: 'GET', path: '/summary', action: 'read' }, async (_req: any, _reply: any) => {
     const today = new Date().toISOString().slice(0, 10);
     const rows = listStmt.all() as Array<Record<string, unknown>>;
     const overdue = rows.filter(

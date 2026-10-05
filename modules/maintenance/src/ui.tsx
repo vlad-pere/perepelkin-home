@@ -90,7 +90,7 @@ function defaultNextDue(task: TaskRow): string {
   return todayStr();
 }
 
-export default function MaintenanceModule({ moduleId, api, currentUserId, canWrite }: MaintenanceUiProps) {
+export default function MaintenanceModule({ moduleId, api, canWrite }: MaintenanceUiProps) {
   const base = `/api/modules/${moduleId}`;
   const [meta, setMeta] = useState<ManifestInfo | null>(null);
   const [digest, setDigest] = useState<DigestData | null>(null);

@@ -487,7 +487,6 @@ function EntryForm({
   useEffect(() => {
     const files = pickedRef.current;
     return () => files.forEach((p) => URL.revokeObjectURL(p.url));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const set = (name: keyof EntryValues, value: string): void => {

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type Database from 'better-sqlite3';
 import type { CrudGuards } from './crud.js';
 import type { ByteStorage } from './storage.js';
@@ -169,7 +169,9 @@ export function registerModuleFileRoutes(
     async (req, reply) => {
       const mime = mediaTypeOf(req.headers['content-type']);
       if (!ALLOWED_FILE_MIMES.includes(mime as (typeof ALLOWED_FILE_MIMES)[number])) {
-        throw badRequest(mime === '' ? 'Отсутствует Content-Type' : `Неподдерживаемый тип файла "${mime}"`);
+        throw badRequest(
+          mime === '' ? 'Отсутствует Content-Type' : `Неподдерживаемый тип файла "${mime}"`,
+        );
       }
       const body = req.body;
       if (!Buffer.isBuffer(body) || body.length === 0) {

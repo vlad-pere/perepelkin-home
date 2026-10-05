@@ -205,6 +205,8 @@ export default function register(app: any, ctx: WishlistCtx, db: Database.Databa
     const raw = typeof record.name === 'string' ? record.name : '';
     const name = raw.trim();
     if (name === '' || name.length > 64) return null;
+    // Управляющие символы в имени гостя недопустимы — осознанное исключение.
+    // eslint-disable-next-line no-control-regex
     if (/[\u0000-\u001F]/.test(name)) return null;
     return name;
   }

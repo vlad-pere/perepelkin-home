@@ -19,11 +19,6 @@ interface PageRow {
   video_id: string | null;
 }
 
-interface ManifestInfo {
-  name: string;
-  description: string;
-}
-
 export function Move({ moduleId, api, canWrite, public: isPublic }: MoveProps) {
   const base = `/api/modules/${moduleId}`;
   const pageBase = `${base}/page`;

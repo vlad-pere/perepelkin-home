@@ -14,7 +14,6 @@ const manifest = validateManifest(
 
 let world: TestWorld;
 let guest: number;
-let other: number;
 let client: Client;
 
 async function createGift(payload: Record<string, unknown>): Promise<number> {
@@ -35,7 +34,6 @@ beforeEach(async () => {
   await world.core.users.create({ username: 'guest', pin: '135790' });
   await world.core.users.create({ username: 'other', pin: '246801' });
   guest = world.core.users.getByUsername('guest')!.id;
-  other = world.core.users.getByUsername('other')!.id;
   grantFor(world.core.users.getByUsername('member')!.id, true);
 
   await mountModule(world.app, {

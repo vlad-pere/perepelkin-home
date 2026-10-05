@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import './ui.css';
 
 export interface ApiClient {
@@ -73,7 +73,6 @@ export default function HomeAssistantModule({ moduleId, api, canWrite }: HomeAss
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busyEntity, setBusyEntity] = useState<string | null>(null);
-  const clock = useRef(0);
 
   const load = useCallback(async (): Promise<void> => {
     try {

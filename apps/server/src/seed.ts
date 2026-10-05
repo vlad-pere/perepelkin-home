@@ -10,6 +10,8 @@ const DEFAULT_GROUPS = [
 ];
 
 function isValidUsername(username: string): boolean {
+  // Имя логина не должно содержать управляющие символы — это осознанное исключение.
+  // eslint-disable-next-line no-control-regex
   return /^[^\s\u0000-\u001F]{1,64}$/.test(username);
 }
 
@@ -58,7 +60,9 @@ async function main(): Promise<void> {
   const admin = await ensureAdmin(core);
   const groupIds = await ensureGroups(core);
 
-  const adminUser = core.users.getByUsername(admin.username) as NonNullable<ReturnType<typeof core.users.getByUsername>>;
+  const adminUser = core.users.getByUsername(admin.username) as NonNullable<
+    ReturnType<typeof core.users.getByUsername>
+  >;
   core.groups.addMember(groupIds[0]!, adminUser.id);
 
   console.log('Seed завершён.');
@@ -68,7 +72,12 @@ async function main(): Promise<void> {
   } else {
     console.log('  Пароль: задан через ADMIN_PASSWORD');
   }
-  console.log(`  Группы: ${core.groups.list().map((g) => `${g.name} (${g.memberCount} чел.)`).join(', ')}`);
+  console.log(
+    `  Группы: ${core.groups
+      .list()
+      .map((g) => `${g.name} (${g.memberCount} чел.)`)
+      .join(', ')}`,
+  );
   console.log('Запуск: npm run dev — фронтенд на http://localhost:5173');
 }
 

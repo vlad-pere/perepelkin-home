@@ -10,10 +10,10 @@ export interface Session {
 export interface SessionUser {
   id: number;
   username: string;
-  password_hash: string | null;
-  pin_hash: string | null;
   is_admin: number;
   created_at: string;
+  has_pin: number;
+  has_password: number;
 }
 
 export interface SessionWithUser extends Session {
@@ -26,19 +26,28 @@ interface SessionRow {
   expires_at: number;
   id: number;
   username: string;
-  password_hash: string | null;
-  pin_hash: string | null;
   is_admin: number;
   created_at: string;
+  has_pin: number;
+  has_password: number;
 }
 
-const insertSession = (db: Database.Database, token: string, userId: number, csrfToken: string, expiresAt: number) =>
-  db.prepare('INSERT INTO sessions (token, user_id, csrf_token, expires_at) VALUES (?, ?, ?, ?)').run(token, userId, csrfToken, expiresAt);
+const insertSession = (
+  db: Database.Database,
+  token: string,
+  userId: number,
+  csrfToken: string,
+  expiresAt: number,
+) =>
+  db
+    .prepare('INSERT INTO sessions (token, user_id, csrf_token, expires_at) VALUES (?, ?, ?, ?)')
+    .run(token, userId, csrfToken, expiresAt);
 
 const selectSession = (db: Database.Database, token: string) =>
   db
     .prepare(
-      `SELECT s.token, s.csrf_token, s.expires_at, u.id, u.username, u.password_hash, u.pin_hash, u.is_admin, u.created_at
+      `SELECT s.token, s.csrf_token, s.expires_at, u.id, u.username, u.is_admin, u.created_at,
+              (u.pin_hash IS NOT NULL) AS has_pin, (u.password_hash IS NOT NULL) AS has_password
          FROM sessions s JOIN users u ON u.id = s.user_id
         WHERE s.token = ?`,
     )
@@ -47,11 +56,7 @@ const selectSession = (db: Database.Database, token: string) =>
 const deleteStmt = (db: Database.Database, token: string) =>
   db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
 
-export function createSession(
-  db: Database.Database,
-  userId: number,
-  ttlMs: number,
-): Session {
+export function createSession(db: Database.Database, userId: number, ttlMs: number): Session {
   const token = randomBytes(32).toString('hex');
   const csrfToken = randomBytes(24).toString('base64url');
   const expiresAt = Date.now() + ttlMs;
@@ -77,10 +82,10 @@ export function getSession(
     user: {
       id: row.id,
       username: row.username,
-      password_hash: row.password_hash,
-      pin_hash: row.pin_hash,
       is_admin: row.is_admin,
       created_at: row.created_at,
+      has_pin: row.has_pin,
+      has_password: row.has_password,
     },
   };
 }

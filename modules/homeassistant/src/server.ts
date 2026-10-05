@@ -99,7 +99,7 @@ function pickData(service: AllowedService, raw: unknown): Record<string, unknown
 
 export default function register(app: any, ctx: RouteCtx): void {
   // Состояния всех сущностей HA (автоматическое обнаружение устройств).
-  ctx.route({ method: 'GET', path: '/states', action: 'read' }, async (_req: any, reply: any) => {
+  ctx.route({ method: 'GET', path: '/states', action: 'read' }, async (_req: any, _reply: any) => {
     if (!isConfigured()) {
       return { states: [], connected: false, error: 'MODULE_NOT_CONFIGURED' };
     }

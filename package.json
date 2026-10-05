@@ -19,11 +19,22 @@
     "dev:web": "npm run dev -w @perepelkin-home/web",
     "seed": "npm run seed -w @perepelkin-home/server",
     "typecheck": "npm run typecheck -w @perepelkin-home/core -w @perepelkin-home/module-admin -w @perepelkin-home/module-todo -w @perepelkin-home/module-wife-wishlist -w @perepelkin-home/module-wishlist -w @perepelkin-home/module-diary -w @perepelkin-home/module-move -w @perepelkin-home/module-shopping -w @perepelkin-home/module-maintenance -w @perepelkin-home/module-homeassistant -w @perepelkin-home/server -w @perepelkin-home/web",
-    "test": "npm run test -w @perepelkin-home/core -w @perepelkin-home/server -w @perepelkin-home/module-shopping"
+    "test": "npm run test -w @perepelkin-home/core -w @perepelkin-home/server -w @perepelkin-home/module-shopping",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^24",
     "concurrently": "^10",
-    "typescript": "^5"
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.6",
+    "prettier": "^3.9.6",
+    "typescript": "^5",
+    "typescript-eslint": "^8.69.0"
   }
 }

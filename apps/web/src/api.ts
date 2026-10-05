@@ -17,7 +17,10 @@ export function setCsrfToken(token: string | null): void {
   csrfToken = token;
 }
 
-export async function api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function api<T>(
+  path: string,
+  init: { method?: string; body?: unknown } = {},
+): Promise<T> {
   const method = init.method ?? 'GET';
   const headers: Record<string, string> = { accept: 'application/json' };
   if (method !== 'GET' && csrfToken) {
@@ -46,7 +49,7 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
     throw new ApiError(0, 'NETWORK', 'Сервер недоступен. Попробуйте ещё раз.');
   }
 
-  let data: unknown = null;
+  let data: unknown;
   try {
     data = await res.json();
   } catch {

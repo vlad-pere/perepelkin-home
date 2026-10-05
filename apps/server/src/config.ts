@@ -51,11 +51,11 @@ function parseSessionTtl(raw: string | undefined): number {
 }
 
 function parseFileSizeMb(raw: string | undefined): number {
-  const mb = Number.parseFloat(raw ?? '256');
-  if (!Number.isFinite(mb) || mb <= 0 || mb > 256) {
+  const mb = Number.parseFloat(raw ?? '8');
+  if (!Number.isFinite(mb) || mb <= 0) {
     throw new Error(`Invalid MAX_FILE_SIZE_MB "${raw}"`);
   }
-  return Math.round(mb * 1024 * 1024);
+  return Math.round(Math.min(mb, 256) * 1024 * 1024);
 }
 
 function parseS3Config(env: NodeJS.ProcessEnv): S3Config | null {
@@ -91,9 +91,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     trustProxy: parseBool(env.TRUST_PROXY, false),
     webDist: env.WEB_DIST && env.WEB_DIST.trim() !== '' ? env.WEB_DIST : null,
     modulesDir: env.MODULES_DIR && env.MODULES_DIR.trim() !== '' ? env.MODULES_DIR : null,
-    filesDir: env.FILES_DIR && env.FILES_DIR.trim() !== '' ? env.FILES_DIR : join(dirname(dbPath), 'files'),
+    filesDir:
+      env.FILES_DIR && env.FILES_DIR.trim() !== '' ? env.FILES_DIR : join(dirname(dbPath), 'files'),
     maxFileSize: parseFileSizeMb(env.MAX_FILE_SIZE_MB),
     s3: parseS3Config(env),
   };
 }
-
