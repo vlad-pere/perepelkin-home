@@ -38,6 +38,14 @@ export function buildMe(
       db.prepare('SELECT id, kind FROM modules').all() as Array<{ id: string; kind: ModuleKind }>
     ).map((r) => [r.id, r.kind] as const),
   );
+  // Личный порядок карточек: модули, которые пользователь расставил сам, идут
+  // в его порядке, новые (ещё не расставленные) — следом в порядке регистрации.
+  const prefs = core.home.get(user.id);
+  const positionById = new Map(prefs.map((p) => [p.moduleId, p.position]));
+  const hiddenById = new Map(prefs.map((p) => [p.moduleId, p.hidden]));
+  const rankOf = (id: string): number => positionById.get(id) ?? Number.MAX_SAFE_INTEGER;
+  const visible = new Set(core.visibleModules(groupIds, user.is_admin === 1).map((m) => m.id));
+
   const modules = core
     .listModules()
     .map((m) => {
@@ -48,9 +56,11 @@ export function buildMe(
         route: m.id === 'admin' ? '/admin' : `/m/${m.id}`,
         canRead: core.canForGroups(groupIds, user.is_admin === 1, m.id, 'read'),
         canWrite: core.canForGroups(groupIds, user.is_admin === 1, m.id, 'write'),
+        hidden: hiddenById.get(m.id) ?? false,
       };
     })
-    .filter((m) => m.canRead || m.canWrite);
+    .filter((m) => visible.has(m.id))
+    .sort((a, b) => (rankOf(a.id) < rankOf(b.id) ? -1 : rankOf(a.id) > rankOf(b.id) ? 1 : 0));
 
   return {
     user: toUser(user),

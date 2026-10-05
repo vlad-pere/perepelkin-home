@@ -41,6 +41,8 @@ export interface ModuleAccess extends ModuleInfo, Grant {
   kind: ModuleKind;
   /** Фронтовый маршрут, по которому открывается модуль. */
   route: string;
+  /** Скрыт ли модуль на главной у этого пользователя (личная настройка, доступ не меняет). */
+  hidden: boolean;
 }
 
 export interface ModuleSummary {

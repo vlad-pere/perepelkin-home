@@ -15,6 +15,8 @@ export type {
 export { can } from './permissions.js';
 export type { CanOptions } from './permissions.js';
 
+export { MODULE_ID_PATTERN } from './registry.js';
+
 export { validateManifest, ManifestError } from './manifest.js';
 export type {
   ModuleManifest,

@@ -1,5 +1,14 @@
 import type Database from 'better-sqlite3';
-import type { Action, CoreApi, Grant, Group, ModuleInfo, ScopedStore, User, UserWithGroups } from '@perepelkin-home/core';
+import type {
+  Action,
+  CoreApi,
+  Grant,
+  Group,
+  ModuleInfo,
+  ScopedStore,
+  User,
+  UserWithGroups,
+} from '@perepelkin-home/core';
 import {
   can as coreCan,
   createScopedStore,
@@ -13,10 +22,16 @@ import { deleteSessionsForUser } from './db/sessions.js';
 export interface UserRow {
   id: number;
   username: string;
-  password_hash: string | null;
-  pin_hash: string | null;
   is_admin: number;
   created_at: string;
+  has_pin: number;
+  has_password: number;
+}
+
+/** Строка users с хешами для проверки учётных данных при логине. */
+export interface UserRowAuth extends UserRow {
+  password_hash: string | null;
+  pin_hash: string | null;
 }
 
 interface GroupRow {
@@ -31,8 +46,8 @@ export function toUser(row: UserRow): User {
     id: row.id,
     username: row.username,
     isAdmin: row.is_admin === 1,
-    hasPin: row.pin_hash !== null,
-    hasPassword: row.password_hash !== null,
+    hasPin: row.has_pin === 1,
+    hasPassword: row.has_password === 1,
     createdAt: row.created_at,
   };
 }
@@ -43,8 +58,13 @@ export function toUser(row: UserRow): User {
  */
 export interface Core extends CoreApi {
   users: CoreApi['users'] & {
-    getByUsername(username: string): UserRow | undefined;
-    create(input: { username: string; isAdmin?: boolean; pin?: string; password?: string }): Promise<User>;
+    getByUsername(username: string): UserRowAuth | undefined;
+    create(input: {
+      username: string;
+      isAdmin?: boolean;
+      pin?: string;
+      password?: string;
+    }): Promise<User>;
     setAdmin(id: number, isAdmin: boolean): void;
     setCredential(id: number, patch: { pin?: string; password?: string }): Promise<void>;
     delete(id: number): void;
@@ -60,14 +80,37 @@ export interface Core extends CoreApi {
     set(groupId: number, moduleId: string, grant: Grant): void;
     remove(groupId: number, moduleId: string): void;
   };
+  /**
+   * Модули, которые пользователь видит в реестре: выдан доступ на чтение или
+   * запись. Единственное определение «видимости» модуля для реестра и главной.
+   */
+  visibleModules(groupIds: readonly number[], isAdmin: boolean): ModuleInfo[];
+  home: {
+    /** Личные настройки главной: порядок карточек и что скрыто. */
+    get(userId: number): HomePref[];
+    /** Полностью заменяет настройки пользователя; порядок = порядок массива. */
+    set(userId: number, entries: ReadonlyArray<{ moduleId: string; hidden: boolean }>): void;
+  };
+}
+
+/** Личная настройка главной: место карточки модуля у пользователя. */
+export interface HomePref {
+  moduleId: string;
+  position: number;
+  hidden: boolean;
 }
 
 export function buildCore(db: Database.Database): Core {
   const userDeleteHandlers: Array<(userId: number) => void> = [];
+  // Колонки без хешей + флаги наличия учётных данных; хеши остаются только в auth-запросе.
+  const USER_COLS =
+    'id, username, is_admin, created_at, (pin_hash IS NOT NULL) AS has_pin, (password_hash IS NOT NULL) AS has_password';
+  const USER_AUTH_COLS =
+    'id, username, is_admin, created_at, password_hash, pin_hash, (pin_hash IS NOT NULL) AS has_pin, (password_hash IS NOT NULL) AS has_password';
   // users
-  const usersAll = db.prepare('SELECT * FROM users ORDER BY id');
-  const userById = db.prepare('SELECT * FROM users WHERE id = ?');
-  const userByUsername = db.prepare('SELECT * FROM users WHERE username = ?');
+  const usersAll = db.prepare(`SELECT ${USER_COLS} FROM users ORDER BY id`);
+  const userById = db.prepare(`SELECT ${USER_COLS} FROM users WHERE id = ?`);
+  const userByUsername = db.prepare(`SELECT ${USER_AUTH_COLS} FROM users WHERE username = ?`);
   const insertUser = db.prepare(
     'INSERT INTO users (username, password_hash, pin_hash, is_admin) VALUES (?, ?, ?, ?)',
   );
@@ -108,10 +151,17 @@ export function buildCore(db: Database.Database): Core {
        ON CONFLICT(group_id, module_id) DO UPDATE SET
          can_read = excluded.can_read, can_write = excluded.can_write`,
   );
-  const grantRemove = db.prepare(
-    'DELETE FROM module_grants WHERE group_id = ? AND module_id = ?',
-  );
+  const grantRemove = db.prepare('DELETE FROM module_grants WHERE group_id = ? AND module_id = ?');
   const grantsByModule = db.prepare('SELECT * FROM module_grants WHERE module_id = ?');
+
+  // home prefs (порядок и скрытые карточки на главной — личные, у каждого свои)
+  const homePrefsForUser = db.prepare(
+    'SELECT module_id, position, hidden FROM user_home_prefs WHERE user_id = ? ORDER BY position',
+  );
+  const deleteHomePrefs = db.prepare('DELETE FROM user_home_prefs WHERE user_id = ?');
+  const insertHomePref = db.prepare(
+    'INSERT INTO user_home_prefs (user_id, module_id, position, hidden) VALUES (?, ?, ?, ?)',
+  );
 
   const canForGroups = (
     groupIds: readonly number[],
@@ -126,8 +176,7 @@ export function buildCore(db: Database.Database): Core {
         isRegistered: isModuleRegisteredPkg,
         getGrant: (groupId, mid) => {
           const row = grantGet.get(groupId, mid) as
-            | { can_read: number; can_write: number }
-            | undefined;
+            { can_read: number; can_write: number } | undefined;
           return row ? { canRead: row.can_read === 1, canWrite: row.can_write === 1 } : null;
         },
       },
@@ -148,11 +197,11 @@ export function buildCore(db: Database.Database): Core {
         const row = userById.get(id) as UserRow | undefined;
         return row ? toUser(row) : undefined;
       },
-      getByUsername(username: string): UserRow | undefined {
-        return userByUsername.get(username) as UserRow | undefined;
+      getByUsername(username: string): UserRowAuth | undefined {
+        return userByUsername.get(username) as UserRowAuth | undefined;
       },
       async verifyPin(username: string, pin: string): Promise<number | null> {
-        const user = userByUsername.get(username) as UserRow | undefined;
+        const user = userByUsername.get(username) as UserRowAuth | undefined;
         if (user === undefined) {
           await verifyPinSecret(pin, { pin_hash: null });
           return null;
@@ -160,12 +209,22 @@ export function buildCore(db: Database.Database): Core {
         if (!(await verifyPinSecret(pin, user))) return null;
         return user.id;
       },
-      async create(input: { username: string; isAdmin?: boolean; pin?: string; password?: string }): Promise<User> {
+      async create(input: {
+        username: string;
+        isAdmin?: boolean;
+        pin?: string;
+        password?: string;
+      }): Promise<User> {
         const [passwordHash, pinHash] = await Promise.all([
           input.password !== undefined ? hashSecret(input.password) : Promise.resolve(null),
           input.pin !== undefined ? hashSecret(input.pin) : Promise.resolve(null),
         ]);
-        const result = insertUser.run(input.username.trim(), passwordHash, pinHash, input.isAdmin ? 1 : 0);
+        const result = insertUser.run(
+          input.username.trim(),
+          passwordHash,
+          pinHash,
+          input.isAdmin ? 1 : 0,
+        );
         const row = userById.get(result.lastInsertRowid) as UserRow;
         return toUser(row);
       },
@@ -226,8 +285,7 @@ export function buildCore(db: Database.Database): Core {
     grants: {
       get(groupId: number, moduleId: string): Grant | null {
         const row = grantGet.get(groupId, moduleId) as
-          | { can_read: number; can_write: number }
-          | undefined;
+          { can_read: number; can_write: number } | undefined;
         return row ? { canRead: row.can_read === 1, canWrite: row.can_write === 1 } : null;
       },
       set(groupId: number, moduleId: string, grant: Grant): void {
@@ -246,6 +304,33 @@ export function buildCore(db: Database.Database): Core {
           groupId: r.group_id,
           grant: { canRead: r.can_read === 1, canWrite: r.can_write === 1 },
         }));
+      },
+    },
+    visibleModules(groupIds: readonly number[], isAdmin: boolean): ModuleInfo[] {
+      return listModulesPkg().filter(
+        (m) => canForGroups(groupIds, isAdmin, m.id, 'read') || canForGroups(groupIds, isAdmin, m.id, 'write'),
+      );
+    },
+    home: {
+      get(userId: number): HomePref[] {
+        const rows = homePrefsForUser.all(userId) as Array<{
+          module_id: string;
+          position: number;
+          hidden: number;
+        }>;
+        return rows.map((r) => ({
+          moduleId: r.module_id,
+          position: r.position,
+          hidden: r.hidden === 1,
+        }));
+      },
+      set(userId: number, entries: ReadonlyArray<{ moduleId: string; hidden: boolean }>): void {
+        db.transaction(() => {
+          deleteHomePrefs.run(userId);
+          entries.forEach((entry, position) => {
+            insertHomePref.run(userId, entry.moduleId, position, entry.hidden ? 1 : 0);
+          });
+        })();
       },
     },
     can: (user: { id: number; isAdmin: boolean }, moduleId: string, action: Action): boolean => {

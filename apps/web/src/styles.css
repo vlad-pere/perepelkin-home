@@ -645,6 +645,170 @@ button {
   font-size: 14px;
 }
 
+/* ---------- Dashboard: настройка главной ---------- */
+
+.home-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 18px;
+  animation: fade-up 0.7s var(--ease) both;
+}
+
+.home-controls-hint {
+  margin: 0 auto 0 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.home-link {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.25s var(--ease),
+    color 0.25s var(--ease);
+}
+
+.home-link:hover {
+  background: var(--accent-soft);
+}
+
+.home-controls .btn-primary {
+  margin-top: 0;
+  padding: 9px 18px;
+  font-size: 14px;
+}
+
+/* в режиме настройки карточки не переигрывают появление при перестановке */
+.dashboard--editing .dashboard-card {
+  animation: none;
+}
+
+.dashboard-card--editing {
+  position: relative;
+}
+
+.dashboard-card-tools {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 2px;
+  z-index: 1;
+}
+
+.dashboard-tool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition:
+    background 0.25s var(--ease),
+    color 0.25s var(--ease);
+}
+
+.dashboard-tool:hover:not(:disabled),
+.dashboard-tool:focus-visible {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.dashboard-tool:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dashboard-tool--drag {
+  cursor: grab;
+  touch-action: none;
+}
+
+.dashboard-card--dragging .dashboard-card-link {
+  border-color: var(--accent);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.dashboard-card-link--static {
+  cursor: default;
+}
+
+/* в режиме настройки карточка не ссылка — убираем реакцию на наведение */
+.dashboard-card-link--static:hover {
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.dashboard-card--hidden .dashboard-card-link {
+  opacity: 0.55;
+}
+
+.dashboard-card--hidden .dashboard-card-link:hover {
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+.home-hidden-hint {
+  margin: 28px 0 12px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.home-hidden {
+  margin-top: 24px;
+  padding: 18px 20px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  animation: fade-up 0.5s var(--ease) both;
+}
+
+.home-hidden-title {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 17px;
+}
+
+.home-hidden-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.home-hidden-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 4px 4px 12px;
+  border-radius: 12px;
+}
+
+.home-hidden-row:hover {
+  background: var(--bg-warm);
+}
+
+.home-hidden-name {
+  font-size: 15px;
+}
+
 /* ---------- Profile ---------- */
 
 .profile {
@@ -778,6 +942,25 @@ button {
 
   .empty {
     padding: 32px 20px;
+  }
+
+  .home-controls {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .home-controls-hint {
+    flex-basis: 100%;
+    margin: 0;
+  }
+
+  .dashboard-tool {
+    width: 36px;
+    height: 36px;
+  }
+
+  .home-hidden {
+    padding: 16px;
   }
 
   .auth {

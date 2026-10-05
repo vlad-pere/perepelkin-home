@@ -9,6 +9,8 @@ interface AuthContextValue {
   me: MeResponse | null;
   login(username: string, password: string): Promise<void>;
   logout(): Promise<void>;
+  /** Перечитывает /me — например, после сохранения настроек главной. */
+  refresh(): Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -56,7 +58,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  return <AuthContext.Provider value={{ status, me, login, logout }}>{children}</AuthContext.Provider>;
+  const refresh = async () => {
+    const data = await api<MeResponse & { csrfToken: string }>('/api/auth/me');
+    setCsrfToken(data.csrfToken);
+    setMe(data);
+    setStatus('authenticated');
+  };
+
+  return (
+    <AuthContext.Provider value={{ status, me, login, logout, refresh }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {
