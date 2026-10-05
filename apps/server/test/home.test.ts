@@ -26,12 +26,14 @@ const MANIFESTS: ModuleManifest[] = [
 ];
 /** Модуль, который монтируется, но доступа к нему ни у кого нет. */
 const CLOSED = simpleManifest('closed', 'Закрытый');
+/** Модуль, доступ к которому выдадут уже после сохранения личной настройки. */
+const FRESH = simpleManifest('fresh', 'Новый');
 
 let world: TestWorld;
 
 beforeEach(async () => {
   world = await createTestWorld();
-  for (const manifest of [...MANIFESTS, CLOSED]) {
+  for (const manifest of [...MANIFESTS, CLOSED, FRESH]) {
     await mountModule(world.app, { db: world.db, core: world.core, manifest });
   }
   await world.core.users.create({ username: 'member', password: 'secret123' });
@@ -166,8 +168,9 @@ describe('настройка главной', () => {
     const client = await memberClient();
     await setHome(client, { order: ['beta', 'alpha', 'gamma'], hidden: [] });
 
-    const fresh = simpleManifest('fresh', 'Новый');
-    await mountModule(world.app, { db: world.db, core: world.core, manifest: fresh });
+    // Модуль смонтирован с самого начала, но доступ к нему выдают только сейчас —
+    // для пользователя он «новый». Смонтировать плагин после boot нельзя: avvio
+    // запрещает регистрацию у уже запущенного приложения.
     grant(world.core.users.getByUsername('member')!.id, 'fresh');
 
     expect((await meCards(client)).map((m) => m.id)).toEqual(['beta', 'alpha', 'gamma', 'fresh']);

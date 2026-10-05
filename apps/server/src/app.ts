@@ -38,6 +38,11 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
     logger: opts.logger ?? false,
     trustProxy: config.trustProxy,
     bodyLimit: 128 * 1024 * 1024,
+    // Fastify по умолчанию вырезает из тела поля, которых нет в схеме
+    // (removeAdditional: true в @fastify/ajv-compiler), поэтому
+    // `additionalProperties: false` молча теряет лишние поля вместо отказа.
+    // Для нас неизвестное поле — ошибка клиента, а не данные «на выброс».
+    ajv: { customOptions: { removeAdditional: false } },
   });
 
   app.decorateRequest('core', { getter: () => core });
