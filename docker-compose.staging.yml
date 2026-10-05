@@ -1,4 +1,4 @@
-﻿services:
+services:
   app:
     image: perepelkin-home:staging
     restart: unless-stopped
@@ -30,6 +30,11 @@
         condition: service_healthy
     volumes:
       - staging_data:/app/data
+      # Каталог модулей — read-only, как в проде (docker-compose.yml). Без этого
+      # монтирования стенд остаётся без dist код-модулей: maintenance не попадает
+      # в образ вовсе, а wishlist не находит dist/server.js — в логах
+      # «Failed to import maintenance/wishlist module», и модули не работают.
+      - ./modules:/app/modules:ro
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/auth/me').then(r=>process.exit(r.status===401||r.status===200?0:1)).catch(()=>process.exit(1))"]
       interval: 15s
