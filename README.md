@@ -35,6 +35,8 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 
    В `apps/server/.env` задать `ADMIN_PASSWORD` (8–72 символа) и при желании `ADMIN_USERNAME`. Если пароль не задан, `npm run seed` сгенерирует его и выведет в консоль.
 
+   > `apps/server/.env.example` — для локальной разработки (`npm run dev`). Корневой `.env.example` — для Docker Compose (прод и стенд).
+
 3. Создать администратора и группы по умолчанию («Семья», «Гости»):
 
    ```sh
@@ -153,18 +155,20 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 
 | Команда | Что делает |
 | --- | --- |
-| `npm run dev` | Сборка core/admin/todo/wishlist/diary/move/shopping/homeassistant + сервер (3000) и фронтенд (5173) одновременно |
+| `npm run dev` | Сборка core и всех модулей, затем сервер (3000) и фронтенд (5173) одновременно |
 | `npm run dev:server` / `npm run dev:web` | Только сервер / только фронтенд |
 | `npm run seed` | Создаёт администратора и группы «Семья»/«Гости» |
-| `npm run build` | Сборка core, module-admin, module-todo, module-wishlist, module-diary, module-move, module-shopping, module-homeassistant, server, web |
+| `npm run build` | Сборка core, всех модулей, сервера и фронтенда |
 | `npm run typecheck` | Проверка типов во всех workspace-пакетах |
 | `npm test` | Vitest: core + server + module-shopping (логика RICE) |
+| `npm run lint` / `npm run lint:fix` | ESLint по всему проекту / с автоисправлением |
+| `npm run format` / `npm run format:check` | Prettier: переформатировать / проверить форматирование |
 
 ## Тесты и проверки
 
 - Юнит/интеграционные тесты: `npm test` (манифест, права, CRUD-генератор, хост модулей, админка, сессии).
 - `test/repo-modules.test.ts` — safety-net: реальные манифесты из `modules/` валидны, эталон монтируется и проходит CRUD.
-- E2E фронтенда — Playwright-стенд в `.scratch/e2e/` (см. скилл `webapp-testing`): вход, CRUD, сброс сессии, read-only для гостя, админ-UI групп/грантов.
+- E2E фронтенда — экспериментальные скрипты в `.scratch/e2e/` (не интегрированы в CI; см. скилл `webapp-testing`): вход, CRUD, сброс сессии, read-only для гостя, админ-UI групп/грантов.
 
 ## Продакшен
 

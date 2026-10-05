@@ -56,7 +56,7 @@
   - Access control is enforced by the core on the backend for every route, never only in the UI. `core.can(user, moduleId, action)` is the single source of truth.
   - A user sees a module only if at least one of their groups has access to it.
 - **Security posture:** the app is exposed to the open internet. Cookie sessions (httpOnly + Secure), bcrypt, CSRF protection, rate limiting, and security headers are mandatory, not optional. Apply the `security-and-hardening` skill for any feature that touches auth, sessions, user input, or storage.
-- **Available scripts** (root `package.json`): `npm run dev` (сборка core/admin + сервер 3000 + фронтенд 5173), `npm run build`, `npm run typecheck`, `npm test`, `npm run seed`. Прод-деплой — Docker Compose + Caddy (см. `README.md`, раздел «Продакшен»). Публикация на прод — пуш в `main` (workflow `Deploy`); проверка изменений перед продом — workflow `Staging` (стенд на порту `3080`).
+- **Available scripts** (root `package.json`): `npm run dev` (сборка core и модулей + сервер 3000 + фронтенд 5173), `npm run build`, `npm run typecheck`, `npm test`, `npm run seed`, `npm run lint` / `npm run format` (ESLint 10 flat config + Prettier). Прод-деплой — Docker Compose + Caddy (см. `README.md`, раздел «Продакшен»). Публикация на прод — пуш в `main` (workflow `Deploy`); проверка изменений перед продом — workflow `Staging` (стенд на порту `3080`).
 - If a surface is deferred, prefer a short note in that surface's README over extra agent instructions.
 
 ## Installed Skills
