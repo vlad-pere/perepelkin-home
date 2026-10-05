@@ -312,7 +312,8 @@ export function HomePage() {
           <div className="empty">
             <p className="empty-title">Все модули скрыты</p>
             <p className="empty-text">
-              Нажмите «Скрытые»: модуль можно открыть сразу или вернуть его на главную.
+              Модуль можно открыть прямо из «Скрытых» или вернуть его на главную. «Настроить»
+              разложит карточки заново.
             </p>
           </div>
         )}
@@ -350,13 +351,18 @@ export function HomePage() {
             <ul className="home-hidden-list">
               {hiddenCards.map((m) => (
                 <li key={m.id} className="home-hidden-row">
-                  <Link className="home-hidden-name" to={m.route}>
+                  <Link
+                    className="home-hidden-name"
+                    to={m.route}
+                    aria-label={`Открыть «${m.name}»`}
+                  >
                     {m.name}
                   </Link>
                   <button
                     className="btn-ghost"
                     type="button"
                     disabled={busy}
+                    aria-label={`Вернуть «${m.name}» на главную`}
                     onClick={() => void unhide(m.id)}
                   >
                     Вернуть

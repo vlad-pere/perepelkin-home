@@ -807,6 +807,9 @@ button {
 
 .home-hidden-name {
   flex: 1;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
   color: var(--accent);
   font-size: 15px;
   font-weight: 500;
