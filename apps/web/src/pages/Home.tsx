@@ -312,7 +312,7 @@ export function HomePage() {
           <div className="empty">
             <p className="empty-title">Все модули скрыты</p>
             <p className="empty-text">
-              Нажмите «Скрытые», чтобы вернуть нужные, или «Настроить», чтобы разложить главную.
+              Нажмите «Скрытые»: модуль можно открыть сразу или вернуть его на главную.
             </p>
           </div>
         )}
@@ -350,7 +350,9 @@ export function HomePage() {
             <ul className="home-hidden-list">
               {hiddenCards.map((m) => (
                 <li key={m.id} className="home-hidden-row">
-                  <span className="home-hidden-name">{m.name}</span>
+                  <Link className="home-hidden-name" to={m.route}>
+                    {m.name}
+                  </Link>
                   <button
                     className="btn-ghost"
                     type="button"
