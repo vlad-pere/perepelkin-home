@@ -80,7 +80,7 @@
   margin-top: 26px;
   padding: 24px 26px;
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   animation: fade-up 0.5s var(--ease) both;
 }
@@ -176,7 +176,7 @@
   position: relative;
   width: 88px;
   height: 88px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -266,7 +266,7 @@
 .diary-entry {
   padding: 22px 24px;
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   animation: fade-up 0.5s var(--ease) both;
 }
@@ -326,7 +326,7 @@
 
 .diary-photo {
   display: block;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   aspect-ratio: 4 / 3;
   background: var(--bg-warm);
@@ -359,7 +359,7 @@
   margin-top: 14px;
   padding: 12px 16px;
   border: 1px solid var(--error-line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--error-bg);
   color: var(--error-text);
   font-size: 14px;

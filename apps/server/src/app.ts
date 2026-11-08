@@ -15,6 +15,7 @@ import { resolveSession } from './hooks.js';
 import { registerAuthRoutes } from './routes/auth.js';
 import { registerAdminRoutes } from './routes/admin.js';
 import { registerHomeRoutes } from './routes/home.js';
+import { registerAppearanceRoutes } from './routes/appearance.js';
 import { registerModulesFromDisk } from './modules/host.js';
 import type { CodeModuleRegister } from './modules/host.js';
 import { createFilesService, type FilesService } from './modules/files.js';
@@ -119,6 +120,7 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
   registerAuthRoutes(app, { db, config, core });
   registerAdminRoutes(app, core);
   registerHomeRoutes(app, core);
+  registerAppearanceRoutes(app, { db });
 
   if (config.modulesDir) {
     let haRegister: CodeModuleRegister | undefined;

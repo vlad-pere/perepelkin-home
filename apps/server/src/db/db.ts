@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 export const MIGRATIONS: Record<number, string> = {
   1: `
@@ -115,6 +115,13 @@ export const MIGRATIONS: Record<number, string> = {
       PRIMARY KEY (user_id, module_id)
     );
     CREATE INDEX IF NOT EXISTS idx_user_home_prefs_user ON user_home_prefs(user_id);
+  `,
+  7: `
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    );
   `,
 };
 

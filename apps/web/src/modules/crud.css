@@ -74,7 +74,7 @@
   align-items: flex-start;
   gap: 18px;
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   animation: fade-up 0.5s var(--ease) both;
 }
@@ -211,7 +211,7 @@
   margin-top: 14px;
   padding: 12px 16px;
   border: 1px solid var(--error-line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--error-bg);
   color: var(--error-text);
   font-size: 14px;

@@ -40,3 +40,18 @@ export {
 
 export { createScopedStore } from './store.js';
 export type { ScopedStore, ScopedStoreEntry, SqlDb, SqlPrepared } from './store.js';
+
+export type {
+  AppearanceColors,
+  AppearanceFontOption,
+  AppearanceState,
+  MotionPreset,
+  RadiusPreset,
+} from './appearance.js';
+export {
+  APPEARANCE_FONT_BODY,
+  APPEARANCE_FONT_DISPLAY,
+  DEFAULT_APPEARANCE,
+  parseAppearance,
+  validateAppearance,
+} from './appearance.js';

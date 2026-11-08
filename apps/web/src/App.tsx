@@ -8,6 +8,7 @@ import { Topbar } from './components/Topbar';
 import { LoginPage } from './pages/Login';
 import { HomePage } from './pages/Home';
 import { ProfilePage } from './pages/Profile';
+import { SettingsPage } from './pages/Settings';
 import { WishlistPublicPage } from './pages/Wishlist';
 import { MovePublicPage } from './pages/Move';
 import { Splash } from './components/Splash';
@@ -41,6 +42,16 @@ function Root() {
                   <Topbar breadcrumb={{ label: 'Администрирование' }} />
                   <AdminPage api={api} currentUserId={me!.user.id} />
                 </div>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              isAdmin ? (
+                <SettingsPage />
               ) : (
                 <Navigate to="/" replace />
               )

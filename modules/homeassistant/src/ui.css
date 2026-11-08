@@ -11,7 +11,7 @@
 .ha-notice {
   margin: 18px 0 0;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--accent-soft);
   color: var(--accent);
   font-size: 14px;
@@ -162,7 +162,7 @@
 .ha-select {
   padding: 6px 12px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--ink);
   font-size: 13px;

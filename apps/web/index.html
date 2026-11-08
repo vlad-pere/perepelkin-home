@@ -13,13 +13,21 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>Дом Перепелкиных</title>
+    <script type="module" src="/src/boot.ts"></script>
+    <!-- Цвета — токены темы оформления (var с фолбэками):
+         фолбэк = стандартная тема; boot.ts (выше) до отрисовки подставляет
+         сохранённую тему из localStorage прямо в <html style>, поэтому сплэш
+         и первый кадр рисуются уже в теме, без мигания дефолтом.
+         В прод-сборке Vite склеивает оба module-скрипта в один чанк: вызов
+         bootFromCache остаётся перед бутстрапом React; порядок тегов важен
+         для dev-режима, где каждый скрипт грузится отдельно. -->
     <style>
       html,
       body {
         margin: 0;
       }
       body {
-        background: #f4efe4;
+        background: var(--bg, #f4efe4);
       }
       .splash {
         min-height: 100dvh;
@@ -34,11 +42,11 @@
         gap: 24px;
       }
       .splash-wordmark {
-        font-family: 'Spectral', Georgia, serif;
+        font-family: var(--font-display, 'Spectral', Georgia, serif);
         font-size: 40px;
         font-weight: 500;
         letter-spacing: 0.01em;
-        color: #2d2a24;
+        color: var(--ink, #2d2a24);
         animation: splash-breathe 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
       }
       @keyframes splash-breathe {
@@ -54,14 +62,14 @@
         width: 120px;
         height: 2px;
         border-radius: 999px;
-        background: #e4ddcc;
+        background: var(--line, #e4ddcc);
         overflow: hidden;
       }
       .splash-bar {
         height: 100%;
         width: 40%;
         border-radius: inherit;
-        background: #667853;
+        background: var(--accent, #667853);
         animation: splash-slide 1.3s cubic-bezier(0.22, 1, 0.36, 1) infinite;
       }
       @keyframes splash-slide {

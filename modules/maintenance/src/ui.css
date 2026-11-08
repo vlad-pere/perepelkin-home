@@ -34,7 +34,7 @@
 
 .mtc-digest-group {
   padding: 20px 24px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 .mtc-digest-overdue {
@@ -105,7 +105,7 @@
   margin-top: 24px;
   padding: 20px 24px;
   background: var(--accent-soft);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   text-align: center;
   animation: fade-up 0.6s var(--ease) 0.1s both;
 }
@@ -241,7 +241,7 @@
   width: 36px;
   height: 36px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--bg-warm);
   flex-shrink: 0;
 }
@@ -312,7 +312,7 @@
   width: 32px;
   height: 32px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--ink-muted);
   cursor: pointer;
@@ -382,7 +382,7 @@
   margin-top: 8px;
   padding: 10px 14px;
   border: 1px solid var(--error-line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--error-bg);
   color: var(--error-text);
   font-size: 14px;
@@ -429,7 +429,7 @@
 
 .mtc-modal {
   background: var(--surface);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   padding: 32px;
   width: 100%;
   max-width: 520px;
