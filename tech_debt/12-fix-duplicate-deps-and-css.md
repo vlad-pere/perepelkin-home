@@ -6,6 +6,12 @@
 
 ## Файлы: `apps/web/package.json`, `modules/admin/src/ui.css`, `modules/move/src/`, `modules/shopping/src/`
 
+## Статус (2026-11-08)
+
+Пункты 1–2 сделаны: дубли `.btn-danger`/`.btn-danger-solid` удалены из `admin/ui.css` (определения — в глобальном `styles.css`) и в рамках общего CSS-дедупа общие `.hint`/`.empty` заменяют локальные копии из `crud.css` и всех `ui.css`.
+
+Осталось: пункты 3–4 — `globals.d.ts` (`declare module '*.css'`) в `move` и `shopping`.
+
 ## Проблема
 
 ### 1. Дубликат `@fontsource/spectral` в `apps/web/package.json`

@@ -6,6 +6,10 @@
 
 ## Скоуп: Весь проект
 
+## Статус (2026-11-08)
+
+Сделано: ESLint 10 + Prettier работают, `lint` — 0 ошибок; `.prettierignore` добавлен; `prettier --write` прогнан по всему проекту, `prettier --check` — чист. Осталось: шаг `lint`/`prettier --check` в CI-workflows.
+
 ## Проблема
 
 В проекте **нет ни линтера, ни форматтера**. Нет `.eslintrc`, `eslint.config.js`, `.prettierrc`. Нет скриптов `lint` или `format` в `package.json`. Это значит:

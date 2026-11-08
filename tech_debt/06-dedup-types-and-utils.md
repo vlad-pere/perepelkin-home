@@ -6,6 +6,12 @@
 
 ## Скоуп: 10+ файлов
 
+## Статус (2026-11-08)
+
+Сделано (частично): UI-дубли вынесены в `@perepelkin-home/core/web` — общий `ModuleApiClient` (вместо 6+ локальных `ApiClient`), `formatDate`, `safeHttpUrl`, `todayISODate`/`toISODate`; контракт код-модулей (`RouteSpec`, `ModuleContext`, `CodeModuleRegister`) перенесён в `packages/core/src/modules.ts`. Дубли убраны из 9 модулей, `CrudModule` и `registry`.
+
+Осталось: константы ошибок `UNAUTHENTICATED`/`FORBIDDEN`/`CSRF_FAILED` и `isMutation` продублированы в `hooks.ts` и `host.ts`; `ManifestInfo` остаётся в 6 модулях (`todo`, `shopping`, `diary`, `maintenance`, `wishlist`, `wife-wishlist`).
+
 ## Проблема
 
 Критический объём дублированного кода в модулях:
