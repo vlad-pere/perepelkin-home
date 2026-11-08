@@ -23,7 +23,7 @@
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Р·Р°РґР°Р№С‚Рµ ADMIN_PASSWORD РІ .env}
       # Р¤Р°Р№Р»С‹ РјРѕРґСѓР»РµР№ (С„РѕС‚Рѕ РґРЅРµРІРЅРёРєР°) вЂ” РІ S3 (MinIO), Р° РЅРµ РЅР° РґРёСЃРєРµ РїСЂРёР»РѕР¶РµРЅРёСЏ
       S3_ENDPOINT: minio:9000
-      S3_USE_SSL: "false"
+      S3_USE_SSL: 'false'
       S3_ACCESS_KEY: ${MINIO_ROOT_USER:?Р·Р°РґР°Р№С‚Рµ MINIO_ROOT_USER РІ .env}
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Р·Р°РґР°Р№С‚Рµ MINIO_ROOT_PASSWORD РІ .env (РјРёРЅРёРјСѓРј 8 СЃРёРјРІРѕР»РѕРІ)}
       S3_BUCKET: ${S3_BUCKET:-domo}
@@ -37,7 +37,13 @@
       # РїРµСЂРµР·Р°РїСѓСЃС‚РёС‚СЊ РєРѕРЅС‚РµР№РЅРµСЂ, Р±РµР· РїРµСЂРµСЃР±РѕСЂРєРё РѕР±СЂР°Р·Р°.
       - ./modules:/app/modules:ro
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/auth/me').then(r=>process.exit(r.status===401||r.status===200?0:1)).catch(()=>process.exit(1))"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/auth/me').then(r=>process.exit(r.status===401||r.status===200?0:1)).catch(()=>process.exit(1))",
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -55,11 +61,11 @@
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Р·Р°РґР°Р№С‚Рµ MINIO_ROOT_PASSWORD РІ .env (РјРёРЅРёРјСѓРј 8 СЃРёРјРІРѕР»РѕРІ)}
     ports:
       # РљРѕРЅСЃРѕР»СЊ вЂ” С‚РѕР»СЊРєРѕ РґР»СЏ РІР»Р°РґРµР»СЊС†Р°, РґРѕСЃС‚СѓРїРЅР° СЃ С…РѕСЃС‚Р° РїРѕ http://localhost:9001
-      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+      - '127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001'
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ['CMD', 'mc', 'ready', 'local']
       interval: 15s
       timeout: 5s
       retries: 5
@@ -72,14 +78,14 @@
       app:
         condition: service_healthy
     ports:
-      - "${HTTP_PORT:-80}:80"
-      - "${HTTPS_PORT:-443}:443"
+      - '${HTTP_PORT:-80}:80'
+      - '${HTTPS_PORT:-443}:443'
     environment:
       DOMAIN: ${DOMAIN:?Р·Р°РґР°Р№С‚Рµ DOMAIN РІ .env (РЅР°РїСЂРёРјРµСЂ, domo.example.com)}
       DOMAIN2: ${DOMAIN2:-${DOMAIN}}
       ACME_EMAIL: ${ACME_EMAIL:-caddy@localhost}
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:2019/config/"]
+      test: ['CMD', 'wget', '-q', '-O', '-', 'http://127.0.0.1:2019/config/']
       interval: 15s
       timeout: 5s
       retries: 5

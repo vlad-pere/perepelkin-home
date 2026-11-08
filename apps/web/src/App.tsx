@@ -49,13 +49,7 @@ function Root() {
           />
           <Route
             path="/settings"
-            element={
-              isAdmin ? (
-                <SettingsPage />
-              ) : (
-                <Navigate to="/" replace />
-              )
-            }
+            element={isAdmin ? <SettingsPage /> : <Navigate to="/" replace />}
           />
           <Route
             path="/profile"
@@ -65,15 +59,12 @@ function Root() {
           />
           <Route
             path="/m/:moduleId/*"
-            element={
-              status === 'authenticated' ? (
-                <ModulePage />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
+            element={status === 'authenticated' ? <ModulePage /> : <Navigate to="/login" replace />}
           />
-          <Route path="*" element={<Navigate to={status === 'authenticated' ? '/' : '/login'} replace />} />
+          <Route
+            path="*"
+            element={<Navigate to={status === 'authenticated' ? '/' : '/login'} replace />}
+          />
         </>
       )}
     </Routes>

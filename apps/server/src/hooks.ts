@@ -21,7 +21,11 @@ export function csrfOk(req: FastifyRequest): boolean {
   return req.csrfToken !== null && req.headers[CSRF_HEADER] === req.csrfToken;
 }
 
-export function resolveSession(db: Database.Database, req: FastifyRequest, reply: FastifyReply): void {
+export function resolveSession(
+  db: Database.Database,
+  req: FastifyRequest,
+  reply: FastifyReply,
+): void {
   const token = req.cookies?.[SESSION_COOKIE];
   if (!token) return;
   const session = getSession(db, token);
@@ -35,13 +39,19 @@ export function resolveSession(db: Database.Database, req: FastifyRequest, reply
   }
 }
 
-export async function requireAuth(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply | undefined> {
+export async function requireAuth(
+  req: FastifyRequest,
+  reply: FastifyReply,
+): Promise<FastifyReply | undefined> {
   if (!req.user) return reply.code(401).send(UNAUTHENTICATED);
   if (isMutation(req.method) && !csrfOk(req)) return reply.code(403).send(CSRF_FAILED);
   return undefined;
 }
 
-export async function requireAdmin(req: FastifyRequest, reply: FastifyReply): Promise<FastifyReply | undefined> {
+export async function requireAdmin(
+  req: FastifyRequest,
+  reply: FastifyReply,
+): Promise<FastifyReply | undefined> {
   if (!req.user) return reply.code(401).send(UNAUTHENTICATED);
   if (!req.user.is_admin) return reply.code(403).send(FORBIDDEN);
   if (isMutation(req.method) && !csrfOk(req)) return reply.code(403).send(CSRF_FAILED);

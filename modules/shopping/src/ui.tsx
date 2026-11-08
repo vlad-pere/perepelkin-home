@@ -7,6 +7,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from 'react';
+import { formatDate, safeHttpUrl, type ModuleApiClient } from '@perepelkin-home/core/web';
 import './ui.css';
 import {
   clampRating,
@@ -26,13 +27,9 @@ import {
   type StatusValue,
 } from './rice.js';
 
-export interface ApiClient {
-  <T>(path: string, init?: { method?: string; body?: unknown }): Promise<T>;
-}
-
 export interface ShoppingUiProps {
   moduleId: string;
-  api: ApiClient;
+  api: ModuleApiClient;
   canWrite: boolean;
 }
 
@@ -131,26 +128,18 @@ function formatPrice(price: number | null): string | null {
   return `~ ${new Intl.NumberFormat('ru-RU').format(Math.round(price))} ₽`;
 }
 
-function formatDate(value: string): string {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-}
-
-function safeHttpUrl(value: string | null): string | null {
-  if (value === null || value === '') return null;
-  try {
-    const parsed = new URL(value);
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.toString();
-  } catch {
-    /* не ссылка */
-  }
-  return null;
-}
-
 function InfoIcon(): ReactNode {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
       <circle cx="12" cy="12" r="9" />
       <line x1="12" y1="10.5" x2="12" y2="16.5" />
       <line x1="12" y1="7.2" x2="12" y2="7.3" />
@@ -170,7 +159,17 @@ function DotsIcon(): ReactNode {
 
 function LinkIcon(): ReactNode {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M14 5h5v5" />
       <path d="M19 5l-8.5 8.5" />
       <path d="M15.5 13.5V17a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6.5a2 2 0 0 1 2-2h3.5" />
@@ -266,9 +265,7 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
   const active = useMemo(
     () =>
       sortActive(
-        all.filter(
-          (i) => normalizeStatus(i.status) !== STATUS_BOUGHT && isRated(i),
-        ),
+        all.filter((i) => normalizeStatus(i.status) !== STATUS_BOUGHT && isRated(i)),
         all.map((i) => i.price),
       ),
     [all],
@@ -276,9 +273,7 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
   const backlog = useMemo(
     () =>
       sortActive(
-        all.filter(
-          (i) => normalizeStatus(i.status) !== STATUS_BOUGHT && !isRated(i),
-        ),
+        all.filter((i) => normalizeStatus(i.status) !== STATUS_BOUGHT && !isRated(i)),
         all.map((i) => i.price),
       ),
     [all],
@@ -311,7 +306,7 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
   if (meta === null || items === null) {
     return (
       <main className="shopping">
-        <p className="shopping-hint">Загружаем…</p>
+        <p className="hint">Загружаем…</p>
       </main>
     );
   }
@@ -333,7 +328,6 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
 
   return (
     <main className="shopping">
-
       {error !== null && (
         <p className="auth-error" role="alert">
           {error}
@@ -380,9 +374,9 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
       )}
 
       {items.length === 0 ? (
-        <div className="shopping-empty">
-          <p className="shopping-empty-title">Пока пусто</p>
-          <p className="shopping-empty-text">
+        <div className="empty">
+          <p className="empty-title">Пока пусто</p>
+          <p className="empty-text">
             {canWrite
               ? 'Записывайте любые идеи — от мелочей до крупной техники. Оценённые покупки сами выстроятся по приоритету.'
               : 'Список пока не заполнен.'}
@@ -396,7 +390,7 @@ export default function ShoppingModule({ moduleId, api, canWrite }: ShoppingUiPr
               <span className="shopping-section-count">{active.length}</span>
             </div>
             {active.length === 0 ? (
-              <p className="shopping-hint">
+              <p className="hint">
                 Пока никто ничего не оценил — оцените идеи из бэклога, и здесь появится порядок.
               </p>
             ) : (
@@ -554,9 +548,7 @@ function ItemMenu({ row, busy, showStatuses, onSetStatus, onEdit, onDelete }: It
                     disabled={busy}
                     onClick={() => act(() => onSetStatus(o.value))}
                   >
-                    {o.value === STATUS_BOUGHT && current !== STATUS_BOUGHT
-                      ? 'Купить'
-                      : o.label}
+                    {o.value === STATUS_BOUGHT && current !== STATUS_BOUGHT ? 'Купить' : o.label}
                   </button>
                 ))}
               {showStatuses && (
@@ -685,7 +677,11 @@ function ItemRow(props: ItemRowProps) {
                   <span className="shopping-info-param">
                     <i>Деньги</i> {coef === null ? '—' : `${coef} · из суммы`}
                   </span>
-                  {price !== null && <span className="shopping-info-param"><i>Сумма</i> ~{price.replace('~ ', '')}</span>}
+                  {price !== null && (
+                    <span className="shopping-info-param">
+                      <i>Сумма</i> ~{price.replace('~ ', '')}
+                    </span>
+                  )}
                 </>
               );
             })()}
@@ -693,7 +689,7 @@ function ItemRow(props: ItemRowProps) {
           <div className="shopping-info-facts">
             <span>
               Статус: {STATUS_LABELS[normalizeStatus(row.status)]}
-              {done && ` с ${formatDate(row.updated_at)}`}
+              {done && ` с ${formatDate(row.updated_at, { year: false })}`}
             </span>
             {href !== null && (
               <a href={href} target="_blank" rel="noopener noreferrer" className="shopping-link">
@@ -702,7 +698,10 @@ function ItemRow(props: ItemRowProps) {
             )}
             {row.created_by_username !== null && (
               <span>
-                Записал(а): {row.created_by_username} · {formatDate(row.created_at)}
+                Записал(а): {row.created_by_username} ·{' '}
+                {formatDate(row.created_at, {
+                  year: false,
+                })}
               </span>
             )}
           </div>
@@ -858,7 +857,11 @@ function ItemForm({
         </p>
       ) : (
         <p className="shopping-preview shopping-preview-empty" aria-live="polite">
-          {moneyNow === null && values.reach !== null && values.impact !== null && values.confidence !== null && values.complexity !== null
+          {moneyNow === null &&
+          values.reach !== null &&
+          values.impact !== null &&
+          values.confidence !== null &&
+          values.complexity !== null
             ? 'Осталось указать сумму — и покупка займёт место в списке.'
             : 'Без полной оценки и суммы покупка попадёт в бэклог идей — вернуться к ней можно в любой момент.'}
         </p>

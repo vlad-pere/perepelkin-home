@@ -1,7 +1,9 @@
 # [P2] Убрать stale @types/better-sqlite3 и copy-css дупликацию
 
 ## Приоритет: Средний
+
 ## Оценка: 2/10 (~20 минут)
+
 ## Файлы: `apps/server/package.json`, `modules/*/scripts/copy-css.mjs`
 
 ## Проблема
@@ -15,8 +17,8 @@
 Каждый модуль (admin, todo, wishlist, diary, move, shopping) содержит **идентичный** `scripts/copy-css.mjs`:
 
 ```javascript
-import { cpSync } from 'fs'
-cpSync('src/ui.css', 'dist/ui.css')
+import { cpSync } from 'fs';
+cpSync('src/ui.css', 'dist/ui.css');
 ```
 
 Если логика изменится, нужно править 6 файлов.
@@ -40,8 +42,8 @@ npx tsc -b apps/server  # должен пройти без ошибок
 Создать `scripts/copy-css.mjs` в корне проекта:
 
 ```javascript
-import { cpSync } from 'fs'
-cpSync('src/ui.css', 'dist/ui.css')
+import { cpSync } from 'fs';
+cpSync('src/ui.css', 'dist/ui.css');
 ```
 
 В каждом модуле обновить `package.json`:

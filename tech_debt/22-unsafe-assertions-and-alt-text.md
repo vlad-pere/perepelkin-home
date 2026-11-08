@@ -1,7 +1,9 @@
 # [P3] Мелкие a11y и type-safety правки
 
 ## Приоритет: Низкий
+
 ## Оценка: 1/10 (~15 минут)
+
 ## Файлы: `modules/diary/src/ui.tsx`, `modules/shopping/src/ui.tsx`
 
 ## Проблема
@@ -31,7 +33,7 @@ Type assertion теряет типизацию event target.
 ```typescript
 // Строка 484 — click outside handler
 if (e.target instanceof Node && rootRef.current && !rootRef.current.contains(e.target)) {
-  onClose()
+  onClose();
 }
 ```
 

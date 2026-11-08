@@ -1,7 +1,9 @@
 # [P2] Добавить тесты для env.ts и config.ts
 
 ## Приоритет: Средний
+
 ## Оценка: 2/10 (~30 минут)
+
 ## Файлы: `apps/server/src/env.ts`, `apps/server/src/config.ts`
 
 ## Проблема
@@ -10,6 +12,7 @@
 - `config.ts` — `parsePort()`, `parseBool()`, `parseSessionTtl()`, `parseFileSizeMb()` — **ноль unit-тестов** (только S3 конфиг протестирован в `storage.test.ts`).
 
 Edge cases не покрыты:
+
 - `PORT=abc` → что вернёт `parsePort`?
 - `SESSION_TTL_HOURS=-1` → parseSessionTtl вернёт отрицательное?
 - `MAX_FILE_SIZE_MB=0` → parseFileSizeMb вернёт 0?

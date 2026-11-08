@@ -1,7 +1,9 @@
 # [P1] Добавить минимальное тестовое покрытие фронтенда
 
 ## Приоритет: Высокий
+
 ## Оценка: 5/10 (~3-4 часа)
+
 ## Скоуп: `apps/web/`, `modules/*/src/`
 
 ## Проблема
@@ -20,6 +22,7 @@
 ### Уровень 1: Unit-тесты чистой логики (vitest)
 
 Добавить тесты для:
+
 - `apps/web/src/api.ts` — `api()` функция (mock fetch, проверить retry, 401 redirect, error handling)
 - `apps/web/src/modules/registry.tsx` — `resolveModuleUi()` (маппинг kind → component)
 - `modules/*/src/utils.ts` (после разбиения god components) — `formatDate`, `safeHttpUrl`, `buildPayload`
@@ -27,12 +30,14 @@
 ### Уровень 2: Компонентные тесты (vitest + @testing-library/react)
 
 Добавить тесты для:
+
 - `apps/web/src/pages/Login.tsx` — рендер формы, сабмит, обработка ошибок
 - `apps/web/src/auth.tsx` — `AuthProvider` + `useAuth()` context
 
 ### Уровень 3: E2E (Playwright) — критический путь
 
 Создать `apps/web/e2e/` с одним тестовым сценарием:
+
 1. Login → отображается HomePage
 2. Navigate to todo module → видим список задач
 3. Создать задачу → она появляется в списке
@@ -44,6 +49,7 @@
 ### Шаг 1: Настроить vitest для фронтенда
 
 `apps/web/package.json`:
+
 ```json
 {
   "devDependencies": {
@@ -60,9 +66,10 @@
 ```
 
 `apps/web/vitest.config.ts`:
+
 ```typescript
-import { defineConfig } from 'vitest/config'
-export default defineConfig({ test: { environment: 'jsdom' } })
+import { defineConfig } from 'vitest/config';
+export default defineConfig({ test: { environment: 'jsdom' } });
 ```
 
 ### Шаг 2: Unit-тесты api.ts
@@ -91,6 +98,7 @@ describe('Login page', () => {
 ### Шаг 4: Обновить корневой test script
 
 `package.json` (root):
+
 ```json
 "test": "npm run test -ws --if-present"
 ```

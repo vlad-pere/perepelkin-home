@@ -1,6 +1,11 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type Database from 'better-sqlite3';
-import type { ManifestEntity, ManifestField, ModuleManifest, FieldType } from '@perepelkin-home/core';
+import type {
+  ManifestEntity,
+  ManifestField,
+  ModuleManifest,
+  FieldType,
+} from '@perepelkin-home/core';
 import { badRequest, notFound } from '../errors.js';
 
 export interface CrudGuards {
@@ -49,7 +54,11 @@ interface ColumnInfo {
  * если у поля изменилась обязательность, таблица пересоздаётся с переносом данных
  * (SQLite не умеет ALTER COLUMN).
  */
-export function ensureEntityTable(db: Database.Database, moduleId: string, entity: ManifestEntity): void {
+export function ensureEntityTable(
+  db: Database.Database,
+  moduleId: string,
+  entity: ManifestEntity,
+): void {
   db.exec(createEntityTableSql(moduleId, entity));
   const info = db
     .prepare(`PRAGMA table_info("${tableName(moduleId, entity.name)}")`)
@@ -99,7 +108,11 @@ function validateFieldValue(field: ManifestField, value: unknown): string | null
       }
       return null;
     case 'date': {
-      if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || Number.isNaN(Date.parse(value))) {
+      if (
+        typeof value !== 'string' ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+        Number.isNaN(Date.parse(value))
+      ) {
         return `field "${field.name}" must be a date in YYYY-MM-DD format`;
       }
       return null;
@@ -131,7 +144,11 @@ function validateFieldValue(field: ManifestField, value: unknown): string | null
  * `patch=false` — create: требуются все `required`-поля.
  * `patch=true` — update: проверяются только переданные поля.
  */
-function validateBody(entity: ManifestEntity, body: unknown, patch: boolean): Record<string, unknown> {
+function validateBody(
+  entity: ManifestEntity,
+  body: unknown,
+  patch: boolean,
+): Record<string, unknown> {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
     throw badRequest('Body must be a JSON object');
   }
@@ -194,8 +211,7 @@ function parseRowId(raw: unknown): number {
 function resolveUsername(db: Database.Database, userId: unknown): string | null {
   if (userId === null || userId === undefined) return null;
   const row = db.prepare('SELECT username FROM users WHERE id = ?').get(userId) as
-    | { username: string }
-    | undefined;
+    { username: string } | undefined;
   return row?.username ?? null;
 }
 
@@ -212,7 +228,9 @@ export function registerCrudRoutes(
     const sortDirection = entity.defaultSort?.direction ?? 'asc';
 
     const listStmt = db.prepare(
-      sortField ? `SELECT * FROM "${table}" ORDER BY "${sortField}" ${sortDirection}` : `SELECT * FROM "${table}" ORDER BY id`,
+      sortField
+        ? `SELECT * FROM "${table}" ORDER BY "${sortField}" ${sortDirection}`
+        : `SELECT * FROM "${table}" ORDER BY id`,
     );
     const getStmt = db.prepare(`SELECT * FROM "${table}" WHERE id = ?`);
     const deleteStmt = db.prepare(`DELETE FROM "${table}" WHERE id = ?`);
@@ -300,9 +318,10 @@ export function registerCrudRoutes(
     app.get('/summary', { preHandler: guards.read }, async () => {
       const { n } = countStmt.get() as { n: number };
       const emptyText = cfg?.emptyText ?? 'Нет записей';
-      const status = n === 0
-        ? emptyText
-        : `${n} ${pluralRu(n, cfg?.labelOne ?? 'запись', cfg?.labelFew ?? 'записи', cfg?.labelMany ?? 'записей')}`;
+      const status =
+        n === 0
+          ? emptyText
+          : `${n} ${pluralRu(n, cfg?.labelOne ?? 'запись', cfg?.labelFew ?? 'записи', cfg?.labelMany ?? 'записей')}`;
       return { count: n, status };
     });
   }

@@ -2,11 +2,6 @@
   padding-top: 40px;
 }
 
-.shopping-hint {
-  margin: 18px 0 0;
-  color: var(--ink-muted);
-}
-
 .shopping .auth-error {
   margin-top: 20px;
 }
@@ -478,31 +473,6 @@
   margin-left: -10px;
 }
 
-/* ---------- Пусто ---------- */
-
-.shopping-empty {
-  margin-top: 28px;
-  padding: 32px 24px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 16px;
-  text-align: center;
-  animation: fade-up 0.6s var(--ease) 0.1s both;
-}
-
-.shopping-empty-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 19px;
-}
-
-.shopping-empty-text {
-  margin: 6px auto 0;
-  max-width: 420px;
-  color: var(--ink-soft);
-  font-size: 14px;
-}
-
 .shopping button:disabled {
   opacity: 0.5;
   cursor: default;
@@ -581,9 +551,5 @@
 
   .shopping-menu {
     min-width: 176px;
-  }
-
-  .shopping-empty {
-    padding: 28px 20px;
   }
 }

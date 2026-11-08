@@ -95,7 +95,8 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
 
   app.addHook('preHandler', async (req, reply) => {
     resolveSession(db, req, reply);
-  });  app.setErrorHandler((err: FastifyError, req, reply) => {
+  });
+  app.setErrorHandler((err: FastifyError, req, reply) => {
     if (err.validation) {
       return reply
         .code(400)
@@ -134,13 +135,13 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
     }
     try {
       const mod = await import('@perepelkin-home/module-maintenance');
-      maintenanceRegister = (moduleApp, ctx) => mod.default(moduleApp, ctx, db);
+      maintenanceRegister = (moduleApp, ctx) => mod.default(moduleApp, ctx);
     } catch (err) {
       app.log.error({ err }, 'Failed to import maintenance module');
     }
     try {
       const mod = await import('@perepelkin-home/module-wishlist');
-      wishlistRegister = (moduleApp, ctx) => mod.default(moduleApp, ctx, db);
+      wishlistRegister = (moduleApp, ctx) => mod.default(moduleApp, ctx);
     } catch (err) {
       app.log.error({ err }, 'Failed to import wishlist module');
     }
@@ -152,7 +153,13 @@ export async function createApp(opts: AppOptions): Promise<FastifyInstance> {
         if (id === 'wishlist') return wishlistRegister;
         return undefined;
       };
-      await registerModulesFromDisk(app, { db, core, modulesDir: config.modulesDir, files, codeLoader });
+      await registerModulesFromDisk(app, {
+        db,
+        core,
+        modulesDir: config.modulesDir,
+        files,
+        codeLoader,
+      });
     } else {
       app.log.warn('Code modules disabled — build modules first');
       await registerModulesFromDisk(app, { db, core, modulesDir: config.modulesDir, files });

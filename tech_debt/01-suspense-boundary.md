@@ -1,8 +1,11 @@
 # [P0] Добавить Suspense boundary для lazy-загрузки модулей
 
 ## Статус: ✅ Сделано (2026-08-31)
+
 ## Приоритет: Критический
+
 ## Оценка: 1/10 (простая правка, 5 минут)
+
 ## Файл: `apps/web/src/App.tsx`
 
 ## Проблема
@@ -44,16 +47,18 @@ function ModulePage() {
 1. Обернуть рендер `<Ui />` в `<Suspense fallback={<Splash />}>` — компонент `Splash` уже импортирован в `App.tsx`.
 
 ```tsx
-import { Suspense } from 'react'
+import { Suspense } from 'react';
 
 // Внутри ModulePage, заменить блок {Ui ? ...} на:
-{Ui ? (
-  <Suspense fallback={<Splash />}>
-    <Ui moduleId={module.id} api={api} currentUserId={me!.user.id} canWrite={module.canWrite} />
-  </Suspense>
-) : (
-  <ModuleUnavailable module={module} />
-)}
+{
+  Ui ? (
+    <Suspense fallback={<Splash />}>
+      <Ui moduleId={module.id} api={api} currentUserId={me!.user.id} canWrite={module.canWrite} />
+    </Suspense>
+  ) : (
+    <ModuleUnavailable module={module} />
+  );
+}
 ```
 
 2. Проверить, что `Splash` импортируется корректно (он уже используется на странице логина).

@@ -1,18 +1,20 @@
 # [P1] Разбить God Components (shopping, admin, diary)
 
 ## Приоритет: Высокий
+
 ## Оценка: 4/10 (~2-3 часа на три модуля)
+
 ## Файлы: `modules/shopping/src/ui.tsx` (942), `modules/admin/src/ui.tsx` (804), `modules/diary/src/ui.tsx` (716)
 
 ## Проблема
 
 Три компонента значительно превышают порог читаемости:
 
-| Модуль | Строк | Компонентов/функций | useState |
-|--------|-------|---------------------|----------|
-| shopping | 942 | 12+ (ItemMenu, ItemRow, BacklogRow, ItemForm, RatingPicker, 6 utils) | ~10 |
-| admin | 804 | 4 крупных (UsersPanel, GroupsPanel, GrantsPanel, CredentialInputs) | 12+ |
-| diary | 716 | 3 крупных (DiaryModule, EntryForm, 8 utils) | 8 |
+| Модуль   | Строк | Компонентов/функций                                                  | useState |
+| -------- | ----- | -------------------------------------------------------------------- | -------- |
+| shopping | 942   | 12+ (ItemMenu, ItemRow, BacklogRow, ItemForm, RatingPicker, 6 utils) | ~10      |
+| admin    | 804   | 4 крупных (UsersPanel, GroupsPanel, GrantsPanel, CredentialInputs)   | 12+      |
+| diary    | 716   | 3 крупных (DiaryModule, EntryForm, 8 utils)                          | 8        |
 
 Такие файлы невозможно быстро понять, отрефакторить или добавить фичу.
 

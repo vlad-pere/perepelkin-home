@@ -25,12 +25,12 @@ const ICONS: Record<string, LucideIcon> = {
   'clipboard-check': ClipboardCheck,
   'shopping-cart': ShoppingCart,
   'book-open': BookOpen,
-  'gift': Gift,
-  'truck': Truck,
-  'wrench': Wrench,
-  'heart': Heart,
-  'bulb': Lightbulb,
-  'settings': Settings,
+  gift: Gift,
+  truck: Truck,
+  wrench: Wrench,
+  heart: Heart,
+  bulb: Lightbulb,
+  settings: Settings,
 };
 
 /**
@@ -75,9 +75,7 @@ export function HomePage() {
     let cancelled = false;
 
     Promise.all(
-      modules.map((m) =>
-        api<ModuleSummary>(`/api/modules/${m.id}/summary`).catch(() => null),
-      ),
+      modules.map((m) => api<ModuleSummary>(`/api/modules/${m.id}/summary`).catch(() => null)),
     ).then((results) => {
       if (cancelled) return;
       const map: Record<string, ModuleSummary> = {};
@@ -88,7 +86,9 @@ export function HomePage() {
       setLoaded(true);
     });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [modules.map((m) => m.id).join(',')]);
 
   const ordered = useMemo(
@@ -96,10 +96,7 @@ export function HomePage() {
     [editing, modules, draft],
   );
   const hiddenSet = useMemo(
-    () =>
-      new Set(
-        editing ? hiddenDraft : modules.filter((m) => m.hidden).map((m) => m.id),
-      ),
+    () => new Set(editing ? hiddenDraft : modules.filter((m) => m.hidden).map((m) => m.id)),
     [editing, hiddenDraft, modules],
   );
   const visibleCards = ordered.filter((m) => !hiddenSet.has(m.id));
@@ -252,7 +249,12 @@ export function HomePage() {
               <button className="btn-ghost" type="button" onClick={stopEditing} disabled={busy}>
                 Отмена
               </button>
-              <button className="btn-primary" type="button" onClick={() => void save()} disabled={busy}>
+              <button
+                className="btn-primary"
+                type="button"
+                onClick={() => void save()}
+                disabled={busy}
+              >
                 {busy ? 'Сохраняем…' : 'Готово'}
               </button>
             </>
@@ -460,7 +462,11 @@ function DashboardCard({
             disabled={edit.busy}
             onClick={edit.onToggleHidden}
           >
-            {edit.hidden ? <EyeOff size={16} strokeWidth={1.8} /> : <Eye size={16} strokeWidth={1.8} />}
+            {edit.hidden ? (
+              <EyeOff size={16} strokeWidth={1.8} />
+            ) : (
+              <Eye size={16} strokeWidth={1.8} />
+            )}
           </button>
         </div>
       )}

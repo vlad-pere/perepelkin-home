@@ -19,8 +19,7 @@ export const badRequest = (message = 'Некорректный запрос'): A
 export const payloadTooLarge = (message = 'Файл слишком большой'): ApiError =>
   new ApiError(413, 'PAYLOAD_TOO_LARGE', message);
 
-export const conflict = (message = 'Конфликт'): ApiError =>
-  new ApiError(409, 'CONFLICT', message);
+export const conflict = (message = 'Конфликт'): ApiError => new ApiError(409, 'CONFLICT', message);
 
 export function isUniqueViolation(err: unknown): boolean {
   return (

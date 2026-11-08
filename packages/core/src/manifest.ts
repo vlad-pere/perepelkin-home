@@ -66,7 +66,17 @@ export class ManifestError extends Error {
 const FIELD_TYPES: readonly string[] = ['text', 'textarea', 'number', 'date', 'boolean', 'url'];
 const RESERVED_FIELD_NAMES = new Set(['id', 'created_at', 'updated_at', 'created_by']);
 const NAME_PATTERN = /^[a-z][a-zA-Z0-9_]{0,63}$/;
-const TOP_LEVEL_KEYS = ['id', 'name', 'description', 'kind', 'publicRead', 'icon', 'color', 'summary', 'entities'] as const;
+const TOP_LEVEL_KEYS = [
+  'id',
+  'name',
+  'description',
+  'kind',
+  'publicRead',
+  'icon',
+  'color',
+  'summary',
+  'entities',
+] as const;
 const ENTITY_KEYS = ['name', 'label', 'fields', 'defaultSort'] as const;
 const FIELD_KEYS = ['name', 'label', 'type', 'required'] as const;
 const SORT_KEYS = ['field', 'direction'] as const;
@@ -99,7 +109,11 @@ export function validateManifest(input: unknown): ModuleManifest {
     return t;
   };
 
-  const rejectUnknownKeys = (obj: Record<string, unknown>, allowed: readonly string[], what: string): void => {
+  const rejectUnknownKeys = (
+    obj: Record<string, unknown>,
+    allowed: readonly string[],
+    what: string,
+  ): void => {
     for (const key of Object.keys(obj)) {
       if (!allowed.includes(key)) fail(`unknown key "${key}" in ${what}`);
     }
@@ -112,7 +126,8 @@ export function validateManifest(input: unknown): ModuleManifest {
   }
   const id = rawId;
   const name = str(input.name, 'name', 200, 1);
-  const description = input.description === undefined ? '' : str(input.description, 'description', 500);
+  const description =
+    input.description === undefined ? '' : str(input.description, 'description', 500);
 
   const kind = input.kind;
   if (kind !== 'simple' && kind !== 'code') {
@@ -160,7 +175,8 @@ export function validateManifest(input: unknown): ModuleManifest {
         fail(`field name "${fName}" must match /^[a-z][a-zA-Z0-9_]{0,63}$/`);
       }
       if (RESERVED_FIELD_NAMES.has(fName)) fail(`field name "${fName}" is reserved`);
-      if (seenFields.has(fName.toLowerCase())) fail(`duplicate field "${fName}" in entity "${eName}"`);
+      if (seenFields.has(fName.toLowerCase()))
+        fail(`duplicate field "${fName}" in entity "${eName}"`);
       seenFields.add(fName.toLowerCase());
 
       const fLabel = str(rawField.label, `field "${fName}" label`, 200, 1);
@@ -182,10 +198,12 @@ export function validateManifest(input: unknown): ModuleManifest {
 
     let defaultSort: ManifestEntitySort | undefined;
     if (rawEntity.defaultSort !== undefined) {
-      if (!isPlainObject(rawEntity.defaultSort)) fail(`entity "${eName}" defaultSort must be an object`);
+      if (!isPlainObject(rawEntity.defaultSort))
+        fail(`entity "${eName}" defaultSort must be an object`);
       rejectUnknownKeys(rawEntity.defaultSort, SORT_KEYS, `defaultSort of entity "${eName}"`);
       const sField = str(rawEntity.defaultSort.field, 'defaultSort field', 64, 1);
-      if (!seenFields.has(sField.toLowerCase())) fail(`defaultSort field "${sField}" not found in entity "${eName}"`);
+      if (!seenFields.has(sField.toLowerCase()))
+        fail(`defaultSort field "${sField}" not found in entity "${eName}"`);
       const direction = rawEntity.defaultSort.direction;
       if (direction !== 'asc' && direction !== 'desc') {
         fail('defaultSort direction must be "asc" or "desc"');
@@ -211,8 +229,14 @@ export function validateManifest(input: unknown): ModuleManifest {
     const sLabelOne = str(input.summary.labelOne, 'summary.labelOne', 64, 1);
     const sLabelFew = str(input.summary.labelFew, 'summary.labelFew', 64, 1);
     const sLabelMany = str(input.summary.labelMany, 'summary.labelMany', 64, 1);
-    const sFilter = input.summary.filter === undefined ? undefined : str(input.summary.filter, 'summary.filter', 128, 1);
-    const sEmptyText = input.summary.emptyText === undefined ? undefined : str(input.summary.emptyText, 'summary.emptyText', 64, 1);
+    const sFilter =
+      input.summary.filter === undefined
+        ? undefined
+        : str(input.summary.filter, 'summary.filter', 128, 1);
+    const sEmptyText =
+      input.summary.emptyText === undefined
+        ? undefined
+        : str(input.summary.emptyText, 'summary.emptyText', 64, 1);
     if (sFilter !== undefined && !SUMMARY_FILTER_RE.test(sFilter)) {
       fail('summary.filter must match pattern: field = value, field < value, or field > value');
     }

@@ -7,15 +7,12 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from 'react';
+import { formatDate, todayISODate, type ModuleApiClient } from '@perepelkin-home/core/web';
 import './ui.css';
-
-export interface ApiClient {
-  <T>(path: string, init?: { method?: string; body?: unknown }): Promise<T>;
-}
 
 export interface DiaryUiProps {
   moduleId: string;
-  api: ApiClient;
+  api: ModuleApiClient;
   canWrite: boolean;
 }
 
@@ -52,7 +49,13 @@ interface PickedPhotos {
   add: File[];
 }
 
-const EMPTY_VALUES: EntryValues = { date: todayISO(), title: '', text: '', mood: '', category: '' };
+const EMPTY_VALUES: EntryValues = {
+  date: todayISODate(),
+  title: '',
+  text: '',
+  mood: '',
+  category: '',
+};
 
 const MOODS: ReadonlyArray<{ value: string; label: string }> = [
   { value: '😊', label: 'Хорошо' },
@@ -63,17 +66,22 @@ const MOODS: ReadonlyArray<{ value: string; label: string }> = [
   { value: '😢', label: 'Грустно' },
 ];
 
-const CATEGORY_SUGGESTIONS = ['Ремонт', 'Гости', 'Сад и двор', 'Быт', 'Техника', 'Покупки', 'Другое'];
+const CATEGORY_SUGGESTIONS = [
+  'Ремонт',
+  'Гости',
+  'Сад и двор',
+  'Быт',
+  'Техника',
+  'Покупки',
+  'Другое',
+];
 
 const ALL_CATEGORIES = '__all__';
 
 export default function DiaryModule({ moduleId, api, canWrite }: DiaryUiProps) {
   const base = `/api/modules/${moduleId}/entry`;
   const uploadBase = `/api/modules/${moduleId}/files`;
-  const fileUrl = useCallback(
-    (id: string) => `/api/modules/${moduleId}/files/${id}`,
-    [moduleId],
-  );
+  const fileUrl = useCallback((id: string) => `/api/modules/${moduleId}/files/${id}`, [moduleId]);
 
   const [meta, setMeta] = useState<ManifestInfo | null>(null);
   const [items, setItems] = useState<EntryRow[] | null>(null);
@@ -121,9 +129,7 @@ export default function DiaryModule({ moduleId, api, canWrite }: DiaryUiProps) {
         }
         return ids;
       } catch (err) {
-        await Promise.allSettled(
-          ids.map((id) => api(`${uploadBase}/${id}`, { method: 'DELETE' })),
-        );
+        await Promise.allSettled(ids.map((id) => api(`${uploadBase}/${id}`, { method: 'DELETE' })));
         throw err;
       }
     },
@@ -259,7 +265,7 @@ export default function DiaryModule({ moduleId, api, canWrite }: DiaryUiProps) {
   if (meta === null || items === null) {
     return (
       <main className="diary">
-        <p className="diary-hint">Загружаем…</p>
+        <p className="hint">Загружаем…</p>
       </main>
     );
   }
@@ -331,11 +337,11 @@ export default function DiaryModule({ moduleId, api, canWrite }: DiaryUiProps) {
       )}
 
       {filtered.length === 0 ? (
-        <div className="diary-empty">
-          <p className="diary-empty-title">
+        <div className="empty">
+          <p className="empty-title">
             {items.length === 0 ? 'Дневник пока пуст' : 'Ничего не нашлось'}
           </p>
-          <p className="diary-empty-text">
+          <p className="empty-text">
             {items.length === 0
               ? canWrite
                 ? 'Запишите первое событие из жизни дома — и оно появится здесь.'
@@ -346,10 +352,14 @@ export default function DiaryModule({ moduleId, api, canWrite }: DiaryUiProps) {
       ) : (
         <div className="diary-timeline">
           {filtered.map((day) => (
-            <section className="diary-day" key={day.date} aria-label={formatDay(day.date)}>
+            <section
+              className="diary-day"
+              key={day.date}
+              aria-label={formatDate(day.date, { weekday: true })}
+            >
               <h2 className="diary-day-title">
-                <span>{formatDay(day.date)}</span>
-                {day.date === todayISO() && <span className="diary-today">Сегодня</span>}
+                <span>{formatDate(day.date, { weekday: true })}</span>
+                {day.date === todayISODate() && <span className="diary-today">Сегодня</span>}
               </h2>
               <div className="diary-day-list">
                 {day.entries.map((row) => (
@@ -694,21 +704,4 @@ function parsePhotos(raw: string | null): string[] {
   } catch {
     return [];
   }
-}
-
-function todayISO(): string {
-  const d = new Date();
-  const pad = (n: number): string => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-function formatDay(value: string): string {
-  const d = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('ru-RU', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
 }

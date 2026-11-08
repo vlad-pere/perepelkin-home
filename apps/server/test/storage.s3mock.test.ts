@@ -28,7 +28,11 @@ function startFakeS3(): Promise<{
     req.on('data', (c: Buffer) => chunks.push(c));
     req.on('end', () => {
       const body = Buffer.concat(chunks);
-      const respond = (code: number, headers: Record<string, string> = {}, payload: Buffer | string = '') => {
+      const respond = (
+        code: number,
+        headers: Record<string, string> = {},
+        payload: Buffer | string = '',
+      ) => {
         res.writeHead(code, { ...headers, 'content-length': String(Buffer.byteLength(payload)) });
         res.end(payload);
       };
@@ -53,7 +57,9 @@ function startFakeS3(): Promise<{
       }
       if (req.method === 'GET' && bucket && key !== '') {
         const data = objects.get(key);
-        return data ? respond(200, { 'content-type': 'application/octet-stream' }, data) : noSuchKey();
+        return data
+          ? respond(200, { 'content-type': 'application/octet-stream' }, data)
+          : noSuchKey();
       }
       if (req.method === 'DELETE' && bucket && key !== '') {
         objects.delete(key);
@@ -73,7 +79,10 @@ function startFakeS3(): Promise<{
         },
         objects,
         createdBuckets,
-        close: () => new Promise((resolveClose, rejectClose) => server.close((e) => (e ? rejectClose(e) : resolveClose()))),
+        close: () =>
+          new Promise((resolveClose, rejectClose) =>
+            server.close((e) => (e ? rejectClose(e) : resolveClose())),
+          ),
       });
     });
   });

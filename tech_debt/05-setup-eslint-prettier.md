@@ -1,7 +1,9 @@
 # [P1] Добавить ESLint + Prettier
 
 ## Приоритет: Высокий
+
 ## Оценка: 3/10 (~1 час на настройку + авто-fix)
+
 ## Скоуп: Весь проект
 
 ## Проблема
@@ -27,9 +29,9 @@
 2. **Создать `eslint.config.js`** (корень проекта):
 
 ```js
-import js from '@eslint/js'
-import ts from 'typescript-eslint'
-import reactHooks from 'eslint-plugin-react-hooks'
+import js from '@eslint/js';
+import ts from 'typescript-eslint';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 export default ts.config(
   js.configs.recommended,
@@ -40,10 +42,10 @@ export default ts.config(
       ...reactHooks.configs.recommended.rules,
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
-    }
+    },
   },
-  { ignores: ['**/dist/', '**/node_modules/', '**/.scratch/', '.10x/', '.superpowers/'] }
-)
+  { ignores: ['**/dist/', '**/node_modules/', '**/.scratch/', '.10x/', '.superpowers/'] },
+);
 ```
 
 3. **Создать `.prettierrc`** (минимальный):

@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import {
+  formatDate,
+  todayISODate,
+  toISODate,
+  type ModuleApiClient,
+} from '@perepelkin-home/core/web';
 import './ui.css';
-
-export interface ApiClient {
-  <T>(path: string, init?: { method?: string; body?: unknown }): Promise<T>;
-}
 
 export interface MaintenanceUiProps {
   moduleId: string;
-  api: ApiClient;
+  api: ModuleApiClient;
   currentUserId: number;
   canWrite: boolean;
 }
@@ -76,18 +78,14 @@ interface CompleteFormValues {
   next_due: string;
 }
 
-function todayStr(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function defaultNextDue(task: TaskRow): string {
   if (task.next_due) return task.next_due;
   if (task.interval_months) {
     const d = new Date();
     d.setMonth(d.getMonth() + task.interval_months);
-    return d.toISOString().slice(0, 10);
+    return toISODate(d);
   }
-  return todayStr();
+  return todayISODate();
 }
 
 export default function MaintenanceModule({ moduleId, api, canWrite }: MaintenanceUiProps) {
@@ -198,7 +196,7 @@ export default function MaintenanceModule({ moduleId, api, canWrite }: Maintenan
       await api(`${base}/task/${row.id}/complete`, {
         method: 'POST',
         body: {
-          completed_at: values.completed_at || todayStr(),
+          completed_at: values.completed_at || todayISODate(),
           notes: values.notes.trim() || null,
           amount: values.amount !== '' ? Number(values.amount) : null,
           next_due: values.next_due || null,
@@ -253,7 +251,20 @@ export default function MaintenanceModule({ moduleId, api, canWrite }: Maintenan
     next.setMonth(next.getMonth() + 1);
     const nextMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
 
-    const RU_MONTHS = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+    const RU_MONTHS = [
+      'январь',
+      'февраль',
+      'март',
+      'апрель',
+      'май',
+      'июнь',
+      'июль',
+      'август',
+      'сентябрь',
+      'октябрь',
+      'ноябрь',
+      'декабрь',
+    ];
 
     const overdue: TaskRow[] = [];
     const thisM: TaskRow[] = [];
@@ -262,13 +273,29 @@ export default function MaintenanceModule({ moduleId, api, canWrite }: Maintenan
     const monthBuckets = new Map<string, TaskRow[]>();
 
     for (const t of filteredTasks) {
-      if (!t.next_due) { noDate.push(t); continue; }
-      if (t.next_due < today) { overdue.push(t); continue; }
-      if (t.next_due.startsWith(thisMonth)) { thisM.push(t); continue; }
-      if (t.next_due.startsWith(nextMonth)) { nextM.push(t); continue; }
+      if (!t.next_due) {
+        noDate.push(t);
+        continue;
+      }
+      if (t.next_due < today) {
+        overdue.push(t);
+        continue;
+      }
+      if (t.next_due.startsWith(thisMonth)) {
+        thisM.push(t);
+        continue;
+      }
+      if (t.next_due.startsWith(nextMonth)) {
+        nextM.push(t);
+        continue;
+      }
       const ym = t.next_due.slice(0, 7);
       const bucket = monthBuckets.get(ym);
-      if (bucket) { bucket.push(t); } else { monthBuckets.set(ym, [t]); }
+      if (bucket) {
+        bucket.push(t);
+      } else {
+        monthBuckets.set(ym, [t]);
+      }
     }
 
     const laterGroups: Array<{ label: string; items: TaskRow[] }> = [];
@@ -304,7 +331,7 @@ export default function MaintenanceModule({ moduleId, api, canWrite }: Maintenan
   if (meta === null || tasks === null || digest === null) {
     return (
       <main className="mtc">
-        <p className="mtc-hint">Загружаем…</p>
+        <p className="hint">Загружаем…</p>
       </main>
     );
   }
@@ -329,7 +356,7 @@ export default function MaintenanceModule({ moduleId, api, canWrite }: Maintenan
                 {digest.overdue.map((t) => (
                   <li className="mtc-digest-item overdue" key={t.id}>
                     <span className="mtc-digest-name">{t.title}</span>
-                    <span className="mtc-digest-date">{formatDate(String(t.next_due))}</span>
+                    <span className="mtc-digest-date">{formatDate(t.next_due)}</span>
                     {canWrite && (
                       <button
                         className="btn-ghost btn-sm"
@@ -352,7 +379,7 @@ export default function MaintenanceModule({ moduleId, api, canWrite }: Maintenan
                 {digest.upcoming.slice(0, 5).map((t) => (
                   <li className="mtc-digest-item" key={t.id}>
                     <span className="mtc-digest-name">{t.title}</span>
-                    <span className="mtc-digest-date">{formatDate(String(t.next_due))}</span>
+                    <span className="mtc-digest-date">{formatDate(t.next_due)}</span>
                     {canWrite && (
                       <button
                         className="btn-ghost btn-sm"
@@ -424,10 +451,10 @@ export default function MaintenanceModule({ moduleId, api, canWrite }: Maintenan
 
       {/* Task list */}
       {groupedTasks.length === 0 ? (
-        <div className="mtc-empty">
-          <p className="mtc-empty-title">Пока пусто</p>
+        <div className="empty">
+          <p className="empty-title">Пока пусто</p>
           {canWrite && (
-            <p className="mtc-empty-text">Добавьте первую задачу — обслуживание, замену, ревизию.</p>
+            <p className="empty-text">Добавьте первую задачу — обслуживание, замену, ревизию.</p>
           )}
         </div>
       ) : (
@@ -555,7 +582,19 @@ function TaskRow({
           aria-label="Подробнее"
           onClick={() => setInfoOpen((v) => !v)}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M8 7v4M8 5.5v-.01"/></svg>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="8" cy="8" r="6.5" />
+            <path d="M8 7v4M8 5.5v-.01" />
+          </svg>
         </button>
         {canWrite && (
           <button
@@ -565,7 +604,18 @@ function TaskRow({
             onClick={onComplete}
             title="Выполнено"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8.5l3.5 3.5 6.5-8"/></svg>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 8.5l3.5 3.5 6.5-8" />
+            </svg>
           </button>
         )}
       </div>
@@ -575,12 +625,19 @@ function TaskRow({
           {row.description && <p className="mtc-info-text">{row.description}</p>}
           <div className="mtc-info-grid">
             {row.interval_months != null && (
-              <span className="mtc-info-param"><i>Интервал</i> каждые {row.interval_months} мес.</span>
+              <span className="mtc-info-param">
+                <i>Интервал</i> каждые {row.interval_months} мес.
+              </span>
             )}
             {row.completion_count > 0 && (
-              <span className="mtc-info-param"><i>Выполнено</i> {row.completion_count} раз{row.last_completed ? `, последний ${formatDate(row.last_completed)}` : ''}</span>
+              <span className="mtc-info-param">
+                <i>Выполнено</i> {row.completion_count} раз
+                {row.last_completed ? `, последний ${formatDate(row.last_completed)}` : ''}
+              </span>
             )}
-            <span className="mtc-info-param"><i>Создано</i> {formatDate(row.created_at)}</span>
+            <span className="mtc-info-param">
+              <i>Создано</i> {formatDate(row.created_at)}
+            </span>
           </div>
           {row.notes && <p className="mtc-info-note">{row.notes}</p>}
           {canWrite && (
@@ -588,10 +645,20 @@ function TaskRow({
               <button className="btn-ghost btn-sm" type="button" disabled={busy} onClick={onEdit}>
                 Изменить
               </button>
-              <button className="btn-ghost btn-sm" type="button" disabled={busy} onClick={onHistory}>
+              <button
+                className="btn-ghost btn-sm"
+                type="button"
+                disabled={busy}
+                onClick={onHistory}
+              >
                 История
               </button>
-              <button className="btn-ghost btn-danger btn-sm" type="button" disabled={busy} onClick={onDeleteRequest}>
+              <button
+                className="btn-ghost btn-danger btn-sm"
+                type="button"
+                disabled={busy}
+                onClick={onDeleteRequest}
+              >
                 Удалить
               </button>
             </div>
@@ -736,7 +803,7 @@ function CompleteModal({
   onCancel: () => void;
 }) {
   const [values, setValues] = useState<CompleteFormValues>({
-    completed_at: todayStr(),
+    completed_at: todayISODate(),
     notes: '',
     amount: '',
     next_due: defaultNextDue(task),
@@ -831,9 +898,9 @@ function HistoryModal({
       <div className="mtc-modal" onClick={(e) => e.stopPropagation()}>
         <h3 className="mtc-modal-title">История: {task.title}</h3>
         {completions === null ? (
-          <p className="mtc-hint">Загружаем…</p>
+          <p className="hint">Загружаем…</p>
         ) : completions.length === 0 ? (
-          <p className="mtc-hint">Пока нет выполнений</p>
+          <p className="hint">Пока нет выполнений</p>
         ) : (
           <>
             {totalSpent > 0 && (
@@ -847,7 +914,9 @@ function HistoryModal({
                   <div className="mtc-history-main">
                     <span className="mtc-history-date">{formatDate(c.completed_at)}</span>
                     {c.amount != null && c.amount > 0 && (
-                      <span className="mtc-history-amount">{c.amount.toLocaleString('ru-RU')} ₽</span>
+                      <span className="mtc-history-amount">
+                        {c.amount.toLocaleString('ru-RU')} ₽
+                      </span>
                     )}
                   </div>
                   {c.notes && <span className="mtc-history-notes">{c.notes}</span>}
@@ -881,11 +950,5 @@ function fromRow(row: TaskRow): TaskFormValues {
 
 function isOverdue(row: TaskRow): boolean {
   if (!row.next_due) return false;
-  return row.next_due < todayStr();
-}
-
-function formatDate(value: string): string {
-  const d = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  return row.next_due < todayISODate();
 }

@@ -1,7 +1,9 @@
 # [P2] Объединить UserRow и SessionUser в единый тип
 
 ## Приоритет: Средний
+
 ## Оценка: 2/10 (~15 минут)
+
 ## Файлы: `apps/server/src/core.ts`, `apps/server/src/db/sessions.ts`
 
 ## Проблема
@@ -16,10 +18,10 @@
 
 ```typescript
 export interface UserRow {
-  id: string
-  username: string
-  is_admin: number
-  created_at: string
+  id: string;
+  username: string;
+  is_admin: number;
+  created_at: string;
 }
 ```
 

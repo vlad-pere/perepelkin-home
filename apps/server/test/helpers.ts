@@ -95,7 +95,7 @@ export class Client {
     opts: { csrf?: string | null; headers?: Record<string, string> } = {},
   ): Promise<InjectResponse> {
     const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
-    const csrfToken = opts.csrf === null ? undefined : opts.csrf ?? this.csrf;
+    const csrfToken = opts.csrf === null ? undefined : (opts.csrf ?? this.csrf);
     const headers: Record<string, string> = {
       ...(this.session ? { cookie: `domo.session=${this.session}` } : {}),
       ...(isMutation && csrfToken ? { 'x-csrf-token': csrfToken } : {}),

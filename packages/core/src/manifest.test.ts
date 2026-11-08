@@ -39,7 +39,18 @@ describe('validateManifest', () => {
   });
 
   it('trims name/description and defaults description to empty string', () => {
-    const raw = { id: 'notes', name: '  Заметки  ', kind: 'simple', entities: [{ name: 'note', label: 'Заметка', fields: [{ name: 'title', label: 'Заголовок', type: 'text' }] }] };
+    const raw = {
+      id: 'notes',
+      name: '  Заметки  ',
+      kind: 'simple',
+      entities: [
+        {
+          name: 'note',
+          label: 'Заметка',
+          fields: [{ name: 'title', label: 'Заголовок', type: 'text' }],
+        },
+      ],
+    };
     const m = validateManifest(raw);
     expect(m.name).toBe('Заметки');
     expect(m.description).toBe('');
@@ -66,7 +77,9 @@ describe('validateManifest', () => {
   it('accepts a url field type', () => {
     const m = validateManifest({
       ...simpleManifest(),
-      entities: [{ name: 'item', label: 'Вещь', fields: [{ name: 'link', label: 'Ссылка', type: 'url' }] }],
+      entities: [
+        { name: 'item', label: 'Вещь', fields: [{ name: 'link', label: 'Ссылка', type: 'url' }] },
+      ],
     });
     expect(m.entities[0]?.fields[0]?.type).toBe('url');
   });
@@ -112,7 +125,12 @@ describe('validateManifest', () => {
 
   it('rejects invalid entity name', () => {
     for (const name of ['Item', 'item-thing', '1item', 'item name', 'x'.repeat(65)]) {
-      const raw = { ...simpleManifest(), entities: [{ name, label: 'Вещь', fields: [{ name: 'title', label: 'Название', type: 'text' }] }] };
+      const raw = {
+        ...simpleManifest(),
+        entities: [
+          { name, label: 'Вещь', fields: [{ name: 'title', label: 'Название', type: 'text' }] },
+        ],
+      };
       expect(() => validateManifest(raw)).toThrow(ManifestError);
     }
   });
@@ -128,20 +146,39 @@ describe('validateManifest', () => {
   });
 
   it('rejects unknown field type', () => {
-    const raw = { ...simpleManifest(), entities: [{ name: 'item', label: 'Вещь', fields: [{ name: 'title', label: 'Название', type: 'datetime' }] }] };
+    const raw = {
+      ...simpleManifest(),
+      entities: [
+        {
+          name: 'item',
+          label: 'Вещь',
+          fields: [{ name: 'title', label: 'Название', type: 'datetime' }],
+        },
+      ],
+    };
     expect(() => validateManifest(raw)).toThrow(ManifestError);
   });
 
   it('rejects invalid field name', () => {
     for (const name of ['Title', 'title field', '1title']) {
-      const raw = { ...simpleManifest(), entities: [{ name: 'item', label: 'Вещь', fields: [{ name, label: 'Название', type: 'text' }] }] };
+      const raw = {
+        ...simpleManifest(),
+        entities: [
+          { name: 'item', label: 'Вещь', fields: [{ name, label: 'Название', type: 'text' }] },
+        ],
+      };
       expect(() => validateManifest(raw)).toThrow(ManifestError);
     }
   });
 
   it('rejects reserved field names', () => {
     for (const name of ['id', 'created_at', 'updated_at', 'created_by']) {
-      const raw = { ...simpleManifest(), entities: [{ name: 'item', label: 'Вещь', fields: [{ name, label: 'Название', type: 'text' }] }] };
+      const raw = {
+        ...simpleManifest(),
+        entities: [
+          { name: 'item', label: 'Вещь', fields: [{ name, label: 'Название', type: 'text' }] },
+        ],
+      };
       expect(() => validateManifest(raw)).toThrow(ManifestError);
     }
   });
@@ -150,8 +187,16 @@ describe('validateManifest', () => {
     const raw = {
       ...simpleManifest(),
       entities: [
-        { name: 'item', label: 'Вещь', fields: [{ name: 'title', label: 'Название', type: 'text' }] },
-        { name: 'item', label: 'Ещё вещь', fields: [{ name: 'title', label: 'Название', type: 'text' }] },
+        {
+          name: 'item',
+          label: 'Вещь',
+          fields: [{ name: 'title', label: 'Название', type: 'text' }],
+        },
+        {
+          name: 'item',
+          label: 'Ещё вещь',
+          fields: [{ name: 'title', label: 'Название', type: 'text' }],
+        },
       ],
     };
     expect(() => validateManifest(raw)).toThrow(ManifestError);
@@ -161,8 +206,16 @@ describe('validateManifest', () => {
     const raw = {
       ...simpleManifest(),
       entities: [
-        { name: 'itemList', label: 'Вещь', fields: [{ name: 'title', label: 'Название', type: 'text' }] },
-        { name: 'itemlist', label: 'Ещё вещь', fields: [{ name: 'title', label: 'Название', type: 'text' }] },
+        {
+          name: 'itemList',
+          label: 'Вещь',
+          fields: [{ name: 'title', label: 'Название', type: 'text' }],
+        },
+        {
+          name: 'itemlist',
+          label: 'Ещё вещь',
+          fields: [{ name: 'title', label: 'Название', type: 'text' }],
+        },
       ],
     };
     expect(() => validateManifest(raw)).toThrow(/duplicate entity/i);
@@ -206,8 +259,16 @@ describe('validateManifest', () => {
     const raw = {
       ...simpleManifest(),
       entities: [
-        { name: 'item', label: 'Вещь', fields: [{ name: 'title', label: 'Название', type: 'text' }] },
-        { name: 'category', label: 'Категория', fields: [{ name: 'title', label: 'Название', type: 'text' }] },
+        {
+          name: 'item',
+          label: 'Вещь',
+          fields: [{ name: 'title', label: 'Название', type: 'text' }],
+        },
+        {
+          name: 'category',
+          label: 'Категория',
+          fields: [{ name: 'title', label: 'Название', type: 'text' }],
+        },
       ],
     };
     const m = validateManifest(raw);
@@ -215,12 +276,32 @@ describe('validateManifest', () => {
   });
 
   it('rejects defaultSort referencing an unknown field', () => {
-    const raw = { ...simpleManifest(), entities: [{ name: 'item', label: 'Вещь', fields: [{ name: 'title', label: 'Название', type: 'text' }], defaultSort: { field: 'nextDue', direction: 'asc' } }] };
+    const raw = {
+      ...simpleManifest(),
+      entities: [
+        {
+          name: 'item',
+          label: 'Вещь',
+          fields: [{ name: 'title', label: 'Название', type: 'text' }],
+          defaultSort: { field: 'nextDue', direction: 'asc' },
+        },
+      ],
+    };
     expect(() => validateManifest(raw)).toThrow(ManifestError);
   });
 
   it('rejects an invalid defaultSort direction', () => {
-    const raw = { ...simpleManifest(), entities: [{ name: 'item', label: 'Вещь', fields: [{ name: 'title', label: 'Название', type: 'text' }], defaultSort: { field: 'title', direction: 'up' } }] };
+    const raw = {
+      ...simpleManifest(),
+      entities: [
+        {
+          name: 'item',
+          label: 'Вещь',
+          fields: [{ name: 'title', label: 'Название', type: 'text' }],
+          defaultSort: { field: 'title', direction: 'up' },
+        },
+      ],
+    };
     expect(() => validateManifest(raw)).toThrow(ManifestError);
   });
 
@@ -228,15 +309,43 @@ describe('validateManifest', () => {
     const top = { ...simpleManifest(), extra: 1 };
     expect(() => validateManifest(top)).toThrow(ManifestError);
 
-    const entity = { ...simpleManifest(), entities: [{ name: 'item', label: 'Вещь', fields: [{ name: 'title', label: 'Название', type: 'text' }], extra: true }] };
+    const entity = {
+      ...simpleManifest(),
+      entities: [
+        {
+          name: 'item',
+          label: 'Вещь',
+          fields: [{ name: 'title', label: 'Название', type: 'text' }],
+          extra: true,
+        },
+      ],
+    };
     expect(() => validateManifest(entity)).toThrow(ManifestError);
 
-    const field = { ...simpleManifest(), entities: [{ name: 'item', label: 'Вещь', fields: [{ name: 'title', label: 'Название', type: 'text', extra: 1 }] }] };
+    const field = {
+      ...simpleManifest(),
+      entities: [
+        {
+          name: 'item',
+          label: 'Вещь',
+          fields: [{ name: 'title', label: 'Название', type: 'text', extra: 1 }],
+        },
+      ],
+    };
     expect(() => validateManifest(field)).toThrow(ManifestError);
   });
 
   it('rejects non-boolean required', () => {
-    const raw = { ...simpleManifest(), entities: [{ name: 'item', label: 'Вещь', fields: [{ name: 'title', label: 'Название', type: 'text', required: 'yes' }] }] };
+    const raw = {
+      ...simpleManifest(),
+      entities: [
+        {
+          name: 'item',
+          label: 'Вещь',
+          fields: [{ name: 'title', label: 'Название', type: 'text', required: 'yes' }],
+        },
+      ],
+    };
     expect(() => validateManifest(raw)).toThrow(ManifestError);
   });
 

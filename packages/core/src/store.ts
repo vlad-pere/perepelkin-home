@@ -35,7 +35,9 @@ export function createScopedStore(db: SqlDb, moduleId: string): ScopedStore {
     'INSERT INTO module_data (module_id, key, value) VALUES (?, ?, ?) ON CONFLICT(module_id, key) DO UPDATE SET value = excluded.value',
   );
   const deleteStmt = db.prepare('DELETE FROM module_data WHERE module_id = ? AND key = ?');
-  const listStmt = db.prepare('SELECT key, value FROM module_data WHERE module_id = ? ORDER BY key');
+  const listStmt = db.prepare(
+    'SELECT key, value FROM module_data WHERE module_id = ? ORDER BY key',
+  );
 
   function assertKey(key: string): void {
     if (typeof key !== 'string' || key.length === 0 || key.length > MAX_KEY_LENGTH) {

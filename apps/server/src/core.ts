@@ -308,7 +308,9 @@ export function buildCore(db: Database.Database): Core {
     },
     visibleModules(groupIds: readonly number[], isAdmin: boolean): ModuleInfo[] {
       return listModulesPkg().filter(
-        (m) => canForGroups(groupIds, isAdmin, m.id, 'read') || canForGroups(groupIds, isAdmin, m.id, 'write'),
+        (m) =>
+          canForGroups(groupIds, isAdmin, m.id, 'read') ||
+          canForGroups(groupIds, isAdmin, m.id, 'write'),
       );
     },
     home: {

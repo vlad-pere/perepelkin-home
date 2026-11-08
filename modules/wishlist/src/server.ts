@@ -1,5 +1,3 @@
-import type Database from 'better-sqlite3';
-
 const GIFT_TABLE = 'module_wishlist_gift';
 const RESERVATION_TABLE = 'module_wishlist_reservation';
 
@@ -23,6 +21,11 @@ interface WishlistCtx {
     /** Подписка на удаление пользователя. */
     onUserDelete(handler: (userId: number) => void): void;
   };
+  db: {
+    prepare(sql: string): any;
+    exec(sql: string): unknown;
+    transaction(fn: (...args: never[]) => unknown): (...args: never[]) => unknown;
+  };
 }
 
 interface GiftValue {
@@ -32,7 +35,8 @@ interface GiftValue {
   category: string | null;
 }
 
-export default function register(app: any, ctx: WishlistCtx, db: Database.Database): void {
+export default function register(_app: any, ctx: WishlistCtx): void {
+  const db = ctx.db;
   db.exec(`
     CREATE TABLE IF NOT EXISTS "${RESERVATION_TABLE}" (
       gift_id INTEGER PRIMARY KEY,
@@ -96,11 +100,13 @@ export default function register(app: any, ctx: WishlistCtx, db: Database.Databa
       created_by: createdBy,
       created_at: row.created_at ?? null,
       updated_at: row.updated_at ?? null,
-      created_by_username: createdBy === null ? null : (core.users.getById(createdBy)?.username ?? null),
+      created_by_username:
+        createdBy === null ? null : (core.users.getById(createdBy)?.username ?? null),
       reserved_by: reservedBy,
       reserved_at: row.reserved_at ?? null,
       reserved_by_name:
-        guestName ?? (reservedBy === null ? null : (core.users.getById(reservedBy)?.username ?? null)),
+        guestName ??
+        (reservedBy === null ? null : (core.users.getById(reservedBy)?.username ?? null)),
       assigned: guestName !== null,
     };
   }
@@ -116,7 +122,8 @@ export default function register(app: any, ctx: WishlistCtx, db: Database.Databa
       link: row.link ?? null,
       category: row.category ?? null,
       reserved_by_name:
-        guestName ?? (reservedBy === null ? null : (core.users.getById(reservedBy)?.username ?? null)),
+        guestName ??
+        (reservedBy === null ? null : (core.users.getById(reservedBy)?.username ?? null)),
       assigned: guestName !== null,
     };
   }
@@ -235,7 +242,9 @@ export default function register(app: any, ctx: WishlistCtx, db: Database.Databa
     }
     if (!hits) hits = [];
     if (hits.length >= BOOKING_MAX) {
-      reply.code(429).send({ error: { code: 'RATE_LIMITED', message: 'Слишком много попыток, попробуйте позже' } });
+      reply.code(429).send({
+        error: { code: 'RATE_LIMITED', message: 'Слишком много попыток, попробуйте позже' },
+      });
       return false;
     }
     hits.push(now);
@@ -265,40 +274,49 @@ export default function register(app: any, ctx: WishlistCtx, db: Database.Databa
       req.user?.id ?? null,
     );
     const row = getStmt.get(result.lastInsertRowid) as Record<string, unknown>;
-    req.log?.info?.({ module: 'wishlist', entity: 'gift', recordId: result.lastInsertRowid }, 'record created');
+    req.log?.info?.(
+      { module: 'wishlist', entity: 'gift', recordId: result.lastInsertRowid },
+      'record created',
+    );
     return reply.code(201).send({ item: toItem(req.core, row) });
   });
 
-  ctx.route({ method: 'PATCH', path: '/gift/:rowId', action: 'write' }, async (req: any, reply: any) => {
-    const rowId = parseId((req.params as { rowId?: unknown }).rowId);
-    if (rowId === 0) return badRequest(reply, 'Invalid row id');
-    const existing = getGift.get(rowId) as Record<string, unknown> | undefined;
-    if (!existing) {
-      return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Запись не найдена' } });
-    }
-    if (typeof req.body !== 'object' || req.body === null || Array.isArray(req.body)) {
-      return badRequest(reply, 'Body must be a JSON object');
-    }
-    const parsed = parseGift(req.body as Record<string, unknown>, existing);
-    if ('error' in parsed) return badRequest(reply, parsed.error);
-    updateGift.run(parsed.name, parsed.description, parsed.link, parsed.category, rowId);
-    const row = getStmt.get(rowId) as Record<string, unknown>;
-    return { item: toItem(req.core, row) };
-  });
+  ctx.route(
+    { method: 'PATCH', path: '/gift/:rowId', action: 'write' },
+    async (req: any, reply: any) => {
+      const rowId = parseId((req.params as { rowId?: unknown }).rowId);
+      if (rowId === 0) return badRequest(reply, 'Invalid row id');
+      const existing = getGift.get(rowId) as Record<string, unknown> | undefined;
+      if (!existing) {
+        return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Запись не найдена' } });
+      }
+      if (typeof req.body !== 'object' || req.body === null || Array.isArray(req.body)) {
+        return badRequest(reply, 'Body must be a JSON object');
+      }
+      const parsed = parseGift(req.body as Record<string, unknown>, existing);
+      if ('error' in parsed) return badRequest(reply, parsed.error);
+      updateGift.run(parsed.name, parsed.description, parsed.link, parsed.category, rowId);
+      const row = getStmt.get(rowId) as Record<string, unknown>;
+      return { item: toItem(req.core, row) };
+    },
+  );
 
-  ctx.route({ method: 'DELETE', path: '/gift/:rowId', action: 'write' }, async (req: any, reply: any) => {
-    const rowId = parseId((req.params as { rowId?: unknown }).rowId);
-    if (rowId === 0) return badRequest(reply, 'Invalid row id');
-    const result = db.transaction(() => {
-      const del = deleteGift.run(rowId);
-      if (del.changes > 0) deleteReservation.run(rowId);
-      return del;
-    })();
-    if (result.changes === 0) {
-      return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Запись не найдена' } });
-    }
-    return reply.code(204).send();
-  });
+  ctx.route(
+    { method: 'DELETE', path: '/gift/:rowId', action: 'write' },
+    async (req: any, reply: any) => {
+      const rowId = parseId((req.params as { rowId?: unknown }).rowId);
+      if (rowId === 0) return badRequest(reply, 'Invalid row id');
+      let del!: { changes: number };
+      db.transaction(() => {
+        del = deleteGift.run(rowId);
+        if (del.changes > 0) deleteReservation.run(rowId);
+      })();
+      if (del.changes === 0) {
+        return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Запись не найдена' } });
+      }
+      return reply.code(204).send();
+    },
+  );
 
   // ---- Бронирование (гостевые роуты: аутентификация логином и пинкодом) ----
 
@@ -368,49 +386,57 @@ export default function register(app: any, ctx: WishlistCtx, db: Database.Databa
 
   // ---- Админское назначение (управляемые роуты: сессия + право write) ----
 
-  ctx.route({ method: 'POST', path: '/gift/:rowId/assign', action: 'write' }, async (req: any, reply: any) => {
-    const rowId = parseId((req.params as { rowId?: unknown }).rowId);
-    if (rowId === 0) return badRequest(reply, 'Invalid row id');
-    const gift = getGift.get(rowId);
-    if (!gift) {
-      return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Подарок не найден' } });
-    }
-    const name = parseGuestName(req.body);
-    if (name === null) return badRequest(reply, 'Укажите имя того, кто будет дарить (1–64 символа)');
-    const placed = placeReservation.run(rowId, req.user?.id ?? null, name, rowId);
-    if (placed.changes === 0) {
-      return reply.code(409).send({
-        error: { code: 'ALREADY_BOOKED', message: 'Этот подарок уже кто-то подарит' },
-      });
-    }
-    const row = getStmt.get(rowId) as Record<string, unknown>;
-    return { item: toItem(req.core, row) };
-  });
+  ctx.route(
+    { method: 'POST', path: '/gift/:rowId/assign', action: 'write' },
+    async (req: any, reply: any) => {
+      const rowId = parseId((req.params as { rowId?: unknown }).rowId);
+      if (rowId === 0) return badRequest(reply, 'Invalid row id');
+      const gift = getGift.get(rowId);
+      if (!gift) {
+        return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Подарок не найден' } });
+      }
+      const name = parseGuestName(req.body);
+      if (name === null)
+        return badRequest(reply, 'Укажите имя того, кто будет дарить (1–64 символа)');
+      const placed = placeReservation.run(rowId, req.user?.id ?? null, name, rowId);
+      if (placed.changes === 0) {
+        return reply.code(409).send({
+          error: { code: 'ALREADY_BOOKED', message: 'Этот подарок уже кто-то подарит' },
+        });
+      }
+      const row = getStmt.get(rowId) as Record<string, unknown>;
+      return { item: toItem(req.core, row) };
+    },
+  );
 
-  ctx.route({ method: 'POST', path: '/gift/:rowId/release', action: 'write' }, async (req: any, reply: any) => {
-    const rowId = parseId((req.params as { rowId?: unknown }).rowId);
-    if (rowId === 0) return badRequest(reply, 'Invalid row id');
-    const gift = getGift.get(rowId);
-    if (!gift) {
-      return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Подарок не найден' } });
-    }
-    const reservation = getReservation.get(rowId);
-    if (!reservation) {
-      return reply.code(409).send({
-        error: { code: 'NOT_BOOKED', message: 'Подарок никто не выбрал, убирать нечего' },
-      });
-    }
-    deleteReservation.run(rowId);
-    const row = getStmt.get(rowId) as Record<string, unknown>;
-    return { item: toItem(req.core, row) };
-  });
+  ctx.route(
+    { method: 'POST', path: '/gift/:rowId/release', action: 'write' },
+    async (req: any, reply: any) => {
+      const rowId = parseId((req.params as { rowId?: unknown }).rowId);
+      if (rowId === 0) return badRequest(reply, 'Invalid row id');
+      const gift = getGift.get(rowId);
+      if (!gift) {
+        return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Подарок не найден' } });
+      }
+      const reservation = getReservation.get(rowId);
+      if (!reservation) {
+        return reply.code(409).send({
+          error: { code: 'NOT_BOOKED', message: 'Подарок никто не выбрал, убирать нечего' },
+        });
+      }
+      deleteReservation.run(rowId);
+      const row = getStmt.get(rowId) as Record<string, unknown>;
+      return { item: toItem(req.core, row) };
+    },
+  );
 
   // ---- Summary (карточка на дашборде) ----
 
   ctx.route({ method: 'GET', path: '/summary', action: 'read' }, async (_req: any, _reply: any) => {
     const { n } = countStmt.get() as { n: number };
     const count = Number(n);
-    const status = count === 0 ? 'Пока ничего' : `${count} ${pluralRu(count, 'идея', 'идеи', 'идей')}`;
+    const status =
+      count === 0 ? 'Пока ничего' : `${count} ${pluralRu(count, 'идея', 'идеи', 'идей')}`;
     return { count, status };
   });
 }

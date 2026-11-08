@@ -1,7 +1,9 @@
 # [P3] Привести sessions.ts к паттерну prepared statements
 
 ## Приоритет: Низкий
+
 ## Оценка: 1/10 (~10 минут)
+
 ## Файл: `apps/server/src/db/sessions.ts`
 
 ## Проблема
@@ -41,7 +43,7 @@ export function buildSessionStore(db: Database) {
 Вызов в `app.ts`:
 
 ```typescript
-const sessions = buildSessionStore(db)
+const sessions = buildSessionStore(db);
 // передаётся в resolveSession, auth routes
 ```
 

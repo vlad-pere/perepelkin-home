@@ -84,15 +84,21 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthRoutesDeps): 
 
       const user = core.users.getByUsername(username);
       if (!user) {
-        return reply
-          .code(401)
-          .send({ error: { code: 'INVALID_CREDENTIALS', message: 'Неверное имя пользователя, пинкод или пароль' } });
+        return reply.code(401).send({
+          error: {
+            code: 'INVALID_CREDENTIALS',
+            message: 'Неверное имя пользователя, пинкод или пароль',
+          },
+        });
       }
       const ok = await verifyLogin(password, user);
       if (!ok) {
-        return reply
-          .code(401)
-          .send({ error: { code: 'INVALID_CREDENTIALS', message: 'Неверное имя пользователя, пинкод или пароль' } });
+        return reply.code(401).send({
+          error: {
+            code: 'INVALID_CREDENTIALS',
+            message: 'Неверное имя пользователя, пинкод или пароль',
+          },
+        });
       }
 
       const session = createSession(db, user.id, config.sessionTtlMs);

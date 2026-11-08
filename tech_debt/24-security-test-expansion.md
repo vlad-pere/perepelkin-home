@@ -1,7 +1,9 @@
 # [P3] Расширить security.test.ts
 
 ## Приоритет: Низкий
+
 ## Оценка: 2/10 (~30 минут)
+
 ## Файл: `apps/server/test/security.test.ts`
 
 ## Проблема

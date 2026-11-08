@@ -1,7 +1,9 @@
 # [P1] Исправить useEffect dependency array в admin и Login
 
 ## Приоритет: Высокий
+
 ## Оценка: 2/10 (~20 минут)
+
 ## Файлы: `modules/admin/src/ui.tsx`, `apps/web/src/pages/Login.tsx`
 
 ## Проблема
@@ -10,7 +12,9 @@
 
 ```typescript
 // modules/admin/src/ui.tsx, UsersPanel ~line 144
-useEffect(() => { load() }, [])  // ← load не в deps
+useEffect(() => {
+  load();
+}, []); // ← load не в deps
 // То же самое в GroupsPanel ~line 430 и GrantsPanel ~line 668
 ```
 
@@ -27,12 +31,13 @@ useEffect(() => {
     else if (e.key === 'Backspace') pressBackspace();
   };
   window.addEventListener('keydown', onKey);
-  return () => window.removeEventListener('keydown', onKey);  // cleanup ЕСТЬ
+  return () => window.removeEventListener('keydown', onKey); // cleanup ЕСТЬ
 });
 // Нет dependency array → обработчик перерегистрируется каждый рендер
 ```
 
 Cleanup **есть** (строка 70), но **нет dependency array** — `useEffect(() => {...})` без второго аргумента. Это значит:
+
 - Обработчик перерегистрируется **каждый рендер** (creating + removing listener на каждом рендере)
 - `isPin` в замыкании **мёртвый** после первого рендера — если `isPin` изменится, обработчик не обновится
 
@@ -78,7 +83,7 @@ useEffect(() => {
   };
   window.addEventListener('keydown', onKey);
   return () => window.removeEventListener('keydown', onKey);
-}, [isPin]);  // Добавить dependency array
+}, [isPin]); // Добавить dependency array
 ```
 
 Но `pressDigit` и `pressBackspace` тоже пересоздаются каждый рендер. Чтобы обработчик видел актуальные версии — либо инлайнить их в handler, либо обернуть в `useCallback` с deps `[secret, isPin, setSecret, setIsPin]`.

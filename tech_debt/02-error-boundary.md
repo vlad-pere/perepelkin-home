@@ -1,8 +1,11 @@
 # [P1] Добавить ErrorBoundary для предотвращения white screen
 
 ## Статус: ✅ Сделано (2026-08-31)
+
 ## Приоритет: Высокий
+
 ## Оценка: 2/10 (простая задача, ~30 минут)
+
 ## Файл: `apps/web/src/App.tsx` + новый `apps/web/src/components/ErrorBoundary.tsx`
 
 > Реализовано: классовый `ErrorBoundary` (`apps/web/src/components/ErrorBoundary.tsx`), корневой boundary вокруг `AuthProvider` + гранулярный boundary вокруг `<Ui />` в `ModulePage` с `key={module.id}` — состояние сбрасывается при смене модуля (все модули матчатся единым роут-паттерном, без `key` `hasError` остался бы `true` между модулями). Фоллбэк — экран «Что-то пошло не так» с кнопкой «Перезагрузить» (`role="alert"`).
@@ -16,8 +19,14 @@
 1. Создать `apps/web/src/components/ErrorBoundary.tsx` — классовый компонент с `componentDidCatch`:
 
 ```tsx
-interface Props { children: React.ReactNode; fallback?: React.ReactNode }
-interface State { hasError: boolean; error: Error | null }
+interface Props {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}
+interface State {
+  hasError: boolean;
+  error: Error | null;
+}
 
 // catchingErrors: показать экран с кнопкой "Перезагрузить"
 // На экране: сообщение на русском, кнопка перезагрузки, при желании — details ошибки

@@ -43,13 +43,10 @@ afterEach(async () => {
   await world.close();
 });
 
-function grant(
-  userId: number,
-  canRead: boolean,
-  canWrite: boolean,
-  moduleId = 'photos',
-): void {
-  const group = world.core.groups.create({ name: `files-${userId}-${canRead}-${canWrite}-${moduleId}` });
+function grant(userId: number, canRead: boolean, canWrite: boolean, moduleId = 'photos'): void {
+  const group = world.core.groups.create({
+    name: `files-${userId}-${canRead}-${canWrite}-${moduleId}`,
+  });
   world.core.groups.addMember(group.id, userId);
   world.core.grants.set(group.id, moduleId, { canRead, canWrite });
 }
@@ -193,7 +190,10 @@ describe('module files', () => {
     grant(user.id, true, true);
     const client = await writerClient();
 
-    const missing = await client.inject('GET', '/api/modules/photos/files/00000000-0000-4000-8000-000000000000');
+    const missing = await client.inject(
+      'GET',
+      '/api/modules/photos/files/00000000-0000-4000-8000-000000000000',
+    );
     expect(missing.statusCode).toBe(404);
 
     const bogus = await client.inject('GET', '/api/modules/photos/files/../../etc/passwd');

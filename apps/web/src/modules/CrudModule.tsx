@@ -5,7 +5,7 @@ import {
   type ManifestField,
   type ModuleManifest,
 } from '@perepelkin-home/core';
-import type { ModuleApiClient } from './registry';
+import { formatDate, safeHttpUrl, type ModuleApiClient } from '@perepelkin-home/core/web';
 import './crud.css';
 
 interface CrudRow {
@@ -59,7 +59,7 @@ export function CrudModule({ moduleId, api, canWrite }: CrudModuleProps) {
   if (manifest === null) {
     return (
       <main className="crud">
-        <p className="crud-hint">Загружаем…</p>
+        <p className="hint">Загружаем…</p>
       </main>
     );
   }
@@ -201,13 +201,11 @@ function EntitySection({
       )}
 
       {items === null ? (
-        <p className="crud-hint">Загружаем…</p>
+        <p className="hint">Загружаем…</p>
       ) : items.length === 0 ? (
-        <div className="crud-empty">
-          <p className="crud-empty-title">Пока пусто</p>
-          {canWrite && (
-            <p className="crud-empty-text">Добавьте первую запись — и она появится здесь.</p>
-          )}
+        <div className="empty">
+          <p className="empty-title">Пока пусто</p>
+          {canWrite && <p className="empty-text">Добавьте первую запись — и она появится здесь.</p>}
         </div>
       ) : (
         <ul className="crud-list">
@@ -275,7 +273,11 @@ function EntitySection({
                     >
                       {busy ? 'Удаляем…' : 'Удалить'}
                     </button>
-                    <button className="btn-ghost" type="button" onClick={() => setConfirmDelete(null)}>
+                    <button
+                      className="btn-ghost"
+                      type="button"
+                      onClick={() => setConfirmDelete(null)}
+                    >
                       Отмена
                     </button>
                   </div>
@@ -466,7 +468,7 @@ function FieldValue({ field, value }: { field: ManifestField; value: unknown }):
   if (value === null || value === undefined || value === '') {
     return <span className="crud-na">—</span>;
   }
-  if (field.type === 'date') return formatDate(value);
+  if (field.type === 'date') return formatDate(String(value));
   if (field.type === 'url') {
     const href = safeHttpUrl(String(value));
     return href !== null ? (
@@ -478,21 +480,4 @@ function FieldValue({ field, value }: { field: ManifestField; value: unknown }):
     );
   }
   return String(value);
-}
-
-function safeHttpUrl(value: string): string | null {
-  try {
-    const parsed = new URL(value);
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.toString();
-  } catch {
-    /* не ссылка */
-  }
-  return null;
-}
-
-function formatDate(value: unknown): string {
-  const iso = String(value);
-  const d = new Date(`${iso}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 }

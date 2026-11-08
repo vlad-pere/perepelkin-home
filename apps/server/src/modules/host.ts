@@ -1,35 +1,19 @@
 import type { FastifyBaseLogger, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type Database from 'better-sqlite3';
-import type { Action, ModuleManifest } from '@perepelkin-home/core';
+import type {
+  Action,
+  CodeModuleRegister,
+  ModuleContext,
+  ModuleManifest,
+  RouteSpec,
+} from '@perepelkin-home/core';
 import type { Core } from '../core.js';
 import { csrfOk } from '../hooks.js';
 import { ensureEntityTable, registerCrudRoutes } from './crud.js';
 import { registerModuleFileRoutes, type FilesService } from './files.js';
 import { loadManifests } from './loader.js';
 
-export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
-
-export interface RouteSpec {
-  method: HttpMethod;
-  path: string;
-  action: Action;
-  /**
-   * Публичный роут без входа и без CSRF: модуль сам аутентифицирует запрос
-   * (например, логин+пинкод). Применяется для мутаций «гостевого» характера.
-   */
-  public?: boolean;
-  /** Доп. опции Fastify-роута (например, per-route rate limit). */
-  config?: Record<string, unknown>;
-}
-
-export interface ModuleContext {
-  /** Регистрирует произвольный роут код-модуля под защитой гарда на `action`. */
-  route(spec: RouteSpec, handler: (req: FastifyRequest, reply: FastifyReply) => void | Promise<void>): void;
-  /** Ядро платформы (контракт `CoreApi`): подписки на удаление пользователей и др. */
-  core: Core;
-}
-
-export type CodeModuleRegister = (app: FastifyInstance, ctx: ModuleContext) => void | Promise<void>;
+export type { CodeModuleRegister, ModuleContext, RouteSpec };
 
 const UNAUTHENTICATED = {
   error: { code: 'UNAUTHENTICATED', message: 'Требуется вход' },
@@ -61,7 +45,7 @@ export interface MountModuleOptions {
   core: Core;
   manifest: ModuleManifest;
   /** Только для код-модулей: регистрирует произвольные роуты через `ctx.route`. */
-  register?: CodeModuleRegister;
+  register?: CodeModuleRegister<FastifyRequest, FastifyReply>;
   /** Переиспользуемое хранилище файлов; если задано — модулю доступны роуты `/files`. */
   files?: FilesService;
 }
@@ -72,8 +56,10 @@ export async function mountModule(app: FastifyInstance, opts: MountModuleOptions
   syncModule(db, manifest);
 
   const publicRead = manifest.publicRead === true;
-  const noopGuard = async (_req: FastifyRequest, _reply: FastifyReply): Promise<FastifyReply | undefined> =>
-    undefined;
+  const noopGuard = async (
+    _req: FastifyRequest,
+    _reply: FastifyReply,
+  ): Promise<FastifyReply | undefined> => undefined;
   /** Read-роуты публичных модулей открыты без входа; write-роуты всегда под гардом. */
   const guardFor = (action: Action): typeof noopGuard =>
     publicRead && action === 'read' ? noopGuard : makeModuleGuard(core, moduleId, action);
@@ -84,23 +70,29 @@ export async function mountModule(app: FastifyInstance, opts: MountModuleOptions
       try {
         const readGuard = guardFor('read');
         const writeGuard = guardFor('write');
-        const ctx: ModuleContext = {
+        const ctx: ModuleContext<FastifyRequest, FastifyReply> = {
           route(spec, handler) {
             moduleApp.route({
               method: spec.method,
               url: spec.path,
               preHandler: spec.public ? noopGuard : guardFor(spec.action),
+              ...(spec.schema === undefined ? {} : { schema: spec.schema }),
               ...(spec.config === undefined ? {} : { config: spec.config }),
               handler,
             });
           },
           core,
+          db,
         };
 
         moduleApp.get('/manifest', { preHandler: readGuard }, async () => ({ manifest }));
 
         if (manifest.kind === 'simple') {
-          registerCrudRoutes(moduleApp, { db, manifest, guards: { read: readGuard, write: writeGuard } });
+          registerCrudRoutes(moduleApp, {
+            db,
+            manifest,
+            guards: { read: readGuard, write: writeGuard },
+          });
         }
 
         if (opts.files) {
@@ -132,9 +124,9 @@ export async function mountModule(app: FastifyInstance, opts: MountModuleOptions
 /** Персистит манифест в `modules`/`module_migrations` и создаёт entity-таблицы. */
 export function syncModule(db: Database.Database, manifest: ModuleManifest): void {
   const json = JSON.stringify(manifest);
-  const existing = db.prepare('SELECT version, manifest_json FROM modules WHERE id = ?').get(manifest.id) as
-    | { version: number; manifest_json: string }
-    | undefined;
+  const existing = db
+    .prepare('SELECT version, manifest_json FROM modules WHERE id = ?')
+    .get(manifest.id) as { version: number; manifest_json: string } | undefined;
 
   db.transaction(() => {
     if (!existing || existing.manifest_json !== json) {
@@ -152,11 +144,9 @@ export function syncModule(db: Database.Database, manifest: ModuleManifest): voi
            error = NULL`,
       ).run(manifest.id, manifest.kind, manifest.name, manifest.description, json, version);
 
-      db.prepare('INSERT INTO module_migrations (module_id, version, applied_at) VALUES (?, ?, ?)').run(
-        manifest.id,
-        version,
-        new Date().toISOString(),
-      );
+      db.prepare(
+        'INSERT INTO module_migrations (module_id, version, applied_at) VALUES (?, ?, ?)',
+      ).run(manifest.id, version, new Date().toISOString());
     } else {
       db.prepare(
         `UPDATE modules SET status = 'active', error = NULL, name = ?, description = ? WHERE id = ?`,
@@ -174,7 +164,13 @@ export interface RegisterModulesOptions {
   core: Core;
   modulesDir: string;
   log?: FastifyBaseLogger;
-  codeLoader?: (id: string, manifest: ModuleManifest) => CodeModuleRegister | Promise<CodeModuleRegister> | undefined;
+  codeLoader?: (
+    id: string,
+    manifest: ModuleManifest,
+  ) =>
+    | CodeModuleRegister<FastifyRequest, FastifyReply>
+    | Promise<CodeModuleRegister<FastifyRequest, FastifyReply>>
+    | undefined;
   files?: FilesService;
 }
 

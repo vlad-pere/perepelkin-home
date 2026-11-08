@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { formatDate, type ModuleApiClient } from '@perepelkin-home/core/web';
 import './ui.css';
-
-export interface ApiClient {
-  <T>(path: string, init?: { method?: string; body?: unknown }): Promise<T>;
-}
 
 export interface TodoUiProps {
   moduleId: string;
-  api: ApiClient;
+  api: ModuleApiClient;
   canWrite: boolean;
 }
 
@@ -159,7 +156,7 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
   if (meta === null || items === null) {
     return (
       <main className="todo">
-        <p className="todo-hint">Загружаем…</p>
+        <p className="hint">Загружаем…</p>
       </main>
     );
   }
@@ -183,9 +180,7 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
       <section className="todo-progress" aria-label="Прогресс">
         <div className="todo-progress-meta">
           <span className="todo-progress-count">{countText}</span>
-          {total > 0 && percent < 100 && (
-            <span className="todo-progress-percent">{percent}%</span>
-          )}
+          {total > 0 && percent < 100 && <span className="todo-progress-percent">{percent}%</span>}
         </div>
         <div
           className="todo-progress-track"
@@ -222,11 +217,9 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
       )}
 
       {items.length === 0 ? (
-        <div className="todo-empty">
-          <p className="todo-empty-title">Пока пусто</p>
-          {canWrite && (
-            <p className="todo-empty-text">Добавьте первое дело — и оно появится здесь.</p>
-          )}
+        <div className="empty">
+          <p className="empty-title">Пока пусто</p>
+          {canWrite && <p className="empty-text">Добавьте первое дело — и оно появится здесь.</p>}
         </div>
       ) : (
         <>
@@ -504,10 +497,4 @@ function buildTaskPayload(values: TaskValues): Record<string, unknown> {
   payload.note = values.note.trim();
   if (values.when !== '') payload.when = values.when;
   return payload;
-}
-
-function formatDate(value: string): string {
-  const d = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 }

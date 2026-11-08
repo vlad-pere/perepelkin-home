@@ -3,7 +3,7 @@ services:
     image: perepelkin-home:staging
     restart: unless-stopped
     ports:
-      - "${STAGING_PORT:-3080}:3000"
+      - '${STAGING_PORT:-3080}:3000'
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
@@ -11,8 +11,8 @@ services:
       DB_PATH: /app/data/perepelkin-home.db
       SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-168}
       # Staging вЂ” РїРѕ HTTP (Р±РµР· РґРѕРјРµРЅР°), РїРѕСЌС‚РѕРјСѓ Secure-РєСѓРєРё РІС‹РєР»СЋС‡РµРЅС‹
-      COOKIE_SECURE: "false"
-      TRUST_PROXY: "false"
+      COOKIE_SECURE: 'false'
+      TRUST_PROXY: 'false'
       WEB_DIST: /app/apps/web/dist
       MODULES_DIR: /app/modules
       HA_URL: ${HA_URL:-}
@@ -20,7 +20,7 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Р·Р°РґР°Р№С‚Рµ ADMIN_PASSWORD РІ .env staging}
       S3_ENDPOINT: minio:9000
-      S3_USE_SSL: "false"
+      S3_USE_SSL: 'false'
       S3_ACCESS_KEY: ${MINIO_ROOT_USER:?Р·Р°РґР°Р№С‚Рµ MINIO_ROOT_USER РІ .env}
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Р·Р°РґР°Р№С‚Рµ MINIO_ROOT_PASSWORD РІ .env (РјРёРЅРёРјСѓРј 8 СЃРёРјРІРѕР»РѕРІ)}
       S3_BUCKET: ${S3_BUCKET:-domo}
@@ -36,7 +36,13 @@ services:
       # «Failed to import maintenance/wishlist module», и модули не работают.
       - ./modules:/app/modules:ro
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/auth/me').then(r=>process.exit(r.status===401||r.status===200?0:1)).catch(()=>process.exit(1))"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/auth/me').then(r=>process.exit(r.status===401||r.status===200?0:1)).catch(()=>process.exit(1))",
+        ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -53,7 +59,7 @@ services:
     volumes:
       - staging_minio_data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ['CMD', 'mc', 'ready', 'local']
       interval: 15s
       timeout: 5s
       retries: 5

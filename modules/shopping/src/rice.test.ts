@@ -120,12 +120,21 @@ describe('scoreOf', () => {
     ).toBeNull();
     expect(
       scoreOf(
-        item({ reach: undefined, impact: undefined, confidence: undefined, complexity: undefined, price: 45000 }),
+        item({
+          reach: undefined,
+          impact: undefined,
+          confidence: undefined,
+          complexity: undefined,
+          price: 45000,
+        }),
         pool,
       ),
     ).toBeNull();
     expect(
-      scoreOf(item({ reach: 4, impact: 4, confidence: 4, complexity: undefined, price: 45000 }), pool),
+      scoreOf(
+        item({ reach: 4, impact: 4, confidence: 4, complexity: undefined, price: 45000 }),
+        pool,
+      ),
     ).toBeNull();
     expect(scoreOf(item({ reach: 4, impact: 4, confidence: 4, complexity: 2 }), pool)).toBeNull();
   });
@@ -159,9 +168,33 @@ describe('formatScore', () => {
 describe('sortActive', () => {
   it('сортирует по баллу по убыванию, при равенстве — по id', () => {
     const pool = [30000, 45000, 45000];
-    const low = item({ id: 1, title: 'Подушки', reach: 1, impact: 1, confidence: 1, complexity: 5, price: 30000 }); // 1/3 ≈ 0.33
-    const oldHigh = item({ id: 2, title: 'Старая стиралка', reach: 5, impact: 5, confidence: 5, complexity: 2, price: 45000 }); // 125/3.5
-    const newHigh = item({ id: 3, title: 'Новая стиралка', reach: 5, impact: 5, confidence: 5, complexity: 2, price: 45000 });
+    const low = item({
+      id: 1,
+      title: 'Подушки',
+      reach: 1,
+      impact: 1,
+      confidence: 1,
+      complexity: 5,
+      price: 30000,
+    }); // 1/3 ≈ 0.33
+    const oldHigh = item({
+      id: 2,
+      title: 'Старая стиралка',
+      reach: 5,
+      impact: 5,
+      confidence: 5,
+      complexity: 2,
+      price: 45000,
+    }); // 125/3.5
+    const newHigh = item({
+      id: 3,
+      title: 'Новая стиралка',
+      reach: 5,
+      impact: 5,
+      confidence: 5,
+      complexity: 2,
+      price: 45000,
+    });
     const sorted = sortActive([low, newHigh, oldHigh], pool);
     expect(sorted.map((r) => r.id)).toEqual([2, 3, 1]);
   });

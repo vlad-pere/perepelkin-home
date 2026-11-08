@@ -75,14 +75,24 @@ export const APPEARANCE_FONT_BODY: AppearanceFontOption[] = [
     family: "'Manrope', 'Avenir Next', 'Segoe UI', sans-serif",
     weights: [400, 500, 600],
   },
-  { id: 'rubik', label: 'Rubik', family: "'Rubik', 'Segoe UI', sans-serif", weights: [400, 500, 600] },
+  {
+    id: 'rubik',
+    label: 'Rubik',
+    family: "'Rubik', 'Segoe UI', sans-serif",
+    weights: [400, 500, 600],
+  },
   {
     id: 'source-sans-3',
     label: 'Source Sans 3',
     family: "'Source Sans 3', 'Segoe UI', sans-serif",
     weights: [400, 500, 600],
   },
-  { id: 'pt-sans', label: 'PT Sans', family: "'PT Sans', 'Segoe UI', sans-serif", weights: [400, 700] },
+  {
+    id: 'pt-sans',
+    label: 'PT Sans',
+    family: "'PT Sans', 'Segoe UI', sans-serif",
+    weights: [400, 700],
+  },
 ];
 
 const DISPLAY_IDS = APPEARANCE_FONT_DISPLAY.map((f) => f.id);
@@ -148,11 +158,7 @@ export function validateAppearance(value: unknown): AppearanceState {
     throw new Error('Оформление: обязательны цвета');
   }
   const colorsRaw = raw.colors as Record<string, unknown>;
-  rejectUnknownKeys(
-    colorsRaw,
-    Object.keys(DEFAULT_APPEARANCE.colors),
-    'цвета',
-  );
+  rejectUnknownKeys(colorsRaw, Object.keys(DEFAULT_APPEARANCE.colors), 'цвета');
   const colors = {} as AppearanceColors;
   for (const key of Object.keys(DEFAULT_APPEARANCE.colors) as (keyof AppearanceColors)[]) {
     if (!isHex(colorsRaw[key])) throw new Error(`Оформление: некорректный цвет «${key}»`);
@@ -176,7 +182,12 @@ export function validateAppearance(value: unknown): AppearanceState {
   if (raw.motion !== 'normal' && raw.motion !== 'minimal') {
     throw new Error('Оформление: некорректный вариант анимаций');
   }
-  return { colors, fonts: { display: fonts.display, body: fonts.body }, radius: raw.radius, motion: raw.motion };
+  return {
+    colors,
+    fonts: { display: fonts.display, body: fonts.body },
+    radius: raw.radius,
+    motion: raw.motion,
+  };
 }
 
 /** Разбирает сохранённое на сервере значение; при любых повреждениях — тема по умолчанию. */

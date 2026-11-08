@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ModuleApiClient } from '@perepelkin-home/core/web';
 import './ui.css';
-
-export interface ApiClient {
-  <T>(path: string, init?: { method?: string; body?: unknown }): Promise<T>;
-}
 
 export interface HomeAssistantUiProps {
   moduleId: string;
-  api: ApiClient;
+  api: ModuleApiClient;
   currentUserId: number;
   canWrite: boolean;
 }
@@ -54,8 +51,18 @@ const DOMAIN_ORDER = [
 
 // Корневые сущности HA, которые не являются устройствами и визуально только шумят.
 const HIDDEN_DOMAINS = new Set([
-  'group', 'zone', 'person', 'sun', 'automation', 'script', 'scene',
-  'update', 'persistent_notification', 'calendar', 'weather', 'camera',
+  'group',
+  'zone',
+  'person',
+  'sun',
+  'automation',
+  'script',
+  'scene',
+  'update',
+  'persistent_notification',
+  'calendar',
+  'weather',
+  'camera',
 ]);
 
 const TOGGLE_DOMAINS: ReadonlySet<string> = new Set([
@@ -114,7 +121,11 @@ export default function HomeAssistantModule({ moduleId, api, canWrite }: HomeAss
     return visible;
   }, [states]);
 
-  const run = async (entityId: string, service: string, data?: Record<string, unknown>): Promise<void> => {
+  const run = async (
+    entityId: string,
+    service: string,
+    data?: Record<string, unknown>,
+  ): Promise<void> => {
     if (busyEntity !== null) return;
     setBusyEntity(entityId);
     setNotice(null);
@@ -132,6 +143,14 @@ export default function HomeAssistantModule({ moduleId, api, canWrite }: HomeAss
   };
 
   const root = 'ha';
+  if (states === null && error === null) {
+    return (
+      <main className={root}>
+        <p className="hint">Загружаем…</p>
+      </main>
+    );
+  }
+
   if (connected === false && states === null && error !== null) {
     return (
       <main className={root}>
@@ -162,19 +181,19 @@ export default function HomeAssistantModule({ moduleId, api, canWrite }: HomeAss
       )}
 
       {connected === false && states !== null && states.length === 0 && (
-        <div className="ha-empty">
-          <p className="ha-empty-title">Умный дом недоступен</p>
-          <p className="ha-empty-text">Проверьте подключение Home Assistant и попробуйте снова.</p>
-          <button className="btn-primary ha-empty-btn" type="button" onClick={() => void load()}>
+        <div className="empty">
+          <p className="empty-title">Умный дом недоступен</p>
+          <p className="empty-text">Проверьте подключение Home Assistant и попробуйте снова.</p>
+          <button className="btn-primary" type="button" onClick={() => void load()}>
             Обновить
           </button>
         </div>
       )}
 
       {connected && states?.length === 0 && (
-        <div className="ha-empty">
-          <p className="ha-empty-title">Устройств пока нет</p>
-          <p className="ha-empty-text">В Home Assistant ещё не добавлены устройства.</p>
+        <div className="empty">
+          <p className="empty-title">Устройств пока нет</p>
+          <p className="empty-text">В Home Assistant ещё не добавлены устройства.</p>
         </div>
       )}
 
@@ -186,7 +205,12 @@ export default function HomeAssistantModule({ moduleId, api, canWrite }: HomeAss
               <EntityCard
                 key={entity.entity_id}
                 entity={entity}
-                canWrite={canWrite && group.domain !== 'sensor' && group.domain !== 'binary_sensor' && group.domain !== '_other'}
+                canWrite={
+                  canWrite &&
+                  group.domain !== 'sensor' &&
+                  group.domain !== 'binary_sensor' &&
+                  group.domain !== '_other'
+                }
                 busy={busyEntity === entity.entity_id}
                 onToggle={() => void run(entity.entity_id, `${group.domain}.toggle`)}
                 onCall={(service, data) => void run(entity.entity_id, service, data)}
@@ -212,8 +236,7 @@ function EntityCard({
   onToggle: () => void;
   onCall: (service: string, data?: Record<string, unknown>) => void;
 }) {
-  const name =
-    (entity.attributes.friendly_name as string) || friendlyId(entity.entity_id);
+  const name = (entity.attributes.friendly_name as string) || friendlyId(entity.entity_id);
   const domain = entity.entity_id.split('.')[0]!;
   const on = entity.state === 'on' || entity.state === 'open' || entity.state === 'playing';
 
@@ -257,7 +280,11 @@ function EntityCard({
               className="btn-ghost btn-sm ha-temp-btn"
               type="button"
               disabled={busy || target <= min}
-              onClick={() => onCall('climate.set_temperature', { temperature: Number((target - 0.5).toFixed(1)) })}
+              onClick={() =>
+                onCall('climate.set_temperature', {
+                  temperature: Number((target - 0.5).toFixed(1)),
+                })
+              }
               aria-label="Уменьшить температуру"
             >
               −
@@ -266,7 +293,11 @@ function EntityCard({
               className="btn-ghost btn-sm ha-temp-btn"
               type="button"
               disabled={busy || target >= max}
-              onClick={() => onCall('climate.set_temperature', { temperature: Number((target + 0.5).toFixed(1)) })}
+              onClick={() =>
+                onCall('climate.set_temperature', {
+                  temperature: Number((target + 0.5).toFixed(1)),
+                })
+              }
               aria-label="Увеличить температуру"
             >
               +
@@ -287,13 +318,28 @@ function EntityCard({
         </div>
         {canWrite && (
           <div className="ha-row-actions">
-            <button className="btn-ghost btn-sm" type="button" disabled={busy} onClick={() => onCall('cover.open_cover')}>
+            <button
+              className="btn-ghost btn-sm"
+              type="button"
+              disabled={busy}
+              onClick={() => onCall('cover.open_cover')}
+            >
               Открыть
             </button>
-            <button className="btn-ghost btn-sm" type="button" disabled={busy} onClick={() => onCall('cover.close_cover')}>
+            <button
+              className="btn-ghost btn-sm"
+              type="button"
+              disabled={busy}
+              onClick={() => onCall('cover.close_cover')}
+            >
               Закрыть
             </button>
-            <button className="btn-ghost btn-sm" type="button" disabled={busy} onClick={() => onCall('cover.stop_cover')}>
+            <button
+              className="btn-ghost btn-sm"
+              type="button"
+              disabled={busy}
+              onClick={() => onCall('cover.stop_cover')}
+            >
               Стоп
             </button>
           </div>

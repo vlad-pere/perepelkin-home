@@ -72,7 +72,7 @@ describe('оформление', () => {
     expect(stale.statusCode).toBe(400);
     expect(stale.json().error.message).toContain('accentt');
 
-    const res = await (new Client(world.app)).inject('GET', '/api/appearance');
+    const res = await new Client(world.app).inject('GET', '/api/appearance');
     expect(res.json().customized).toBe(false);
   });
 
@@ -105,7 +105,9 @@ describe('оформление', () => {
     const second = { ...customAppearance, motion: 'minimal' } as const;
     const put = await client.inject('PUT', '/api/admin/appearance', second);
     expect(put.json().appearance.motion).toBe('minimal');
-    expect(world.db.prepare('SELECT value FROM app_settings WHERE key = ?').get('appearance') !==
-      undefined).toBe(true);
+    expect(
+      world.db.prepare('SELECT value FROM app_settings WHERE key = ?').get('appearance') !==
+        undefined,
+    ).toBe(true);
   });
 });

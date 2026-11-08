@@ -49,7 +49,7 @@ export function Move({ moduleId, api, canWrite, public: isPublic }: MoveProps) {
   if (loading) {
     return (
       <main className="move">
-        <p className="move-hint">Загружаем…</p>
+        <p className="hint">Загружаем…</p>
       </main>
     );
   }
@@ -57,7 +57,9 @@ export function Move({ moduleId, api, canWrite, public: isPublic }: MoveProps) {
   if (error !== null && page === null) {
     return (
       <main className="move">
-        <p className="auth-error" role="alert">{error}</p>
+        <p className="auth-error" role="alert">
+          {error}
+        </p>
       </main>
     );
   }
@@ -94,15 +96,7 @@ function VideoPlayer({ src }: { src: string }) {
 
   return (
     <div className="move-video-wrap">
-      <video
-        ref={ref}
-        className="move-video"
-        src={src}
-        autoPlay
-        muted={muted}
-        loop
-        playsInline
-      />
+      <video ref={ref} className="move-video" src={src} autoPlay muted={muted} loop playsInline />
       <button
         className="move-sound-btn"
         type="button"
@@ -115,13 +109,31 @@ function VideoPlayer({ src }: { src: string }) {
         }}
       >
         {muted ? (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
             <line x1="23" y1="9" x2="17" y2="15" />
             <line x1="17" y1="9" x2="23" y2="15" />
           </svg>
         ) : (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
             <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
@@ -150,9 +162,7 @@ function MovePublic({
 
       {videoUrl !== null && <VideoPlayer src={videoUrl} />}
 
-      {location !== null && location !== '' && (
-        <p className="move-location">{location}</p>
-      )}
+      {location !== null && location !== '' && <p className="move-location">{location}</p>}
 
       <footer className="move-foot">С любовью, семья Перепелкиных</footer>
     </main>
@@ -254,7 +264,9 @@ function MoveAdmin({
       <h1 className="move-admin-title">Переезд — настройки</h1>
 
       {error !== null && (
-        <p className="auth-error" role="alert">{error}</p>
+        <p className="auth-error" role="alert">
+          {error}
+        </p>
       )}
 
       <form className="move-form" onSubmit={(e) => void onSave(e)}>
@@ -263,7 +275,10 @@ function MoveAdmin({
           <input
             className="field-input"
             value={title}
-            onChange={(e) => { setTitle(e.target.value); setDirty(true); }}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              setDirty(true);
+            }}
             required
           />
         </label>
@@ -274,7 +289,10 @@ function MoveAdmin({
             className="field-input"
             rows={4}
             value={location}
-            onChange={(e) => { setLocation(e.target.value); setDirty(true); }}
+            onChange={(e) => {
+              setLocation(e.target.value);
+              setDirty(true);
+            }}
             placeholder="Где мы находимся"
           />
         </label>

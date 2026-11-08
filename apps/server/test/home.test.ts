@@ -46,8 +46,7 @@ afterEach(async () => {
 function grant(userId: number, moduleId: string, canRead = true, canWrite = true): void {
   const name = `${moduleId}-${userId}`;
   const group =
-    world.core.groups.list().find((g) => g.name === name) ??
-    world.core.groups.create({ name });
+    world.core.groups.list().find((g) => g.name === name) ?? world.core.groups.create({ name });
   world.core.groups.addMember(group.id, userId);
   world.core.grants.set(group.id, moduleId, { canRead, canWrite });
 }
@@ -87,7 +86,11 @@ describe('PUT /api/me/home: доступ', () => {
 
   it('требует CSRF-токен', async () => {
     const client = await memberClient();
-    const res = await setHome(client, { order: ['alpha', 'beta', 'gamma'], hidden: [] }, { csrf: null });
+    const res = await setHome(
+      client,
+      { order: ['alpha', 'beta', 'gamma'], hidden: [] },
+      { csrf: null },
+    );
     expect(res.statusCode).toBe(403);
     expect((res.json() as { error: { code: string } }).error.code).toBe('CSRF_FAILED');
   });
@@ -187,7 +190,10 @@ describe('настройка главной', () => {
 
   it('дубли в теле не создают дублей карточек', async () => {
     const client = await memberClient();
-    const res = await setHome(client, { order: ['beta', 'beta', 'alpha'], hidden: ['alpha', 'alpha'] });
+    const res = await setHome(client, {
+      order: ['beta', 'beta', 'alpha'],
+      hidden: ['alpha', 'alpha'],
+    });
     expect(res.statusCode).toBe(200);
     // gamma в теле не упомянута — остаётся нерасставленной и идёт в конец
     expect(await meCards(client)).toEqual([

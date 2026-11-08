@@ -1,13 +1,19 @@
-import type Database from 'better-sqlite3';
-
 const TASK_TABLE = 'module_maintenance_task';
 const COMPLETION_TABLE = 'module_maintenance_completion';
 
 interface RouteCtx {
-  route(spec: { method: string; path: string; action: string }, handler: (req: any, reply: any) => any): void;
+  route(
+    spec: { method: string; path: string; action: string },
+    handler: (req: any, reply: any) => any,
+  ): void;
+  db: {
+    prepare(sql: string): any;
+    transaction(fn: (...args: never[]) => unknown): (...args: never[]) => unknown;
+  };
 }
 
-export default function register(app: any, ctx: RouteCtx, db: Database.Database): void {
+export default function register(_app: any, ctx: RouteCtx): void {
+  const db = ctx.db;
   const listStmt = db.prepare(
     `SELECT * FROM "${TASK_TABLE}" ORDER BY CASE WHEN "next_due" = '' THEN 1 ELSE 0 END, "next_due" ASC`,
   );
@@ -26,9 +32,7 @@ export default function register(app: any, ctx: RouteCtx, db: Database.Database)
   );
 
   function enrichTask(row: Record<string, unknown>): Record<string, unknown> {
-    const stats = countByTask.get(row.id) as
-      | { count: number; last_completed: string }
-      | undefined;
+    const stats = countByTask.get(row.id) as { count: number; last_completed: string } | undefined;
     return {
       ...row,
       completion_count: stats?.count ?? 0,
@@ -46,7 +50,8 @@ export default function register(app: any, ctx: RouteCtx, db: Database.Database)
   ctx.route({ method: 'POST', path: '/task', action: 'write' }, async (req: any, reply: any) => {
     const body = req.body as Record<string, unknown>;
     const title = String(body.title ?? '').trim();
-    if (!title) return reply.code(400).send({ error: { code: 'BAD_REQUEST', message: 'Введите название' } });
+    if (!title)
+      return reply.code(400).send({ error: { code: 'BAD_REQUEST', message: 'Введите название' } });
     const category = Number(body.category);
     if (!Number.isFinite(category)) {
       return reply.code(400).send({ error: { code: 'BAD_REQUEST', message: 'Укажите категорию' } });
@@ -66,66 +71,78 @@ export default function register(app: any, ctx: RouteCtx, db: Database.Database)
     return reply.code(201).send({ item: enrichTask(row) });
   });
 
-  ctx.route({ method: 'PATCH', path: '/task/:rowId', action: 'write' }, async (req: any, reply: any) => {
-    const id = Number.parseInt(String((req.params as { rowId?: string }).rowId), 10);
-    if (!Number.isInteger(id) || id <= 0) {
-      return reply.code(400).send({ error: { code: 'BAD_REQUEST', message: 'Некорректный ID' } });
-    }
-    const existing = getTask.get(id);
-    if (!existing) {
-      return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Задача не найдена' } });
-    }
-    const body = req.body as Record<string, unknown>;
-    const allowed = ['title', 'description', 'category', 'interval_months', 'next_due', 'notes'];
-    const sets: string[] = [];
-    const values: unknown[] = [];
-    for (const key of allowed) {
-      if (!Object.prototype.hasOwnProperty.call(body, key)) continue;
-      const val = body[key];
-      if (key === 'title') {
-        const v = String(val ?? '').trim();
-        if (!v) {
-          return reply.code(400).send({ error: { code: 'BAD_REQUEST', message: 'Введите название' } });
-        }
-        sets.push(`"${key}" = ?`);
-        values.push(v);
-      } else if (key === 'category') {
-        const v = Number(val);
-        if (!Number.isFinite(v)) {
-          return reply.code(400).send({ error: { code: 'BAD_REQUEST', message: 'Укажите категорию' } });
-        }
-        sets.push(`"${key}" = ?`);
-        values.push(v);
-      } else if (key === 'interval_months') {
-        sets.push(`"${key}" = ?`);
-        values.push(val != null ? Number(val) : null);
-      } else {
-        sets.push(`"${key}" = ?`);
-        values.push(val != null ? String(val).trim() : null);
+  ctx.route(
+    { method: 'PATCH', path: '/task/:rowId', action: 'write' },
+    async (req: any, reply: any) => {
+      const id = Number.parseInt(String((req.params as { rowId?: string }).rowId), 10);
+      if (!Number.isInteger(id) || id <= 0) {
+        return reply.code(400).send({ error: { code: 'BAD_REQUEST', message: 'Некорректный ID' } });
       }
-    }
-    if (sets.length === 0) {
-      return reply.code(400).send({ error: { code: 'BAD_REQUEST', message: 'Нет полей для обновления' } });
-    }
-    db.prepare(
-      `UPDATE "${TASK_TABLE}" SET ${sets.join(', ')}, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?`,
-    ).run(...values, id);
-    const row = getTask.get(id) as Record<string, unknown>;
-    return { item: enrichTask(row) };
-  });
+      const existing = getTask.get(id);
+      if (!existing) {
+        return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Задача не найдена' } });
+      }
+      const body = req.body as Record<string, unknown>;
+      const allowed = ['title', 'description', 'category', 'interval_months', 'next_due', 'notes'];
+      const sets: string[] = [];
+      const values: unknown[] = [];
+      for (const key of allowed) {
+        if (!Object.prototype.hasOwnProperty.call(body, key)) continue;
+        const val = body[key];
+        if (key === 'title') {
+          const v = String(val ?? '').trim();
+          if (!v) {
+            return reply
+              .code(400)
+              .send({ error: { code: 'BAD_REQUEST', message: 'Введите название' } });
+          }
+          sets.push(`"${key}" = ?`);
+          values.push(v);
+        } else if (key === 'category') {
+          const v = Number(val);
+          if (!Number.isFinite(v)) {
+            return reply
+              .code(400)
+              .send({ error: { code: 'BAD_REQUEST', message: 'Укажите категорию' } });
+          }
+          sets.push(`"${key}" = ?`);
+          values.push(v);
+        } else if (key === 'interval_months') {
+          sets.push(`"${key}" = ?`);
+          values.push(val != null ? Number(val) : null);
+        } else {
+          sets.push(`"${key}" = ?`);
+          values.push(val != null ? String(val).trim() : null);
+        }
+      }
+      if (sets.length === 0) {
+        return reply
+          .code(400)
+          .send({ error: { code: 'BAD_REQUEST', message: 'Нет полей для обновления' } });
+      }
+      db.prepare(
+        `UPDATE "${TASK_TABLE}" SET ${sets.join(', ')}, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?`,
+      ).run(...values, id);
+      const row = getTask.get(id) as Record<string, unknown>;
+      return { item: enrichTask(row) };
+    },
+  );
 
-  ctx.route({ method: 'DELETE', path: '/task/:rowId', action: 'write' }, async (req: any, reply: any) => {
-    const id = Number.parseInt(String((req.params as { rowId?: string }).rowId), 10);
-    if (!Number.isInteger(id) || id <= 0) {
-      return reply.code(400).send({ error: { code: 'BAD_REQUEST', message: 'Некорректный ID' } });
-    }
-    const result = deleteTask.run(id);
-    if (result.changes === 0) {
-      return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Задача не найдена' } });
-    }
-    db.prepare(`DELETE FROM "${COMPLETION_TABLE}" WHERE "task_id" = ?`).run(id);
-    return reply.code(204).send();
-  });
+  ctx.route(
+    { method: 'DELETE', path: '/task/:rowId', action: 'write' },
+    async (req: any, reply: any) => {
+      const id = Number.parseInt(String((req.params as { rowId?: string }).rowId), 10);
+      if (!Number.isInteger(id) || id <= 0) {
+        return reply.code(400).send({ error: { code: 'BAD_REQUEST', message: 'Некорректный ID' } });
+      }
+      const result = deleteTask.run(id);
+      if (result.changes === 0) {
+        return reply.code(404).send({ error: { code: 'NOT_FOUND', message: 'Задача не найдена' } });
+      }
+      db.prepare(`DELETE FROM "${COMPLETION_TABLE}" WHERE "task_id" = ?`).run(id);
+      return reply.code(204).send();
+    },
+  );
 
   // --- Complete task ---
 

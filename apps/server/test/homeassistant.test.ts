@@ -9,7 +9,10 @@ import homeassistantModule from '@perepelkin-home/module-homeassistant';
 
 const manifest = validateManifest(
   JSON.parse(
-    readFileSync(fileURLToPath(new URL('../../../modules/homeassistant/manifest.json', import.meta.url)), 'utf8'),
+    readFileSync(
+      fileURLToPath(new URL('../../../modules/homeassistant/manifest.json', import.meta.url)),
+      'utf8',
+    ),
   ),
 );
 
@@ -21,11 +24,13 @@ interface CapturedRequest {
 }
 
 /** Фейковый Home Assistant: записывает входящие запросы, отвечает на них скриптом. */
-async function createFakeHa(states: unknown[]): Promise<{ server: Server; requests: CapturedRequest[]; url: string }> {
+async function createFakeHa(
+  states: unknown[],
+): Promise<{ server: Server; requests: CapturedRequest[]; url: string }> {
   const requests: CapturedRequest[] = [];
   const server = createServer((req: IncomingMessage, res) => {
     let raw = '';
-    req.on('data', (chunk) => raw += chunk);
+    req.on('data', (chunk) => (raw += chunk));
     req.on('end', () => {
       requests.push({
         method: req.method ?? '',
@@ -56,7 +61,11 @@ async function createFakeHa(states: unknown[]): Promise<{ server: Server; reques
 const HA_STATES: unknown[] = [
   { entity_id: 'light.living', state: 'on', attributes: { friendly_name: 'Свет в гостиной' } },
   { entity_id: 'switch.garage', state: 'off', attributes: { friendly_name: 'Розетка гаража' } },
-  { entity_id: 'climate.bedroom', state: 'heat', attributes: { hvac_mode: 'heat', temperature: 22 } },
+  {
+    entity_id: 'climate.bedroom',
+    state: 'heat',
+    attributes: { hvac_mode: 'heat', temperature: 22 },
+  },
   { entity_id: 'sensor.temp', state: '21.5', attributes: { unit_of_measurement: '°C' } },
 ];
 

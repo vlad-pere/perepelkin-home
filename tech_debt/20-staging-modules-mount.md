@@ -1,7 +1,9 @@
 # [P2] Добавить modules/ volume mount в staging compose
 
 ## Приоритет: Средний
+
 ## Оценка: 1/10 (~5 минут)
+
 ## Файл: `docker-compose.staging.yml`
 
 ## Проблема
@@ -16,7 +18,7 @@
 # docker-compose.staging.yml, services.app
 volumes:
   - staging_data:/app/data
-  - ./modules:/app/modules:ro   # ← добавить
+  - ./modules:/app/modules:ro # ← добавить
 ```
 
 ## Подводные камни

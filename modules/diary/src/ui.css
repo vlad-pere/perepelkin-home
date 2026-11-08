@@ -8,12 +8,6 @@
   animation: fade-up 0.7s var(--ease) 0.08s both;
 }
 
-.diary-hint {
-  margin: 18px 0 0;
-  color: var(--ink-muted);
-  animation: fade-up 0.5s var(--ease) both;
-}
-
 .diary .auth-error {
   margin-top: 20px;
 }
@@ -366,28 +360,6 @@
   animation: fade-up 0.3s var(--ease) both;
 }
 
-.diary-empty {
-  margin-top: 36px;
-  padding: 44px 28px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 16px;
-  text-align: center;
-  animation: fade-up 0.6s var(--ease) 0.1s both;
-}
-
-.diary-empty-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 22px;
-}
-
-.diary-empty-text {
-  margin: 8px 0 0;
-  color: var(--ink-soft);
-  font-size: 14px;
-}
-
 .diary button:disabled {
   opacity: 0.5;
   cursor: default;
@@ -438,9 +410,5 @@
   .diary-photo-remove,
   .diary-entry-actions .btn-ghost {
     min-height: 44px;
-  }
-
-  .diary-empty {
-    padding: 32px 20px;
   }
 }

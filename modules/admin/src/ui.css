@@ -29,7 +29,9 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.2s var(--ease), background 0.2s var(--ease);
+  transition:
+    color 0.2s var(--ease),
+    background 0.2s var(--ease);
 }
 
 .admin-tab:hover {
@@ -252,15 +254,6 @@
   animation: fade-up 0.4s var(--ease) both;
 }
 
-.btn-danger {
-  color: var(--error-text);
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: var(--error-bg);
-  color: var(--error-text);
-}
-
 .admin-confirm {
   display: flex;
   align-items: center;
@@ -278,27 +271,6 @@
 
 .admin-confirm strong {
   font-weight: 600;
-}
-
-.btn-danger-solid {
-  padding: 8px 14px;
-  border: none;
-  border-radius: 999px;
-  background: var(--error-text);
-  color: var(--on-accent);
-  font-weight: 600;
-  font-size: 13px;
-  cursor: pointer;
-  transition: opacity 0.2s var(--ease);
-}
-
-.btn-danger-solid:hover:not(:disabled) {
-  opacity: 0.88;
-}
-
-.btn-danger-solid:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 .admin button:disabled {
@@ -407,7 +379,10 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.2s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease);
+  transition:
+    color 0.2s var(--ease),
+    background 0.2s var(--ease),
+    border-color 0.2s var(--ease);
 }
 
 .grant-chip:hover:not(:disabled) {

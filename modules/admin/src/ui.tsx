@@ -1,9 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { formatDate, type ModuleApiClient } from '@perepelkin-home/core/web';
 import './ui.css';
-
-export interface ApiClient {
-  <T>(path: string, init?: { method?: string; body?: unknown }): Promise<T>;
-}
 
 export interface AdminGroup {
   id: number;
@@ -39,7 +36,7 @@ interface AdminModule {
 }
 
 interface AdminPageProps {
-  api: ApiClient;
+  api: ModuleApiClient;
   /** id текущего пользователя: для защиты собственного аккаунта. */
   currentUserId: number;
 }
@@ -113,7 +110,7 @@ export function AdminPage({ api, currentUserId }: AdminPageProps) {
 }
 
 interface PanelProps {
-  api: ApiClient;
+  api: ModuleApiClient;
   fail: (err: unknown, fallback: string) => void;
 }
 
@@ -253,7 +250,12 @@ function UsersPanel({ api, currentUserId, fail }: PanelProps & { currentUserId: 
                 required
               />
             </label>
-            <CredentialInputs pin={pin} onPin={setPin} password={password} onPassword={setPassword} />
+            <CredentialInputs
+              pin={pin}
+              onPin={setPin}
+              password={password}
+              onPassword={setPassword}
+            />
           </div>
           <button className="btn-primary" type="submit" disabled={busyId !== null}>
             {busyId === -1 ? 'Создаём…' : 'Создать пользователя'}
@@ -284,7 +286,9 @@ function UsersPanel({ api, currentUserId, fail }: PanelProps & { currentUserId: 
                       </span>
                     ))}
                     {u.groups.length > 0 && (
-                      <span className="badge badge-groups">{u.groups.map((g) => g.name).join(' · ')}</span>
+                      <span className="badge badge-groups">
+                        {u.groups.map((g) => g.name).join(' · ')}
+                      </span>
                     )}
                   </div>
                   <div className="admin-meta">
@@ -358,7 +362,11 @@ function UsersPanel({ api, currentUserId, fail }: PanelProps & { currentUserId: 
                       type="button"
                       disabled={busyId !== null || u.id === currentUserId}
                       onClick={() => void onToggleAdmin(u)}
-                      title={u.id === currentUserId ? 'Нельзя снять права с собственного аккаунта' : undefined}
+                      title={
+                        u.id === currentUserId
+                          ? 'Нельзя снять права с собственного аккаунта'
+                          : undefined
+                      }
                     >
                       {u.isAdmin ? 'Снять админа' : 'Сделать админом'}
                     </button>
@@ -367,7 +375,9 @@ function UsersPanel({ api, currentUserId, fail }: PanelProps & { currentUserId: 
                       type="button"
                       disabled={busyId !== null || u.id === currentUserId}
                       onClick={() => setConfirmDelete(u.id)}
-                      title={u.id === currentUserId ? 'Нельзя удалить собственный аккаунт' : undefined}
+                      title={
+                        u.id === currentUserId ? 'Нельзя удалить собственный аккаунт' : undefined
+                      }
                     >
                       Удалить
                     </button>
@@ -388,7 +398,11 @@ function UsersPanel({ api, currentUserId, fail }: PanelProps & { currentUserId: 
                   >
                     {busyId === u.id ? 'Удаляем…' : 'Удалить'}
                   </button>
-                  <button className="btn-ghost" type="button" onClick={() => setConfirmDelete(null)}>
+                  <button
+                    className="btn-ghost"
+                    type="button"
+                    onClick={() => setConfirmDelete(null)}
+                  >
                     Отмена
                   </button>
                 </div>
@@ -557,7 +571,11 @@ function GroupsPanel({ api, fail }: PanelProps) {
                     {g.description && <div className="admin-meta">{g.description}</div>}
                   </div>
                   <div className="admin-row-actions">
-                    <button className="btn-ghost" type="button" onClick={() => setExpanded(isExpanded ? null : g.id)}>
+                    <button
+                      className="btn-ghost"
+                      type="button"
+                      onClick={() => setExpanded(isExpanded ? null : g.id)}
+                    >
                       {isExpanded ? 'Свернуть' : 'Участники'}
                     </button>
                     <button
@@ -583,7 +601,11 @@ function GroupsPanel({ api, fail }: PanelProps) {
                     >
                       {busyId === g.id ? 'Удаляем…' : 'Удалить'}
                     </button>
-                    <button className="btn-ghost" type="button" onClick={() => setConfirmDelete(null)}>
+                    <button
+                      className="btn-ghost"
+                      type="button"
+                      onClick={() => setConfirmDelete(null)}
+                    >
                       Отмена
                     </button>
                   </div>
@@ -591,7 +613,9 @@ function GroupsPanel({ api, fail }: PanelProps) {
 
                 {isExpanded && (
                   <div className="admin-members">
-                    {members.length === 0 && <p className="admin-meta">В группе пока никого нет.</p>}
+                    {members.length === 0 && (
+                      <p className="admin-meta">В группе пока никого нет.</p>
+                    )}
                     <ul className="admin-members-list">
                       {members.map((u) => (
                         <li className="admin-member" key={u.id}>
@@ -670,7 +694,12 @@ function GrantsPanel({ api, fail }: PanelProps) {
   const grantOf = (mod: AdminModule, groupId: number): AdminGrantRow | undefined =>
     mod.grants.find((x) => x.groupId === groupId);
 
-  const onToggle = async (mod: AdminModule, group: AdminGroupRow, canRead: boolean, canWrite: boolean): Promise<void> => {
+  const onToggle = async (
+    mod: AdminModule,
+    group: AdminGroupRow,
+    canRead: boolean,
+    canWrite: boolean,
+  ): Promise<void> => {
     const key = `${mod.id}:${group.id}`;
     if (busyKey !== null) return;
     setBusyKey(key);
@@ -739,12 +768,6 @@ function GrantsPanel({ api, fail }: PanelProps) {
       ))}
     </div>
   );
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 interface CredentialInputsProps {

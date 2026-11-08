@@ -24,11 +24,13 @@
 ### Task 1: Модуль `todo` — манифест, пакет и автотест CRUD
 
 **Files:**
+
 - Create: `modules/todo/manifest.json`
 - Create: `modules/todo/package.json`
 - Modify: `apps/server/test/repo-modules.test.ts`
 
 **Interfaces:**
+
 - Consumes: нечего (новый модуль). Существующий хост `mountModule` и CRUD-генератор из `apps/server/src/modules/{host,crud}.ts`.
 - Produces: модуль `todo` с сущностью `task` и REST-эндпоинтами `/api/modules/todo/task` (GET list, POST create, PATCH `/:rowId`, DELETE `/:rowId`), тела ответов `{ items: TaskRow[] }` / `{ item: TaskRow }`, где `TaskRow` = поля сущности + `id`, `created_by`, `created_at`, `updated_at`.
 
@@ -122,9 +124,7 @@ Expected: FAIL — `expect(manifest).toBeDefined()` не проходит (мо�
       "import": "./dist/ui.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/copy-css.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
@@ -161,6 +161,7 @@ git commit -m "Модуль todo: манифест, пакет и тест CRUD"
 ### Task 2: Свой интерфейс модуля «Список дел» и регистрация в web
 
 **Files:**
+
 - Create: `modules/todo/tsconfig.json`
 - Create: `modules/todo/src/globals.d.ts`
 - Create: `modules/todo/scripts/copy-css.mjs`
@@ -170,6 +171,7 @@ git commit -m "Модуль todo: манифест, пакет и тест CRUD"
 - Modify: `apps/web/package.json`
 
 **Interfaces:**
+
 - Consumes: REST CRUD модуля из Task 1 (`/api/modules/todo/task`), контракт `ModuleUiProps` (`{ moduleId: string; api: ModuleApiClient; currentUserId: number; canWrite: boolean }` из `apps/web/src/modules/registry.tsx`).
 - Produces: lazy-компонент `@perepelkin-home/module-todo/ui` (default-экспорт `TodoModule`), который принимает `{ moduleId: string; api: ApiClient; canWrite: boolean }`; `resolveModuleUi` теперь отдаёт кастомный UI для `todo`.
 
@@ -383,9 +385,7 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
       <section className="todo-progress" aria-label="Прогресс">
         <div className="todo-progress-meta">
           <span className="todo-progress-count">{countText}</span>
-          {total > 0 && percent < 100 && (
-            <span className="todo-progress-percent">{percent}%</span>
-          )}
+          {total > 0 && percent < 100 && <span className="todo-progress-percent">{percent}%</span>}
         </div>
         <div
           className="todo-progress-track"
@@ -490,7 +490,11 @@ export default function TodoModule({ moduleId, api, canWrite }: TodoUiProps) {
                   >
                     {busy ? 'Удаляем…' : 'Удалить'}
                   </button>
-                  <button className="btn-ghost" type="button" onClick={() => setConfirmDelete(null)}>
+                  <button
+                    className="btn-ghost"
+                    type="button"
+                    onClick={() => setConfirmDelete(null)}
+                  >
                     Отмена
                   </button>
                 </div>
@@ -976,11 +980,13 @@ git commit -m "Интерфейс модуля «Список дел»: прог
 ### Task 3: Сборка и деплой — корневые скрипты, Dockerfile, README
 
 **Files:**
+
 - Modify: `package.json` (корневой)
 - Modify: `Dockerfile`
 - Modify: `README.md`
 
 **Interfaces:**
+
 - Consumes: workspace `@perepelkin-home/module-todo` из Task 1–2.
 - Produces: сборка (`npm run build`) и `npm run dev` собирают `module-todo` перед `server`/`web`; прод-образ содержит манифест и package.json модуля.
 
@@ -989,11 +995,13 @@ git commit -m "Интерфейс модуля «Список дел»: прог
 В корневом `package.json`:
 
 `build`:
+
 ```json
 "build": "npm run build -w @perepelkin-home/core && npm run build -w @perepelkin-home/module-admin && npm run build -w @perepelkin-home/module-todo && npm run build -w @perepelkin-home/server && npm run build -w @perepelkin-home/web",
 ```
 
 `dev`:
+
 ```json
 "dev": "npm run build -w @perepelkin-home/core && npm run build -w @perepelkin-home/module-admin && npm run build -w @perepelkin-home/module-todo && concurrently -n server,web -c auto \"npm:dev:server\" \"npm:dev:web\"",
 ```
@@ -1003,14 +1011,19 @@ git commit -m "Интерфейс модуля «Список дел»: прог
 В `Dockerfile`:
 
 1. В build-стадии (рядом с `COPY modules/maintenance/package.json …`, до `npm ci`):
+
 ```dockerfile
 COPY modules/todo/package.json modules/todo/package.json
 ```
+
 2. В runtime-стадии (рядом с `COPY modules/maintenance/package.json …`, до `npm ci`):
+
 ```dockerfile
 COPY modules/todo/package.json modules/todo/package.json
 ```
+
 3. В runtime-стадии (рядом с `COPY modules/maintenance/manifest.json …`):
+
 ```dockerfile
 COPY modules/todo/manifest.json modules/todo/manifest.json
 ```
@@ -1044,21 +1057,25 @@ git commit -m "Сборка и деплой: module-todo в скриптах, Do
 ### Task 4: Финальная валидация (typecheck, тесты, E2E через Playwright)
 
 **Files:**
+
 - No source changes (только проверки).
 
 - [x] **Step 1: Full static checks and tests**
 
 Run (в корне):
+
 ```bash
 npm run typecheck
 npm test
 npm run build
 ```
+
 Expected: все три проходят (typecheck — все workspace-пакеты; `npm test` — vitest core + server, включая новый тест CRUD `todo`; `npm run build` — полная сборка).
 
 - [x] **Step 2: E2E smoke-проверка через Playwright (скилл `webapp-testing`)**
 
 Сценарий:
+
 1. `npm run seed` (если нужно) и `npm run dev` (сервер 3000, web 5173).
 2. Войти как администратор, в `/admin` → «Доступы к модулям» выдать группе «Семья» чтение+запись на модуль «Список дел».
 3. Открыть `/m/todo`:

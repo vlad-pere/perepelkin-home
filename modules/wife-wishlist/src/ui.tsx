@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { safeHttpUrl, type ModuleApiClient } from '@perepelkin-home/core/web';
 import './ui.css';
-
-export interface ApiClient {
-  <T>(path: string, init?: { method?: string; body?: unknown }): Promise<T>;
-}
 
 export interface WifeWishlistUiProps {
   moduleId: string;
-  api: ApiClient;
+  api: ModuleApiClient;
   canWrite: boolean;
 }
 
@@ -153,7 +150,7 @@ export function WifeWishlist({ moduleId, api, canWrite }: WifeWishlistUiProps) {
   if (meta === null || items === null) {
     return (
       <main className="wl">
-        <p className="wl-hint">Загружаем…</p>
+        <p className="hint">Загружаем…</p>
       </main>
     );
   }
@@ -199,9 +196,9 @@ export function WifeWishlist({ moduleId, api, canWrite }: WifeWishlistUiProps) {
         </header>
 
         {active.length === 0 ? (
-          <div className="wl-empty">
-            <p className="wl-empty-title">Все хотелки исполнены</p>
-            {canWrite && <p className="wl-empty-text">Добавьте новую — и она появится здесь.</p>}
+          <div className="empty">
+            <p className="empty-title">Все хотелки исполнены</p>
+            {canWrite && <p className="empty-text">Добавьте новую — и она появится здесь.</p>}
           </div>
         ) : (
           <ul className="wl-list">
@@ -235,11 +232,13 @@ export function WifeWishlist({ moduleId, api, canWrite }: WifeWishlistUiProps) {
                   )}
                   <div className="wl-card-main">
                     <h3 className="wl-card-name">{row.title}</h3>
-                    {row.note !== null && row.note !== '' && <p className="wl-card-desc">{row.note}</p>}
-                    {safeUrl(row.link) !== null && (
+                    {row.note !== null && row.note !== '' && (
+                      <p className="wl-card-desc">{row.note}</p>
+                    )}
+                    {safeHttpUrl(row.link) !== null && (
                       <a
                         className="wl-card-link"
-                        href={safeUrl(row.link) as string}
+                        href={safeHttpUrl(row.link) as string}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -326,11 +325,13 @@ export function WifeWishlist({ moduleId, api, canWrite }: WifeWishlistUiProps) {
                 )}
                 <div className="wl-card-main">
                   <h3 className="wl-card-name">{row.title}</h3>
-                  {row.note !== null && row.note !== '' && <p className="wl-card-desc">{row.note}</p>}
-                  {safeUrl(row.link) !== null && (
+                  {row.note !== null && row.note !== '' && (
+                    <p className="wl-card-desc">{row.note}</p>
+                  )}
+                  {safeHttpUrl(row.link) !== null && (
                     <a
                       className="wl-card-link"
-                      href={safeUrl(row.link) as string}
+                      href={safeHttpUrl(row.link) as string}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -446,7 +447,7 @@ function countRu(n: number): string {
 
 function validate(values: FormValues): string | null {
   if (values.title.trim() === '') return 'Введите, чего хочется';
-  if (values.link.trim() !== '' && safeUrl(values.link) === null) {
+  if (values.link.trim() !== '' && safeHttpUrl(values.link) === null) {
     return 'Ссылка должна начинаться с http:// или https://';
   }
   return null;
@@ -465,15 +466,4 @@ function fromRow(row: ItemRow): FormValues {
     note: row.note ?? '',
     link: row.link ?? '',
   };
-}
-
-function safeUrl(value: string | null | undefined): string | null {
-  if (!value) return null;
-  try {
-    const parsed = new URL(value);
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.toString();
-  } catch {
-    /* не ссылка */
-  }
-  return null;
 }

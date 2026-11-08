@@ -44,7 +44,10 @@ const ALLOWED_SERVICES: Record<string, AllowedService> = {
 const ENTITY_ID_RE = /^[a-z0-9_]+\.[a-z0-9_]+$/;
 
 interface RouteCtx {
-  route(spec: { method: string; path: string; action: string }, handler: (req: any, reply: any) => any): void;
+  route(
+    spec: { method: string; path: string; action: string },
+    handler: (req: any, reply: any) => any,
+  ): void;
 }
 
 function haConfig(): { url: string; token: string } {
@@ -118,21 +121,29 @@ export default function register(app: any, ctx: RouteCtx): void {
   // Управление устройством: белый список сервисов + валидация entity_id.
   ctx.route({ method: 'POST', path: '/call', action: 'write' }, async (req: any, reply: any) => {
     if (!isConfigured()) {
-      return reply.code(503).send({ error: { code: 'MODULE_NOT_CONFIGURED', message: 'Умный дом не настроен' } });
+      return reply
+        .code(503)
+        .send({ error: { code: 'MODULE_NOT_CONFIGURED', message: 'Умный дом не настроен' } });
     }
     const body = (req.body ?? {}) as Record<string, unknown>;
     const entityId = typeof body.entity_id === 'string' ? body.entity_id.trim() : '';
     const fullService = typeof body.service === 'string' ? body.service.trim() : '';
     if (!ENTITY_ID_RE.test(entityId)) {
-      return reply.code(400).send({ error: { code: 'BAD_REQUEST', message: 'Некорректный идентификатор устройства' } });
+      return reply
+        .code(400)
+        .send({ error: { code: 'BAD_REQUEST', message: 'Некорректный идентификатор устройства' } });
     }
     const allowed = ALLOWED_SERVICES[fullService];
     if (!allowed) {
-      return reply.code(400).send({ error: { code: 'BAD_REQUEST', message: 'Такое действие недоступно' } });
+      return reply
+        .code(400)
+        .send({ error: { code: 'BAD_REQUEST', message: 'Такое действие недоступно' } });
     }
     const domain = entityId.slice(0, entityId.indexOf('.'));
     if (fullService.slice(0, fullService.indexOf('.')) !== domain) {
-      return reply.code(400).send({ error: { code: 'BAD_REQUEST', message: 'Действие не подходит для этого устройства' } });
+      return reply.code(400).send({
+        error: { code: 'BAD_REQUEST', message: 'Действие не подходит для этого устройства' },
+      });
     }
 
     const payload = { entity_id: entityId, ...pickData(allowed, body.data) };
@@ -140,11 +151,15 @@ export default function register(app: any, ctx: RouteCtx): void {
     try {
       const { status } = await haFetch(path, { method: 'POST', body: JSON.stringify(payload) });
       if (status !== 200 && status !== 201) {
-        return reply.code(502).send({ error: { code: 'HA_ERROR', message: 'Устройство не ответило' } });
+        return reply
+          .code(502)
+          .send({ error: { code: 'HA_ERROR', message: 'Устройство не ответило' } });
       }
       return { ok: true };
     } catch {
-      return reply.code(502).send({ error: { code: 'HA_UNREACHABLE', message: 'Не удалось связаться с умным домом' } });
+      return reply
+        .code(502)
+        .send({ error: { code: 'HA_UNREACHABLE', message: 'Не удалось связаться с умным домом' } });
     }
   });
 
@@ -158,8 +173,8 @@ export default function register(app: any, ctx: RouteCtx): void {
       if (status !== 200 || !Array.isArray(body)) {
         return { count: 0, status: 'Умный дом недоступен' };
       }
-      const controllable = body.filter((s: any) =>
-        ALLOWED_SERVICES[`${String(s.entity_id).split('.')[0]}.toggle`] !== undefined,
+      const controllable = body.filter(
+        (s: any) => ALLOWED_SERVICES[`${String(s.entity_id).split('.')[0]}.toggle`] !== undefined,
       );
       const on = controllable.filter((s: any) => s.state === 'on').length;
       const total = controllable.length;

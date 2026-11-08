@@ -25,11 +25,23 @@ describe('core.can', () => {
 
   it('denies unknown actions', () => {
     // @ts-expect-error deliberate invalid action
-    expect(can({ isAdmin: true, groupIds: [], isRegistered: () => true, getGrant: () => null }, 'notes', 'delete')).toBe(false);
+    expect(
+      can(
+        { isAdmin: true, groupIds: [], isRegistered: () => true, getGrant: () => null },
+        'notes',
+        'delete',
+      ),
+    ).toBe(false);
   });
 
   it('denies unregistered modules even for admin', () => {
-    expect(can({ isAdmin: true, groupIds: [], isRegistered: () => false, getGrant: () => null }, 'ghost', 'read')).toBe(false);
+    expect(
+      can(
+        { isAdmin: true, groupIds: [], isRegistered: () => false, getGrant: () => null },
+        'ghost',
+        'read',
+      ),
+    ).toBe(false);
   });
 
   it('admin can read and write any registered module', () => {

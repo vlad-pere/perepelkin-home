@@ -20,7 +20,10 @@ async function adminClient(): Promise<Client> {
   return client;
 }
 
-async function createMemberClient(username: string, password = 'secret123'): Promise<{ client: Client; userId: number }> {
+async function createMemberClient(
+  username: string,
+  password = 'secret123',
+): Promise<{ client: Client; userId: number }> {
   const admin = await adminClient();
   const res = await admin.inject('POST', '/api/admin/users', { username, password });
   expect(res.statusCode).toBe(201);
@@ -65,13 +68,19 @@ describe('пользователи', () => {
 
   it('отклоняет слабый пароль', async () => {
     const client = await adminClient();
-    const res = await client.inject('POST', '/api/admin/users', { username: 'sveta', password: 'short' });
+    const res = await client.inject('POST', '/api/admin/users', {
+      username: 'sveta',
+      password: 'short',
+    });
     expect(res.statusCode).toBe(400);
   });
 
   it('создаёт пользователя только с пинкодом', async () => {
     const admin = await adminClient();
-    const created = await admin.inject('POST', '/api/admin/users', { username: 'sveta', pin: '123456' });
+    const created = await admin.inject('POST', '/api/admin/users', {
+      username: 'sveta',
+      pin: '123456',
+    });
     expect(created.statusCode).toBe(201);
     expect(created.json().user.hasPin).toBe(true);
     expect(created.json().user.hasPassword).toBe(false);
@@ -168,7 +177,9 @@ describe('пользователи', () => {
     const admin = await adminClient();
     await admin.inject('PATCH', `/api/admin/users/${userId}`, { pin: '123456' });
 
-    const reset = await admin.inject('PATCH', `/api/admin/users/${userId}`, { password: 'newpass123' });
+    const reset = await admin.inject('PATCH', `/api/admin/users/${userId}`, {
+      password: 'newpass123',
+    });
     expect(reset.statusCode).toBe(200);
 
     const byPin = new Client(world.app);
@@ -180,7 +191,9 @@ describe('пользователи', () => {
   it('не даёт сменить собственные учётные данные через админ-API', async () => {
     const admin = await adminClient();
     const adminId = world.core.users.getByUsername('admin')!.id;
-    const res = await admin.inject('PATCH', `/api/admin/users/${adminId}`, { password: 'newpass123' });
+    const res = await admin.inject('PATCH', `/api/admin/users/${adminId}`, {
+      password: 'newpass123',
+    });
     expect(res.statusCode).toBe(400);
   });
 
@@ -279,7 +292,9 @@ describe('группы и доступ к модулям', () => {
     expect(groupRes.statusCode).toBe(201);
     const groupId = groupRes.json().group.id;
 
-    const add = await admin.inject('POST', `/api/admin/groups/${groupId}/members`, { user_id: userId });
+    const add = await admin.inject('POST', `/api/admin/groups/${groupId}/members`, {
+      user_id: userId,
+    });
     expect(add.statusCode).toBe(204);
 
     const member = new Client(world.app);
@@ -361,7 +376,11 @@ describe('группы и доступ к модулям', () => {
     const groupRes = await admin.inject('POST', '/api/admin/groups', { name: 'Семья' });
     const groupId = groupRes.json().group.id;
     await admin.inject('POST', `/api/admin/groups/${groupId}/members`, { user_id: userId });
-    await admin.inject('PUT', '/api/admin/modules/notes/grants', { group_id: groupId, can_read: true, can_write: false });
+    await admin.inject('PUT', '/api/admin/modules/notes/grants', {
+      group_id: groupId,
+      can_read: true,
+      can_write: false,
+    });
 
     const remove = await admin.inject('DELETE', `/api/admin/modules/notes/grants/${groupId}`);
     expect(remove.statusCode).toBe(204);
@@ -376,7 +395,11 @@ describe('группы и доступ к модулям', () => {
     const admin = await adminClient();
     const groupRes = await admin.inject('POST', '/api/admin/groups', { name: 'Семья' });
     const groupId = groupRes.json().group.id;
-    await admin.inject('PUT', '/api/admin/modules/notes/grants', { group_id: groupId, can_read: true, can_write: true });
+    await admin.inject('PUT', '/api/admin/modules/notes/grants', {
+      group_id: groupId,
+      can_read: true,
+      can_write: true,
+    });
 
     const res = await admin.inject('GET', '/api/admin/modules');
     expect(res.statusCode).toBe(200);
@@ -390,7 +413,11 @@ describe('группы и доступ к модулям', () => {
     const groupRes = await admin.inject('POST', '/api/admin/groups', { name: 'Семья' });
     const groupId = groupRes.json().group.id;
     await admin.inject('POST', `/api/admin/groups/${groupId}/members`, { user_id: userId });
-    await admin.inject('PUT', '/api/admin/modules/notes/grants', { group_id: groupId, can_read: true, can_write: false });
+    await admin.inject('PUT', '/api/admin/modules/notes/grants', {
+      group_id: groupId,
+      can_read: true,
+      can_write: false,
+    });
 
     const del = await admin.inject('DELETE', `/api/admin/groups/${groupId}`);
     expect(del.statusCode).toBe(204);

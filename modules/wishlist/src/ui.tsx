@@ -1,13 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { safeHttpUrl, type ModuleApiClient } from '@perepelkin-home/core/web';
 import './ui.css';
-
-export interface ApiClient {
-  <T>(path: string, init?: { method?: string; body?: unknown }): Promise<T>;
-}
 
 export interface WishlistProps {
   moduleId: string;
-  api: ApiClient;
+  api: ModuleApiClient;
   canWrite: boolean;
   /** Публичная гостевая страница: без управления, со своим шапкой. */
   public?: boolean;
@@ -52,8 +49,8 @@ interface CredentialsFor {
 const CATEGORIES = ['Новоселье', 'Дочке'] as const;
 
 const CATEGORY_HINTS: Record<string, string> = {
-  'Новоселье': 'Вещи для дома и быта',
-  'Дочке': 'Игрушки и подарки для малышки',
+  Новоселье: 'Вещи для дома и быта',
+  Дочке: 'Игрушки и подарки для малышки',
 };
 
 const EMPTY_VALUES: FormValues = { name: '', description: '', link: '', category: CATEGORIES[0] };
@@ -153,7 +150,12 @@ export function Wishlist({ moduleId, api, canWrite, public: isPublic }: Wishlist
     }
   };
 
-  const onCredentials = async (gift: GiftRow, mode: 'book' | 'unbook', username: string, pin: string): Promise<void> => {
+  const onCredentials = async (
+    gift: GiftRow,
+    mode: 'book' | 'unbook',
+    username: string,
+    pin: string,
+  ): Promise<void> => {
     if (credentialsBusy) return;
     setCredentialsBusy(true);
     setCredentialsError(null);
@@ -218,7 +220,7 @@ export function Wishlist({ moduleId, api, canWrite, public: isPublic }: Wishlist
   if (meta === null || items === null) {
     return (
       <main className="wish">
-        <p className="wish-hint">Загружаем…</p>
+        <p className="hint">Загружаем…</p>
       </main>
     );
   }
@@ -268,10 +270,10 @@ export function Wishlist({ moduleId, api, canWrite, public: isPublic }: Wishlist
       )}
 
       {items.length === 0 ? (
-        <div className="wish-empty">
-          <p className="wish-empty-title">Пока пусто</p>
+        <div className="empty">
+          <p className="empty-title">Пока пусто</p>
           {!isPublic && canWrite && (
-            <p className="wish-empty-text">Добавьте первый подарок — и он появится здесь.</p>
+            <p className="empty-text">Добавьте первый подарок — и он появится здесь.</p>
           )}
         </div>
       ) : (
@@ -298,7 +300,9 @@ export function Wishlist({ moduleId, api, canWrite, public: isPublic }: Wishlist
                   ) : (
                     <li
                       className={`wish-card${
-                        credentialsFor?.gift.id === gift.id || assignFor?.id === gift.id ? ' wish-card--form' : ''
+                        credentialsFor?.gift.id === gift.id || assignFor?.id === gift.id
+                          ? ' wish-card--form'
+                          : ''
                       }`}
                       key={gift.id}
                     >
@@ -307,10 +311,10 @@ export function Wishlist({ moduleId, api, canWrite, public: isPublic }: Wishlist
                         {gift.description !== null && gift.description !== '' && (
                           <p className="wish-card-desc">{gift.description}</p>
                         )}
-                        {safeUrl(gift.link) !== null && (
+                        {safeHttpUrl(gift.link) !== null && (
                           <a
                             className="wish-card-link"
-                            href={safeUrl(gift.link) as string}
+                            href={safeHttpUrl(gift.link) as string}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
@@ -688,7 +692,7 @@ function groupByCategory(items: GiftRow[]): Section[] {
 
 function validate(values: FormValues): string | null {
   if (values.name.trim() === '') return 'Введите название подарка';
-  if (values.link.trim() !== '' && safeUrl(values.link) === null) {
+  if (values.link.trim() !== '' && safeHttpUrl(values.link) === null) {
     return 'Ссылка должна начинаться с http:// или https://';
   }
   return null;
@@ -708,15 +712,4 @@ function fromRow(row: GiftRow): FormValues {
     link: row.link ?? '',
     category: row.category ?? CATEGORIES[0],
   };
-}
-
-function safeUrl(value: string | null | undefined): string | null {
-  if (!value) return null;
-  try {
-    const parsed = new URL(value);
-    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.toString();
-  } catch {
-    /* не ссылка */
-  }
-  return null;
 }

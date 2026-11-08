@@ -1,7 +1,9 @@
 # [P2] Добавить <main> тег в ModulePage + unsafe me! assertions
 
 ## Приоритет: Средний
+
 ## Оценка: 1/10 (~10 минут)
+
 ## Файл: `apps/web/src/App.tsx`, строки 40, 84
 
 ## Проблема
@@ -9,7 +11,7 @@
 ### 1. Unsafe `me!` non-null assertions (строки 40, 84)
 
 ```tsx
-const api = useApiClient(me!.user.id)
+const api = useApiClient(me!.user.id);
 ```
 
 `me` может быть `null` (если статус `'loading'` или `'unauthenticated'`). Код выше проверяет `status === 'authenticated'` перед рендером, но `ModulePage` не имеет собственного guard. Если компонент будет использован в другом контексте — runtime error.
@@ -39,7 +41,12 @@ function ModulePage() {
       <Topbar />
       <main>
         {Ui ? (
-          <Ui moduleId={module.id} api={api} currentUserId={me.user.id} canWrite={module.canWrite} />
+          <Ui
+            moduleId={module.id}
+            api={api}
+            currentUserId={me.user.id}
+            canWrite={module.canWrite}
+          />
         ) : (
           <ModuleUnavailable module={module} />
         )}

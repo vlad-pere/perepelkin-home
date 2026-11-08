@@ -85,7 +85,10 @@ export function effortOf(money: number, complexity: unknown): number {
  * Деньги — коэффициент moneyCoefficient из пула цен; сложность — ручная оценка.
  * Пока не готовы четыре оценки и сумма — null: идея живёт в бэклоге без балла.
  */
-export function scoreOf(item: Ratings & Pick<RiceItem, 'price'>, pricePool: readonly unknown[]): number | null {
+export function scoreOf(
+  item: Ratings & Pick<RiceItem, 'price'>,
+  pricePool: readonly unknown[],
+): number | null {
   const money = moneyCoefficient(item.price, pricePool);
   if (money === null) return null;
   if (
@@ -111,7 +114,10 @@ export function formatScore(score: number | null): string {
 }
 
 /** Активные покупки: по баллу по убыванию, при равенстве — старые записи раньше; неоценённые внизу. */
-export function sortActive<T extends RiceItem>(items: readonly T[], pricePool: readonly unknown[]): T[] {
+export function sortActive<T extends RiceItem>(
+  items: readonly T[],
+  pricePool: readonly unknown[],
+): T[] {
   return [...items].sort((a, b) => {
     const sa = scoreOf(a, pricePool);
     const sb = scoreOf(b, pricePool);

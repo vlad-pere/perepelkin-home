@@ -18,8 +18,16 @@ afterEach(async () => {
   await world.close();
 });
 
-function grant(world: TestWorld, userId: number, canRead: boolean, canWrite: boolean, moduleId = REFERENCE_ID): void {
-  const group = world.core.groups.create({ name: `repo-${userId}-${canRead}-${canWrite}-${moduleId}` });
+function grant(
+  world: TestWorld,
+  userId: number,
+  canRead: boolean,
+  canWrite: boolean,
+  moduleId = REFERENCE_ID,
+): void {
+  const group = world.core.groups.create({
+    name: `repo-${userId}-${canRead}-${canWrite}-${moduleId}`,
+  });
   world.core.groups.addMember(group.id, userId);
   world.core.grants.set(group.id, moduleId, { canRead, canWrite });
 }
@@ -79,7 +87,7 @@ describe('repo modules', () => {
       db: world.db,
       core: world.core,
       manifest: manifest!,
-      register: (moduleApp, ctx) => wishlistModule(moduleApp, ctx, world.db),
+      register: (moduleApp, ctx) => wishlistModule(moduleApp, ctx),
     });
 
     const anonymous = new Client(world.app);
@@ -258,7 +266,13 @@ describe('repo modules', () => {
     const items = (listed.json() as { items: Array<Record<string, unknown>> }).items;
     expect(items).toHaveLength(2);
     const legacy = items.find((i) => i.title === 'Старая покупка');
-    expect(legacy).toMatchObject({ reach: 4, impact: 4, confidence: 4, complexity: 2, price: 1000 });
+    expect(legacy).toMatchObject({
+      reach: 4,
+      impact: 4,
+      confidence: 4,
+      complexity: 2,
+      price: 1000,
+    });
     expect(legacy).not.toHaveProperty('cost');
     const fresh = items.find((i) => i.title === 'Свежая идея');
     expect(fresh?.reach ?? null).toBeFalsy();
@@ -282,7 +296,11 @@ describe('repo modules', () => {
       const manifest = modules.find((m) => m.id === REFERENCE_ID);
       expect(manifest).toBeDefined();
 
-      await mountModule(logWorld.app, { db: logWorld.db, core: logWorld.core, manifest: manifest! });
+      await mountModule(logWorld.app, {
+        db: logWorld.db,
+        core: logWorld.core,
+        manifest: manifest!,
+      });
       await logWorld.core.users.create({ username: 'member', password: 'secret123' });
       const user = logWorld.core.users.getByUsername('member')!;
       grant(logWorld, user.id, true, true);
@@ -294,13 +312,16 @@ describe('repo modules', () => {
         done: false,
       });
       expect(created.statusCode).toBe(201);
-      const createdItem = (created.json() as { item: { id: number; created_by_username: string | null } }).item;
+      const createdItem = (
+        created.json() as { item: { id: number; created_by_username: string | null } }
+      ).item;
       expect(createdItem.created_by_username).toBe('member');
       const recordId = createdItem.id;
 
       const listed = await client.inject('GET', '/api/modules/todo/task');
-      const listedItem = (listed.json() as { items: Array<{ id: number; created_by_username: string | null }> })
-        .items.find((r) => r.id === recordId);
+      const listedItem = (
+        listed.json() as { items: Array<{ id: number; created_by_username: string | null }> }
+      ).items.find((r) => r.id === recordId);
       expect(listedItem?.created_by_username).toBe('member');
 
       const log = captured.find((l) => l.msg === 'record created');

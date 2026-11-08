@@ -29,7 +29,12 @@ export interface CoreApi {
     byModule(moduleId: string): Array<{ groupId: number; grant: Grant }>;
   };
   can(user: { id: number; isAdmin: boolean }, moduleId: string, action: Action): boolean;
-  canForGroups(groupIds: readonly number[], isAdmin: boolean, moduleId: string, action: Action): boolean;
+  canForGroups(
+    groupIds: readonly number[],
+    isAdmin: boolean,
+    moduleId: string,
+    action: Action,
+  ): boolean;
   store(moduleId: string): ScopedStore;
   registerModule(info: ModuleInfo): void;
   listModules(): ModuleInfo[];

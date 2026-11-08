@@ -1,7 +1,9 @@
 # [P2] Убрать дублированные зависимости, CSS, и globals.d.ts
 
 ## Приоритет: Средний
+
 ## Оценка: 1/10 (~15 минут)
+
 ## Файлы: `apps/web/package.json`, `modules/admin/src/ui.css`, `modules/move/src/`, `modules/shopping/src/`
 
 ## Проблема
@@ -18,6 +20,7 @@ JSON допускает дублирующие ключи, но значение
 ### 2. Дублированные CSS-классы `.btn-danger-solid`
 
 Определены **идентично** в:
+
 - `apps/web/src/styles.css` (строки 359-387)
 - `modules/admin/src/ui.css` (строки 275-327)
 
@@ -34,13 +37,14 @@ Admin модуль переопределяет глобальные стили.
 2. **`modules/admin/src/ui.css`:** удалить строки 275-327 (дубликаты `.btn-danger-solid`, `.btn-danger`). Оставить только глобальные определения в `styles.css`.
 
 3. **Создать `modules/move/src/globals.d.ts`:**
+
    ```typescript
-   declare module '*.css'
+   declare module '*.css';
    ```
 
 4. **Создать `modules/shopping/src/globals.d.ts`:**
    ```typescript
-   declare module '*.css'
+   declare module '*.css';
    ```
 
 ## Подводные камни

@@ -1,10 +1,7 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 import type { ModuleAccess, ModuleKind } from '@perepelkin-home/core';
+import type { ModuleApiClient } from '@perepelkin-home/core/web';
 import { CrudModule } from './CrudModule';
-
-export interface ModuleApiClient {
-  <T>(path: string, init?: { method?: string; body?: unknown }): Promise<T>;
-}
 
 export interface ModuleUiProps {
   moduleId: string;

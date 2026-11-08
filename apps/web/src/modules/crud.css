@@ -38,34 +38,6 @@
   overflow-wrap: anywhere;
 }
 
-.crud-hint {
-  margin: 18px 0 0;
-  color: var(--ink-muted);
-  animation: fade-up 0.5s var(--ease) both;
-}
-
-.crud-empty {
-  margin-top: 18px;
-  padding: 32px 24px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 16px;
-  text-align: center;
-  animation: fade-up 0.6s var(--ease) 0.1s both;
-}
-
-.crud-empty-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 19px;
-}
-
-.crud-empty-text {
-  margin: 6px 0 0;
-  color: var(--ink-soft);
-  font-size: 14px;
-}
-
 .crud-form {
   margin-top: 20px;
   padding: 24px;

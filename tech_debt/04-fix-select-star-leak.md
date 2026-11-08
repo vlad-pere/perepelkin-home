@@ -1,7 +1,9 @@
 # [P1] Убрать SELECT * с users — password_hash в внутренних типах
 
 ## Приоритет: Высокий
+
 ## Оценка: 2/10 (~20 минут)
+
 ## Файл: `apps/server/src/core.ts`
 
 ## Проблема
@@ -14,7 +16,7 @@
 
 ```typescript
 // core.ts:67-69
-const stmt = db.prepare('SELECT * FROM users WHERE id = ?')
+const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
 // UserRow включает password_hash, pin_hash
 ```
 
@@ -23,11 +25,11 @@ const stmt = db.prepare('SELECT * FROM users WHERE id = ?')
 1. **В `buildCore()`** — для основных запросов (getById, list) использовать явный список колонок:
 
 ```typescript
-const USER_COLS = 'id, username, is_admin, created_at'
+const USER_COLS = 'id, username, is_admin, created_at';
 
 // Запросы без хешей:
-db.prepare(`SELECT ${USER_COLS} FROM users WHERE id = ?`)
-db.prepare(`SELECT ${USER_COLS} FROM users`)
+db.prepare(`SELECT ${USER_COLS} FROM users WHERE id = ?`);
+db.prepare(`SELECT ${USER_COLS} FROM users`);
 ```
 
 2. **Для login-запроса** (`getByUsername`) — оставить `SELECT *` или `SELECT id, username, password_hash, pin_hash, is_admin, created_at` (нужен password_hash для сверки).
@@ -35,8 +37,8 @@ db.prepare(`SELECT ${USER_COLS} FROM users`)
 3. **Тип `UserRow`** — убрать `password_hash` и `pin_hash` из основного типа. Создать отдельный `UserRowAuth` (или `UserAuth`) для login-запроса:
 
 ```typescript
-type UserRow = { id: string; username: string; is_admin: number; created_at: string }
-type UserRowAuth = UserRow & { password_hash: string; pin_hash: string | null }
+type UserRow = { id: string; username: string; is_admin: number; created_at: string };
+type UserRowAuth = UserRow & { password_hash: string; pin_hash: string | null };
 ```
 
 4. **Обновить `SessionUser`** в `sessions.ts` — убрать `password_hash` и `pin_hash` (сессии не должны хранить хеши).

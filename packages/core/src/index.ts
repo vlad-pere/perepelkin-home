@@ -31,12 +31,16 @@ export type {
 
 export type { CoreApi, GroupListEntry } from './api.js';
 
-export {
-  registerModule,
-  isModuleRegistered,
-  getModule,
-  listModules,
-} from './registry.js';
+export type {
+  CodeModuleRegister,
+  HttpMethod,
+  ModuleContext,
+  ModuleDb,
+  RouteSchema,
+  RouteSpec,
+} from './modules.js';
+
+export { registerModule, isModuleRegistered, getModule, listModules } from './registry.js';
 
 export { createScopedStore } from './store.js';
 export type { ScopedStore, ScopedStoreEntry, SqlDb, SqlPrepared } from './store.js';

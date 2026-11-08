@@ -1,4 +1,4 @@
-import { describe, expect, it, afterEach } from 'vitest';
+﻿import { describe, expect, it, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -50,9 +50,8 @@ describe('schema v7', () => {
 
   it('user_home_prefs хранит порядок и скрытые и чистится вместе с пользователем', () => {
     const db = track(openDb(':memory:'));
-    const userId = db
-      .prepare("INSERT INTO users (username, password_hash) VALUES ('u', 'h')")
-      .run().lastInsertRowid as number;
+    const userId = db.prepare("INSERT INTO users (username, password_hash) VALUES ('u', 'h')").run()
+      .lastInsertRowid as number;
     db.prepare(
       'INSERT INTO user_home_prefs (user_id, module_id, position, hidden) VALUES (?, ?, ?, ?)',
     ).run(userId, 'todo', 0, 1);
@@ -97,11 +96,9 @@ describe('schema v7', () => {
     db.prepare(
       "INSERT INTO modules (id, kind, name, manifest_json) VALUES ('m1', 'simple', 'Mod', '{}')",
     ).run();
-    db.prepare('INSERT INTO module_migrations (module_id, version, applied_at) VALUES (?, ?, ?)').run(
-      'm1',
-      1,
-      '2026-01-01T00:00:00.000Z',
-    );
+    db.prepare(
+      'INSERT INTO module_migrations (module_id, version, applied_at) VALUES (?, ?, ?)',
+    ).run('m1', 1, '2026-01-01T00:00:00.000Z');
     db.prepare("DELETE FROM modules WHERE id = 'm1'").run();
     expect(db.prepare('SELECT * FROM module_migrations').all()).toHaveLength(0);
     db.close();
@@ -127,9 +124,11 @@ describe('schema v7', () => {
   it('is idempotent on reopen and preserves data', () => {
     const file = tempDbFile();
     const db1 = track(openDb(file));
-    db1.prepare(
-      "INSERT INTO modules (id, kind, name, manifest_json) VALUES ('m1', 'simple', 'Mod', '{}')",
-    ).run();
+    db1
+      .prepare(
+        "INSERT INTO modules (id, kind, name, manifest_json) VALUES ('m1', 'simple', 'Mod', '{}')",
+      )
+      .run();
     expect(db1.pragma('user_version', { simple: true })).toBe(7);
     db1.close();
 
@@ -156,7 +155,9 @@ describe('schema v7', () => {
     expect(db.prepare("SELECT username FROM users WHERE username = 'alice'").get()).toEqual({
       username: 'alice',
     });
-    const alice = db.prepare("SELECT password_hash, pin_hash FROM users WHERE username = 'alice'").get() as {
+    const alice = db
+      .prepare("SELECT password_hash, pin_hash FROM users WHERE username = 'alice'")
+      .get() as {
       password_hash: string;
       pin_hash: string | null;
     };
@@ -180,24 +181,32 @@ describe('schema v7', () => {
     raw.pragma('user_version = 2');
     raw.exec(MIGRATIONS[3]!);
     raw.pragma('user_version = 3');
-    raw.prepare(
-      "INSERT INTO users (username, password_hash, auth_mode) VALUES ('pinny', 'pinhash', 'pin')",
-    ).run();
-    raw.prepare(
-      "INSERT INTO users (username, password_hash, auth_mode) VALUES ('passy', 'passhash', 'password')",
-    ).run();
+    raw
+      .prepare(
+        "INSERT INTO users (username, password_hash, auth_mode) VALUES ('pinny', 'pinhash', 'pin')",
+      )
+      .run();
+    raw
+      .prepare(
+        "INSERT INTO users (username, password_hash, auth_mode) VALUES ('passy', 'passhash', 'password')",
+      )
+      .run();
     raw.close();
 
     const db = track(openDb(file));
     expect(db.pragma('user_version', { simple: true })).toBe(7);
-    const pinny = db.prepare("SELECT password_hash, pin_hash FROM users WHERE username = 'pinny'").get() as {
+    const pinny = db
+      .prepare("SELECT password_hash, pin_hash FROM users WHERE username = 'pinny'")
+      .get() as {
       password_hash: string | null;
       pin_hash: string | null;
     };
     expect(pinny.password_hash).toBeNull();
     expect(pinny.pin_hash).toBe('pinhash');
 
-    const passy = db.prepare("SELECT password_hash, pin_hash FROM users WHERE username = 'passy'").get() as {
+    const passy = db
+      .prepare("SELECT password_hash, pin_hash FROM users WHERE username = 'passy'")
+      .get() as {
       password_hash: string | null;
       pin_hash: string | null;
     };

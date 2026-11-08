@@ -63,7 +63,10 @@ export const DUMMY_PIN_HASH = bcrypt.hashSync('123456', SALT_ROUNDS);
  * существующего и несуществующего логина. Возвращает `true` только когда пинкод
  * задан и совпал.
  */
-export async function verifyPinSecret(pin: string, user: { pin_hash: string | null }): Promise<boolean> {
+export async function verifyPinSecret(
+  pin: string,
+  user: { pin_hash: string | null },
+): Promise<boolean> {
   const hash = user.pin_hash ?? DUMMY_PIN_HASH;
   const matched = await bcrypt.compare(pin, hash);
   return user.pin_hash !== null && matched;

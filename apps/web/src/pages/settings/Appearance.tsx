@@ -7,11 +7,7 @@ import {
   type AppearanceState,
 } from '@perepelkin-home/core';
 import { api } from '../../api';
-import {
-  applyAppearance,
-  getAppearanceSnapshot,
-  setAppearanceSnapshot,
-} from '../../appearance';
+import { applyAppearance, getAppearanceSnapshot, setAppearanceSnapshot } from '../../appearance';
 import {
   APPEARANCE_COLOR_GROUPS,
   APPEARANCE_PRESETS,
@@ -264,8 +260,8 @@ export function AppearanceSection() {
             ))}
           </div>
           <p className="appearance-hint">
-            В режиме «Минимальные» анимации отключаются во всём доме — мигающая точка
-            в примере ниже застынет.
+            В режиме «Минимальные» анимации отключаются во всём доме — мигающая точка в примере ниже
+            застынет.
           </p>
         </fieldset>
       </div>
@@ -277,8 +273,8 @@ export function AppearanceSection() {
           <span className="appearance-preview-badge">метка</span>
         </div>
         <p className="appearance-preview-text">
-          Заголовок набран шрифтом заголовков, этот абзац — шрифтом текста. Кнопки,
-          поля и метки во всех модулях красятся теми же цветами.
+          Заголовок набран шрифтом заголовков, этот абзац — шрифтом текста. Кнопки, поля и метки во
+          всех модулях красятся теми же цветами.
         </p>
         <div className="appearance-preview-row">
           <button type="button" className="btn-primary" tabIndex={-1}>

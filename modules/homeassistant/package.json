@@ -21,6 +21,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@perepelkin-home/core": "*",
     "react": "^19"
   },
   "devDependencies": {

@@ -1,7 +1,9 @@
 # [P3] Оптимизировать CI: кэширование и rsync исключения
 
 ## Приоритет: Низкий
+
 ## Оценка: 1/10 (~15 минут)
+
 ## Файлы: `.github/workflows/deploy.yml`, `.github/workflows/staging.yml`
 
 ## Проблема
@@ -26,11 +28,11 @@
 
 ```yaml
 rsync -avz --delete \
-  --exclude '.git' --exclude '.env' --exclude 'node_modules' \
-  --exclude '.scratch' --exclude '.10x' --exclude '.superpowers' \
-  --exclude '.opencode' --exclude 'docs' --exclude 'shots2' \
-  --exclude 'update-dns.ps1' --exclude 'AGENTS.md' --exclude 'tech_debt' \
-  . "$RSYNC_PATH"
+--exclude '.git' --exclude '.env' --exclude 'node_modules' \
+--exclude '.scratch' --exclude '.10x' --exclude '.superpowers' \
+--exclude '.opencode' --exclude 'docs' --exclude 'shots2' \
+--exclude 'update-dns.ps1' --exclude 'AGENTS.md' --exclude 'tech_debt' \
+. "$RSYNC_PATH"
 ```
 
 ### 2. Добавить Docker layer caching (опционально):

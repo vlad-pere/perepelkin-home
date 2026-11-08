@@ -105,11 +105,11 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
            { "name": "title", "label": "Дело", "type": "text", "required": true },
            { "name": "note", "label": "Заметка", "type": "textarea" },
            { "name": "when", "label": "Дата", "type": "date" },
-           { "name": "done", "label": "Сделано", "type": "boolean" }
+           { "name": "done", "label": "Сделано", "type": "boolean" },
          ],
-         "defaultSort": { "field": "done", "direction": "asc" }
-       }
-     ]
+         "defaultSort": { "field": "done", "direction": "asc" },
+       },
+     ],
    }
    ```
 
@@ -133,7 +133,7 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 
 ### Простой модуль со своим интерфейсом
 
-Иногда простому модулю нужен свой экран вместо общего CRUD-UI (например, список дел с прогресс-баром). Тогда модуль остаётся декларативным (`kind: "simple"`, бэкенд — общий CRUD), а в `apps/web/src/modules/registry.tsx` для его id регистрируется собственный React-компонент — он имеет приоритет над общим UI. Пример — `modules/todo/` (страница в пакете модуля, как у `modules/admin/`). Добавление такого модуля требует пересборки фронтенда (`npm run build`).
+Иногда простому модулю нужен свой экран вместо общего CRUD-UI (например, список дел с прогресс-баром). Тогда модуль остаётся декларативным (`kind: "simple"`, бэкенд — общий CRUD), а в `apps/web/src/modules/registry.tsx` для его id регистрируется собственный React-компонент — он имеет приоритет над общим UI. Пример — `modules/todo/` (страница лежит в пакете модуля). Добавление такого модуля требует пересборки фронтенда (`npm run build`).
 
 ### Публичная страница модуля (`publicRead`)
 
@@ -145,7 +145,7 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 
 ### Код-модуль
 
-Манифест с `kind: "code"` + Fastify-плагин (`server.ts`) и React-роуты (`ui.tsx`). Роуты регистрируются через `ctx.route({ method, path, action }, handler)` — проверка прав обязательна для каждого роута. Для публичных мутаций без входа роут помечается `public: true` и сам аутентифицирует запрос (логин+пинкод), при необходимости с per-route limit (`config.rateLimit`). Примеры — `modules/admin/`, `modules/wishlist/` (публичная страница с бронированием по пинкоду). Подробности: [docs/architecture.md](docs/architecture.md).
+Манифест с `kind: "code"` + Fastify-плагин (`server.ts`) и React-роуты (`ui.tsx`). Роуты регистрируются через `ctx.route({ method, path, action }, handler)` — проверка прав обязательна для каждого роута. Код-модуль может получить доступ к общей БД через `ctx.db`. Для публичных мутаций без входа роут помечается `public: true` и сам аутентифицирует запрос (логин+пинкод), при необходимости с per-route limit (`config.rateLimit`). Примеры — `modules/wishlist/` (публичная страница с бронированием по пинкоду), `modules/homeassistant/`, `modules/maintenance/`. Подробности: [docs/architecture.md](docs/architecture.md).
 
 ## Хранение файлов
 
@@ -165,16 +165,16 @@ TypeScript (npm workspaces: `apps/`, `packages/`, `modules/`), Fastify 5 + bette
 
 ## Скрипты
 
-| Команда | Что делает |
-| --- | --- |
-| `npm run dev` | Сборка core и всех модулей, затем сервер (3000) и фронтенд (5173) одновременно |
-| `npm run dev:server` / `npm run dev:web` | Только сервер / только фронтенд |
-| `npm run seed` | Создаёт администратора и группы «Семья»/«Гости» |
-| `npm run build` | Сборка core, всех модулей, сервера и фронтенда |
-| `npm run typecheck` | Проверка типов во всех workspace-пакетах |
-| `npm test` | Vitest: core + server + module-shopping (логика RICE) |
-| `npm run lint` / `npm run lint:fix` | ESLint по всему проекту / с автоисправлением |
-| `npm run format` / `npm run format:check` | Prettier: переформатировать / проверить форматирование |
+| Команда                                   | Что делает                                                                     |
+| ----------------------------------------- | ------------------------------------------------------------------------------ |
+| `npm run dev`                             | Сборка core и всех модулей, затем сервер (3000) и фронтенд (5173) одновременно |
+| `npm run dev:server` / `npm run dev:web`  | Только сервер / только фронтенд                                                |
+| `npm run seed`                            | Создаёт администратора и группы «Семья»/«Гости»                                |
+| `npm run build`                           | Сборка core, всех модулей, сервера и фронтенда                                 |
+| `npm run typecheck`                       | Проверка типов во всех workspace-пакетах                                       |
+| `npm test`                                | Vitest: core + server + module-shopping (логика RICE)                          |
+| `npm run lint` / `npm run lint:fix`       | ESLint по всему проекту / с автоисправлением                                   |
+| `npm run format` / `npm run format:check` | Prettier: переформатировать / проверить форматирование                         |
 
 ## Тесты и проверки
 

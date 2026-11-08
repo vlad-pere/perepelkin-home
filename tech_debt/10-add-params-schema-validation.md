@@ -1,7 +1,9 @@
 # [P2] Добавить params schema с pattern на admin grant routes
 
 ## Приоритет: Средний
+
 ## Оценка: 1/10 (~10 минут)
+
 ## Файл: `apps/server/src/routes/admin.ts`, строки 188, 197
 
 ## Проблема

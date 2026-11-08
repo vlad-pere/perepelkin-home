@@ -1,12 +1,15 @@
 # [P2] Добавить retry/abort в API-слой
 
 ## Приоритет: Средний
+
 ## Оценка: 3/10 (~1 час)
+
 ## Файл: `apps/web/src/api.ts`
 
 ## Проблема
 
 `api()` функция не имеет:
+
 - Retry logic для transient network errors (502, 503, 504, network error)
 - AbortController support (net cleanup при unmount компонента)
 - Request timeout (зависший запрос блокирует UI навсегда)
@@ -32,22 +35,27 @@ export async function api<T>(method: string, path: string, body?: unknown): Prom
 1. **Retry с экспоненциальным backoff** для 502/503/504 и network errors:
 
 ```typescript
-async function apiWithRetry<T>(method: string, path: string, body?: unknown, retries = 2): Promise<T> {
+async function apiWithRetry<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  retries = 2,
+): Promise<T> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await api<T>(method, path, body)
+      return await api<T>(method, path, body);
     } catch (e) {
-      if (attempt === retries || !isRetryable(e)) throw e
-      await sleep(1000 * 2 ** attempt)  // 1s, 2s
+      if (attempt === retries || !isRetryable(e)) throw e;
+      await sleep(1000 * 2 ** attempt); // 1s, 2s
     }
   }
-  throw new Error('unreachable')
+  throw new Error('unreachable');
 }
 
 function isRetryable(e: unknown): boolean {
-  if (e instanceof ApiError) return [502, 503, 504].includes(e.status)
-  if (e instanceof TypeError) return e.message.includes('fetch')  // network error
-  return false
+  if (e instanceof ApiError) return [502, 503, 504].includes(e.status);
+  if (e instanceof TypeError) return e.message.includes('fetch'); // network error
+  return false;
 }
 ```
 
@@ -61,21 +69,22 @@ export async function api<T>(method: string, path: string, body?: unknown, signa
 ```
 
 Использование в компонентах:
+
 ```typescript
 useEffect(() => {
-  const ctrl = new AbortController()
-  api('GET', '/api/items', undefined, ctrl.signal).then(setItems)
-  return () => ctrl.abort()
-}, [])
+  const ctrl = new AbortController();
+  api('GET', '/api/items', undefined, ctrl.signal).then(setItems);
+  return () => ctrl.abort();
+}, []);
 ```
 
 3. **Timeout** — обернуть fetch в `Promise.race` с таймаутом (10 сек):
 
 ```typescript
 const timeout = new Promise<never>((_, reject) =>
-  setTimeout(() => reject(new ApiError(408, 'Request timeout')), 10000)
-)
-const resp = await Promise.race([fetch(url, opts), timeout])
+  setTimeout(() => reject(new ApiError(408, 'Request timeout')), 10000),
+);
+const resp = await Promise.race([fetch(url, opts), timeout]);
 ```
 
 ## Подводные камни

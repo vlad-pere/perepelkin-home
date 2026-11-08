@@ -88,7 +88,10 @@ describe('POST /api/auth/login', () => {
 
   it('валидирует тело запроса', async () => {
     const client = new Client(world.app);
-    const res = await client.inject('POST', '/api/auth/login', { username: 'admin', password: 'short' });
+    const res = await client.inject('POST', '/api/auth/login', {
+      username: 'admin',
+      password: 'short',
+    });
     expect(res.statusCode).toBe(400);
     expect(res.json().error.code).toBe('VALIDATION_ERROR');
   });
@@ -216,9 +219,9 @@ describe('метаданные модулей в /me', () => {
 
     const me = await client.inject('GET', '/api/auth/me');
     expect(me.statusCode).toBe(200);
-    const admin = (me.json() as { modules: Array<{ id: string; kind: string; route: string }> }).modules.find(
-      (m) => m.id === 'admin',
-    );
+    const admin = (
+      me.json() as { modules: Array<{ id: string; kind: string; route: string }> }
+    ).modules.find((m) => m.id === 'admin');
     expect(admin).toBeDefined();
     expect(admin?.kind).toBe('code');
     expect(admin?.route).toBe('/admin');

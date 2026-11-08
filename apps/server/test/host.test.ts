@@ -4,7 +4,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ModuleManifest } from '@perepelkin-home/core';
 import { createTestWorld, Client, type TestWorld } from './helpers.js';
-import { mountModule, syncModule, registerModulesFromDisk, type CodeModuleRegister } from '../src/modules/host.js';
+import {
+  mountModule,
+  syncModule,
+  registerModulesFromDisk,
+  type CodeModuleRegister,
+} from '../src/modules/host.js';
 import { tableName } from '../src/modules/crud.js';
 
 const itemManifest: ModuleManifest = {
@@ -124,14 +129,18 @@ describe('module host', () => {
   it('publicRead: mutations still require auth', async () => {
     await mountModule(world.app, { db: world.db, core: world.core, manifest: publicManifest });
     const anonymous = new Client(world.app);
-    const denied = await anonymous.inject('POST', '/api/modules/public-demo/gift', { title: 'Чайник' });
+    const denied = await anonymous.inject('POST', '/api/modules/public-demo/gift', {
+      title: 'Чайник',
+    });
     expect(denied.statusCode).toBe(401);
   });
 
   it('publicRead: authenticated user without grant cannot write', async () => {
     await mountModule(world.app, { db: world.db, core: world.core, manifest: publicManifest });
     const client = await memberClient();
-    const denied = await client.inject('POST', '/api/modules/public-demo/gift', { title: 'Чайник' });
+    const denied = await client.inject('POST', '/api/modules/public-demo/gift', {
+      title: 'Чайник',
+    });
     expect(denied.statusCode).toBe(403);
   });
 
@@ -163,7 +172,10 @@ describe('module host', () => {
     grant(user.id, true, true, 'public-demo');
     const client = await memberClient();
 
-    const res = await client.inject('POST', '/api/modules/public-demo/gift', { title: 'Чайник', link });
+    const res = await client.inject('POST', '/api/modules/public-demo/gift', {
+      title: 'Чайник',
+      link,
+    });
     expect(res.statusCode).toBe(400);
   });
 
@@ -190,9 +202,9 @@ describe('module host', () => {
       ],
     };
     syncModule(world.db, changed);
-    const row = world.db.prepare('SELECT version, status, manifest_json FROM modules WHERE id = ?').get(
-      'demo',
-    ) as { version: number; status: string; manifest_json: string };
+    const row = world.db
+      .prepare('SELECT version, status, manifest_json FROM modules WHERE id = ?')
+      .get('demo') as { version: number; status: string; manifest_json: string };
     expect(row.version).toBe(2);
     expect(row.status).toBe('active');
     expect(JSON.parse(row.manifest_json)).toEqual(changed);
@@ -337,15 +349,80 @@ describe('module host', () => {
     expect(ok.json()).toEqual({ count: 42 });
   });
 
+  it('provides ctx.db to code modules for their own storage', async () => {
+    await mountModule(world.app, {
+      db: world.db,
+      core: world.core,
+      manifest: itemManifest,
+      register: (_app, ctx) => {
+        ctx.db.exec(
+          'CREATE TABLE IF NOT EXISTS module_demo_note (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT)',
+        );
+        ctx.route({ method: 'POST', path: '/note', action: 'write' }, async (req, reply) => {
+          const body = req.body as { text?: unknown };
+          const insert = ctx.db.prepare('INSERT INTO module_demo_note (text) VALUES (?)');
+          const info = insert.run(String(body.text ?? '')) as { lastInsertRowid: number };
+          return reply.send({ id: Number(info.lastInsertRowid) });
+        });
+      },
+    });
+
+    const user = world.core.users.getByUsername('member')!;
+    grant(user.id, true, true);
+    const client = await memberClient();
+    const res = await client.inject('POST', '/api/modules/demo/note', { text: 'test' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ id: 1 });
+  });
+
+  it('validates the route body against the spec schema (400)', async () => {
+    await mountModule(world.app, {
+      db: world.db,
+      core: world.core,
+      manifest: itemManifest,
+      register: (_app, ctx) => {
+        ctx.route(
+          {
+            method: 'POST',
+            path: '/echo',
+            action: 'write',
+            schema: {
+              body: {
+                type: 'object',
+                properties: { text: { type: 'string' } },
+                required: ['text'],
+                additionalProperties: false,
+              },
+            },
+          },
+          async (req, reply) => {
+            return reply.send({ text: (req.body as { text: string }).text });
+          },
+        );
+      },
+    });
+
+    const user = world.core.users.getByUsername('member')!;
+    grant(user.id, true, true);
+    const client = await memberClient();
+
+    const ok = await client.inject('POST', '/api/modules/demo/echo', { text: 'hi' });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json()).toEqual({ text: 'hi' });
+
+    const missing = await client.inject('POST', '/api/modules/demo/echo', {});
+    expect(missing.statusCode).toBe(400);
+    expect((missing.json() as { error: { code: string } }).error.code).toBe('VALIDATION_ERROR');
+
+    const unknown = await client.inject('POST', '/api/modules/demo/echo', { text: 'hi', extra: 1 });
+    expect(unknown.statusCode).toBe(400);
+  });
+
   it('registers modules from disk and isolates broken ones', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'domo-modules-'));
     try {
       mkdirSync(join(dir, 'demo'));
-      writeFileSync(
-        join(dir, 'demo', 'manifest.json'),
-        JSON.stringify(itemManifest),
-        'utf8',
-      );
+      writeFileSync(join(dir, 'demo', 'manifest.json'), JSON.stringify(itemManifest), 'utf8');
 
       mkdirSync(join(dir, 'broken-code'));
       const brokenManifest: ModuleManifest = {
@@ -355,7 +432,11 @@ describe('module host', () => {
         kind: 'code',
         entities: [],
       };
-      writeFileSync(join(dir, 'broken-code', 'manifest.json'), JSON.stringify(brokenManifest), 'utf8');
+      writeFileSync(
+        join(dir, 'broken-code', 'manifest.json'),
+        JSON.stringify(brokenManifest),
+        'utf8',
+      );
 
       mkdirSync(join(dir, 'bad-json'));
       writeFileSync(join(dir, 'bad-json', 'manifest.json'), '{ not json', 'utf8');
@@ -382,9 +463,9 @@ describe('module host', () => {
       expect(broken.status).toBe('broken');
       expect(broken.error).toContain('code module crashed');
 
-      const active = world.db
-        .prepare('SELECT status FROM modules WHERE id = ?')
-        .get('demo') as { status: string };
+      const active = world.db.prepare('SELECT status FROM modules WHERE id = ?').get('demo') as {
+        status: string;
+      };
       expect(active.status).toBe('active');
 
       const user = world.core.users.getByUsername('member')!;

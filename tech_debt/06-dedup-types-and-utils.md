@@ -1,22 +1,24 @@
 # [P1] Вынести дублированные типы и утилиты в общий пакет
 
 ## Приоритет: Высокий
+
 ## Оценка: 3/10 (~1-2 часа)
+
 ## Скоуп: 10+ файлов
 
 ## Проблема
 
 Критический объём дублированного кода в модулях:
 
-| Что | Копий | Файлы |
-|-----|-------|-------|
-| `ApiClient` interface | 6 | todo, wishlist, diary, move, admin, shopping (+ `ModuleApiClient` в registry) |
-| `ManifestInfo` interface | 5 | todo, wishlist, diary, move, shopping |
-| `formatDate()` | 4 | todo, shopping, admin, CrudModule |
-| `safeHttpUrl()`/`safeUrl()` | 3 | shopping, CrudModule, wishlist |
-| Error constants (`UNAUTHENTICATED`, `FORBIDDEN`, `CSRF_FAILED`) | 2 | hooks.ts, host.ts |
-| `isMutation()` helper | 2 | hooks.ts, host.ts |
-| `UserRow` / `SessionUser` | 2 | core.ts, sessions.ts |
+| Что                                                             | Копий | Файлы                                                                         |
+| --------------------------------------------------------------- | ----- | ----------------------------------------------------------------------------- |
+| `ApiClient` interface                                           | 6     | todo, wishlist, diary, move, admin, shopping (+ `ModuleApiClient` в registry) |
+| `ManifestInfo` interface                                        | 5     | todo, wishlist, diary, move, shopping                                         |
+| `formatDate()`                                                  | 4     | todo, shopping, admin, CrudModule                                             |
+| `safeHttpUrl()`/`safeUrl()`                                     | 3     | shopping, CrudModule, wishlist                                                |
+| Error constants (`UNAUTHENTICATED`, `FORBIDDEN`, `CSRF_FAILED`) | 2     | hooks.ts, host.ts                                                             |
+| `isMutation()` helper                                           | 2     | hooks.ts, host.ts                                                             |
+| `UserRow` / `SessionUser`                                       | 2     | core.ts, sessions.ts                                                          |
 
 Если контракт API изменится, нужно править 6+ файлов вручную.
 
@@ -27,17 +29,17 @@
 ```typescript
 // Общий ApiClient
 export interface ApiClient {
-  get<T>(path: string): Promise<T>
-  post<T>(path: string, body?: unknown): Promise<T>
-  put<T>(path: string, body?: unknown): Promise<T>
-  patch<T>(path: string, body?: unknown): Promise<T>
-  del<T>(path: string): Promise<T>
+  get<T>(path: string): Promise<T>;
+  post<T>(path: string, body?: unknown): Promise<T>;
+  put<T>(path: string, body?: unknown): Promise<T>;
+  patch<T>(path: string, body?: unknown): Promise<T>;
+  del<T>(path: string): Promise<T>;
 }
 
 // Общий ManifestInfo
 export interface ManifestInfo {
-  name: string
-  description: string
+  name: string;
+  description: string;
 }
 ```
 
@@ -51,10 +53,16 @@ export function safeHttpUrl(raw: string): string | null { ... }
 ### Шаг 3: Создать `packages/shared/src/errors.ts`
 
 ```typescript
-export const UNAUTHENTICATED = { statusCode: 401, error: 'Unauthorized', message: 'Not authenticated' }
-export const FORBIDDEN = { statusCode: 403, error: 'Forbidden', message: 'Forbidden' }
-export const CSRF_FAILED = { statusCode: 403, error: 'Forbidden', message: 'CSRF token mismatch' }
-export function isMutation(method: string): boolean { return ['POST','PUT','PATCH','DELETE'].includes(method.toUpperCase()) }
+export const UNAUTHENTICATED = {
+  statusCode: 401,
+  error: 'Unauthorized',
+  message: 'Not authenticated',
+};
+export const FORBIDDEN = { statusCode: 403, error: 'Forbidden', message: 'Forbidden' };
+export const CSRF_FAILED = { statusCode: 403, error: 'Forbidden', message: 'CSRF token mismatch' };
+export function isMutation(method: string): boolean {
+  return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase());
+}
 ```
 
 ### Шаг 4: Обновить все импорты

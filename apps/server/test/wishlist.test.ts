@@ -8,7 +8,10 @@ import wishlistModule from '@perepelkin-home/module-wishlist';
 
 const manifest = validateManifest(
   JSON.parse(
-    readFileSync(fileURLToPath(new URL('../../../modules/wishlist/manifest.json', import.meta.url)), 'utf8'),
+    readFileSync(
+      fileURLToPath(new URL('../../../modules/wishlist/manifest.json', import.meta.url)),
+      'utf8',
+    ),
   ),
 );
 
@@ -40,7 +43,7 @@ beforeEach(async () => {
     db: world.db,
     core: world.core,
     manifest,
-    register: (moduleApp, ctx) => wishlistModule(moduleApp, ctx, world.db),
+    register: (moduleApp, ctx) => wishlistModule(moduleApp, ctx),
   });
 
   client = new Client(world.app);
@@ -57,7 +60,8 @@ describe('wishlist module', () => {
     const anonymous = new Client(world.app);
     const res = await anonymous.inject('GET', '/api/modules/wishlist/gift');
     expect(res.statusCode).toBe(200);
-    const items = (res.json() as { items: Array<{ id: number; reserved_by_name: string | null }> }).items;
+    const items = (res.json() as { items: Array<{ id: number; reserved_by_name: string | null }> })
+      .items;
     expect(items).toHaveLength(1);
     expect(items[0]!.id).toBe(id);
     expect(items[0]!.reserved_by_name).toBeNull();
@@ -77,49 +81,71 @@ describe('wishlist module', () => {
 
   it('rejects booking without credentials', async () => {
     const id = await createGift({ name: 'Кружка' });
-    const res = await new Client(world.app).inject('POST', `/api/modules/wishlist/gift/${id}/book`, {});
+    const res = await new Client(world.app).inject(
+      'POST',
+      `/api/modules/wishlist/gift/${id}/book`,
+      {},
+    );
     expect(res.statusCode).toBe(400);
   });
 
   it('rejects booking with a wrong pin', async () => {
     const id = await createGift({ name: 'Кружка' });
-    const res = await new Client(world.app).inject('POST', `/api/modules/wishlist/gift/${id}/book`, {
-      username: 'guest',
-      pin: '000000',
-    });
+    const res = await new Client(world.app).inject(
+      'POST',
+      `/api/modules/wishlist/gift/${id}/book`,
+      {
+        username: 'guest',
+        pin: '000000',
+      },
+    );
     expect(res.statusCode).toBe(401);
     expect((res.json() as { error: { code: string } }).error.code).toBe('INVALID_CREDENTIALS');
   });
 
   it('rejects booking with a wrong username', async () => {
     const id = await createGift({ name: 'Кружка' });
-    const res = await new Client(world.app).inject('POST', `/api/modules/wishlist/gift/${id}/book`, {
-      username: 'nobody',
-      pin: '135790',
-    });
+    const res = await new Client(world.app).inject(
+      'POST',
+      `/api/modules/wishlist/gift/${id}/book`,
+      {
+        username: 'nobody',
+        pin: '135790',
+      },
+    );
     expect(res.statusCode).toBe(401);
   });
 
   it('books a gift with a valid login and pin, visible on public listing', async () => {
     const id = await createGift({ name: 'Кружка' });
-    const res = await new Client(world.app).inject('POST', `/api/modules/wishlist/gift/${id}/book`, {
-      username: 'guest',
-      pin: '135790',
-    });
+    const res = await new Client(world.app).inject(
+      'POST',
+      `/api/modules/wishlist/gift/${id}/book`,
+      {
+        username: 'guest',
+        pin: '135790',
+      },
+    );
     expect(res.statusCode).toBe(200);
-    const item = (res.json() as { item: { reserved_by_name: string | null; assigned: boolean } }).item;
+    const item = (res.json() as { item: { reserved_by_name: string | null; assigned: boolean } })
+      .item;
     expect(item.reserved_by_name).toBe('guest');
     expect(item.assigned).toBe(false);
 
     const listed = await new Client(world.app).inject('GET', '/api/modules/wishlist/gift');
-    const items = (listed.json() as { items: Array<{ id: number; reserved_by_name: string | null }> }).items;
+    const items = (
+      listed.json() as { items: Array<{ id: number; reserved_by_name: string | null }> }
+    ).items;
     expect(items.find((g) => g.id === id)?.reserved_by_name).toBe('guest');
   });
 
   it('keeps internal platform ids and family logins out of the public list', async () => {
     const id = await createGift({ name: 'Кружка' });
     const anonymous = new Client(world.app);
-    await anonymous.inject('POST', `/api/modules/wishlist/gift/${id}/book`, { username: 'guest', pin: '135790' });
+    await anonymous.inject('POST', `/api/modules/wishlist/gift/${id}/book`, {
+      username: 'guest',
+      pin: '135790',
+    });
     const res = await anonymous.inject('GET', '/api/modules/wishlist/gift');
     const items = (res.json() as { items: Array<Record<string, unknown>> }).items;
     const item = items[0]!;
@@ -135,7 +161,10 @@ describe('wishlist module', () => {
   it('rejects a second booking of the same gift', async () => {
     const id = await createGift({ name: 'Кружка' });
     const anonymous = new Client(world.app);
-    await anonymous.inject('POST', `/api/modules/wishlist/gift/${id}/book`, { username: 'guest', pin: '135790' });
+    await anonymous.inject('POST', `/api/modules/wishlist/gift/${id}/book`, {
+      username: 'guest',
+      pin: '135790',
+    });
     const res = await anonymous.inject('POST', `/api/modules/wishlist/gift/${id}/book`, {
       username: 'other',
       pin: '246801',
@@ -147,7 +176,10 @@ describe('wishlist module', () => {
   it('allows only the booker to unbook', async () => {
     const id = await createGift({ name: 'Кружка' });
     const anonymous = new Client(world.app);
-    await anonymous.inject('POST', `/api/modules/wishlist/gift/${id}/book`, { username: 'guest', pin: '135790' });
+    await anonymous.inject('POST', `/api/modules/wishlist/gift/${id}/book`, {
+      username: 'guest',
+      pin: '135790',
+    });
 
     const byOther = await anonymous.inject('POST', `/api/modules/wishlist/gift/${id}/unbook`, {
       username: 'other',
@@ -167,10 +199,14 @@ describe('wishlist module', () => {
 
   it('rejects unbooking a gift that is not booked', async () => {
     const id = await createGift({ name: 'Кружка' });
-    const res = await new Client(world.app).inject('POST', `/api/modules/wishlist/gift/${id}/unbook`, {
-      username: 'guest',
-      pin: '135790',
-    });
+    const res = await new Client(world.app).inject(
+      'POST',
+      `/api/modules/wishlist/gift/${id}/unbook`,
+      {
+        username: 'guest',
+        pin: '135790',
+      },
+    );
     expect(res.statusCode).toBe(409);
     expect((res.json() as { error: { code: string } }).error.code).toBe('NOT_BOOKED');
   });
@@ -248,7 +284,10 @@ describe('wishlist module', () => {
   it('deleting a gift removes its reservation', async () => {
     const id = await createGift({ name: 'Кружка' });
     const anonymous = new Client(world.app);
-    await anonymous.inject('POST', `/api/modules/wishlist/gift/${id}/book`, { username: 'guest', pin: '135790' });
+    await anonymous.inject('POST', `/api/modules/wishlist/gift/${id}/book`, {
+      username: 'guest',
+      pin: '135790',
+    });
 
     const del = await client.inject('DELETE', `/api/modules/wishlist/gift/${id}`);
     expect(del.statusCode).toBe(204);
@@ -263,15 +302,23 @@ describe('wishlist module', () => {
   it('assigns a guest name to a free gift as the logged-in admin', async () => {
     const id = await createGift({ name: 'Кружка' });
     const memberId = world.core.users.getByUsername('member')!.id;
-    const res = await client.inject('POST', `/api/modules/wishlist/gift/${id}/assign`, { name: 'Тётя Галя' });
+    const res = await client.inject('POST', `/api/modules/wishlist/gift/${id}/assign`, {
+      name: 'Тётя Галя',
+    });
     expect(res.statusCode).toBe(200);
-    const item = (res.json() as { item: { reserved_by: number | null; reserved_by_name: string | null; assigned: boolean } }).item;
+    const item = (
+      res.json() as {
+        item: { reserved_by: number | null; reserved_by_name: string | null; assigned: boolean };
+      }
+    ).item;
     expect(item.reserved_by).toBe(memberId);
     expect(item.reserved_by_name).toBe('Тётя Галя');
     expect(item.assigned).toBe(true);
 
     const listed = await client.inject('GET', '/api/modules/wishlist/gift');
-    const items = (listed.json() as { items: Array<{ id: number; reserved_by_name: string | null }> }).items;
+    const items = (
+      listed.json() as { items: Array<{ id: number; reserved_by_name: string | null }> }
+    ).items;
     expect(items.find((g) => g.id === id)?.reserved_by_name).toBe('Тётя Галя');
   });
 
@@ -291,14 +338,21 @@ describe('wishlist module', () => {
   it('rejects assigning an already claimed gift', async () => {
     const id = await createGift({ name: 'Кружка' });
     const anonymous = new Client(world.app);
-    await anonymous.inject('POST', `/api/modules/wishlist/gift/${id}/book`, { username: 'guest', pin: '135790' });
-    const res = await client.inject('POST', `/api/modules/wishlist/gift/${id}/assign`, { name: 'Тётя Галя' });
+    await anonymous.inject('POST', `/api/modules/wishlist/gift/${id}/book`, {
+      username: 'guest',
+      pin: '135790',
+    });
+    const res = await client.inject('POST', `/api/modules/wishlist/gift/${id}/assign`, {
+      name: 'Тётя Галя',
+    });
     expect(res.statusCode).toBe(409);
     expect((res.json() as { error: { code: string } }).error.code).toBe('ALREADY_BOOKED');
   });
 
   it('rejects assigning a nonexistent gift', async () => {
-    const res = await client.inject('POST', '/api/modules/wishlist/gift/999/assign', { name: 'Тётя Галя' });
+    const res = await client.inject('POST', '/api/modules/wishlist/gift/999/assign', {
+      name: 'Тётя Галя',
+    });
     expect(res.statusCode).toBe(404);
   });
 
@@ -311,7 +365,9 @@ describe('wishlist module', () => {
     world.core.grants.set(group.id, 'wishlist', { canRead: true, canWrite: false });
     const reader = new Client(world.app);
     await reader.login('reader', 'secret123');
-    const res = await reader.inject('POST', `/api/modules/wishlist/gift/${id}/assign`, { name: 'Тётя Галя' });
+    const res = await reader.inject('POST', `/api/modules/wishlist/gift/${id}/assign`, {
+      name: 'Тётя Галя',
+    });
     expect(res.statusCode).toBe(403);
   });
 
@@ -320,7 +376,11 @@ describe('wishlist module', () => {
     await client.inject('POST', `/api/modules/wishlist/gift/${id}/assign`, { name: 'Тётя Галя' });
     const res = await client.inject('POST', `/api/modules/wishlist/gift/${id}/release`);
     expect(res.statusCode).toBe(200);
-    const item = (res.json() as { item: { reserved_by: number | null; reserved_by_name: string | null; assigned: boolean } }).item;
+    const item = (
+      res.json() as {
+        item: { reserved_by: number | null; reserved_by_name: string | null; assigned: boolean };
+      }
+    ).item;
     expect(item.reserved_by).toBeNull();
     expect(item.reserved_by_name).toBeNull();
     expect(item.assigned).toBe(false);
@@ -329,7 +389,10 @@ describe('wishlist module', () => {
   it('releases a booking placed by a login user', async () => {
     const id = await createGift({ name: 'Кружка' });
     const anonymous = new Client(world.app);
-    await anonymous.inject('POST', `/api/modules/wishlist/gift/${id}/book`, { username: 'guest', pin: '135790' });
+    await anonymous.inject('POST', `/api/modules/wishlist/gift/${id}/book`, {
+      username: 'guest',
+      pin: '135790',
+    });
     const res = await client.inject('POST', `/api/modules/wishlist/gift/${id}/release`);
     expect(res.statusCode).toBe(200);
   });
@@ -344,10 +407,14 @@ describe('wishlist module', () => {
   it('keeps admin-assigned bookings from being unbooked by login users', async () => {
     const id = await createGift({ name: 'Кружка' });
     await client.inject('POST', `/api/modules/wishlist/gift/${id}/assign`, { name: 'Тётя Галя' });
-    const res = await new Client(world.app).inject('POST', `/api/modules/wishlist/gift/${id}/unbook`, {
-      username: 'guest',
-      pin: '135790',
-    });
+    const res = await new Client(world.app).inject(
+      'POST',
+      `/api/modules/wishlist/gift/${id}/unbook`,
+      {
+        username: 'guest',
+        pin: '135790',
+      },
+    );
     expect(res.statusCode).toBe(403);
     expect((res.json() as { error: { code: string } }).error.code).toBe('FORBIDDEN');
   });

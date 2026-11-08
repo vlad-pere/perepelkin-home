@@ -7,8 +7,7 @@ interface AppSettingRow {
 /** Общие настройки установки (таблица app_settings): оформления и прочего, что придёт позже. */
 export function getSetting(db: Database.Database, key: string): string | null {
   const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as
-    | AppSettingRow
-    | undefined;
+    AppSettingRow | undefined;
   return row?.value ?? null;
 }
 
