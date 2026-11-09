@@ -533,22 +533,6 @@ button {
   overflow-wrap: anywhere;
 }
 
-.topbar-link {
-  color: inherit;
-  font-weight: 600;
-  font-size: 14px;
-  text-decoration: none;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--accent-soft);
-  color: var(--accent);
-  transition: opacity 0.25s var(--ease);
-}
-
-.topbar-link:hover {
-  opacity: 0.78;
-}
-
 .topbar-identity {
   display: flex;
   align-items: center;
@@ -924,6 +908,61 @@ button {
   animation: fade-up 0.7s var(--ease) 0.16s both;
 }
 
+/* Отдельные пункты профиля (сейчас один — «Настройки»); список расширяется. */
+.profile-menu {
+  width: 100%;
+  max-width: 560px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  animation: fade-up 0.7s var(--ease) 0.12s both;
+}
+
+.profile-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.25s var(--ease);
+}
+
+.profile-item:hover {
+  background: var(--bg-warm);
+}
+
+.profile-item-icon {
+  color: var(--accent);
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.profile-item-text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.profile-item-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.profile-item-sub {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.profile-item-chevron {
+  margin-left: auto;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+}
+
 /* ---------- Motion ---------- */
 
 @keyframes fade-up {
@@ -980,21 +1019,23 @@ button {
   animation: fade-up 0.45s var(--ease) both;
 }
 
-.appearance-group {
+/* Два отдельных блока: «Готовые палитры» и «Кастомные настройки» — самостоятельные карточки. */
+.appearance-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
   display: grid;
   gap: 14px;
-  margin: 0;
-  padding: 0;
-  border: none;
   min-width: 0;
 }
 
-.appearance-group-title {
-  font-size: 12px;
+.appearance-card-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 19px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
+  line-height: 1.2;
 }
 
 .appearance-mini-title {
@@ -1007,6 +1048,72 @@ button {
   margin: 0;
   color: var(--ink-muted);
   font-size: 13px;
+}
+
+/* --- Аккордеоны кастомных настроек --- */
+
+.appearance-accordion {
+  display: grid;
+}
+
+.appearance-acc {
+  border-bottom: 1px solid var(--line);
+}
+
+.appearance-acc:last-child {
+  border-bottom: none;
+}
+
+.appearance-acc summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 2px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 15px;
+  transition: color 0.25s var(--ease);
+}
+
+.appearance-acc summary::-webkit-details-marker {
+  display: none;
+}
+
+.appearance-acc summary:hover {
+  color: var(--accent);
+}
+
+.appearance-acc-title {
+  min-width: 0;
+}
+
+.appearance-acc-badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.appearance-acc-chevron {
+  margin-left: auto;
+  color: var(--ink-muted);
+  flex-shrink: 0;
+  transition: transform 0.3s var(--ease);
+}
+
+.appearance-acc[open] .appearance-acc-chevron {
+  transform: rotate(180deg);
+}
+
+.appearance-acc-body {
+  padding: 6px 2px 18px;
+  display: grid;
+  gap: 14px;
 }
 
 .appearance-presets {
@@ -1189,12 +1296,6 @@ button {
   line-height: 1;
 }
 
-.appearance-pairs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
 .appearance-preview {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -1326,8 +1427,8 @@ button {
     line-height: 1.4;
   }
 
-  .appearance-pairs {
-    grid-template-columns: 1fr;
+  .appearance-card {
+    padding: 18px 16px;
   }
   /* Цвета оставляем на авто-заполнении: на телефоне и так одна колонка,
      жёсткие 1fr 1fr тут ломали подписи на узких экранах. */

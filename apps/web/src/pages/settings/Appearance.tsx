@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { ChevronDown } from 'lucide-react';
 import {
   APPEARANCE_FONT_BODY,
   APPEARANCE_FONT_DISPLAY,
@@ -122,8 +123,8 @@ export function AppearanceSection() {
         </p>
       )}
 
-      <fieldset className="appearance-group">
-        <legend className="appearance-group-title">Готовые палитры</legend>
+      <section className="appearance-card">
+        <h3 className="appearance-card-title">Готовые палитры</h3>
         <div className="appearance-presets">
           {APPEARANCE_PRESETS.map((preset) => {
             const active = JSON.stringify(draft.colors) === JSON.stringify(preset.colors);
@@ -146,125 +147,140 @@ export function AppearanceSection() {
           })}
         </div>
         <p className="appearance-hint">Палитра меняет только цвета, шрифты не трогает.</p>
-      </fieldset>
+      </section>
 
-      {APPEARANCE_COLOR_GROUPS.map((group) => (
-        <fieldset className="appearance-group" key={group.title}>
-          <legend className="appearance-group-title">{group.title}</legend>
-          <div className="appearance-colors">
-            {group.fields.map((field) => (
-              <label className="field appearance-color" key={field.key}>
-                <span className="field-label">{field.label}</span>
-                <input
-                  type="color"
-                  className="appearance-color-input"
-                  value={draft.colors[field.key]}
-                  onChange={(e) => updateColors({ [field.key]: e.target.value })}
-                />
-                <span className="appearance-color-hex">{draft.colors[field.key]}</span>
-              </label>
-            ))}
-          </div>
-          {group.fields.some(
-            (field) => draft.colors[field.key] !== DEFAULT_APPEARANCE.colors[field.key],
-          ) && (
-            <button
-              type="button"
-              className="btn-ghost appearance-reset"
-              onClick={() => updateColors(DEFAULT_APPEARANCE.colors)}
-            >
-              Сбросить цвета к стандартным
-            </button>
-          )}
-        </fieldset>
-      ))}
-
-      <fieldset className="appearance-group">
-        <legend className="appearance-group-title">Шрифты</legend>
-        <div className="appearance-font-row">
-          <span className="appearance-mini-title">Заголовки</span>
-          <div className="appearance-chip-row">
-            {APPEARANCE_FONT_DISPLAY.map((font) => (
-              <button
-                type="button"
-                key={font.id}
-                className="appearance-font-chip"
-                aria-pressed={draft.fonts.display === font.id}
-                onClick={() => update({ fonts: { ...draft.fonts, display: font.id } })}
-              >
-                <span className="appearance-font-sample" style={{ fontFamily: font.family }}>
-                  Аа
-                </span>
-                {font.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="appearance-font-row">
-          <span className="appearance-mini-title">Текст</span>
-          <div className="appearance-chip-row">
-            {APPEARANCE_FONT_BODY.map((font) => (
-              <button
-                type="button"
-                key={font.id}
-                className="appearance-font-chip"
-                aria-pressed={draft.fonts.body === font.id}
-                onClick={() => update({ fonts: { ...draft.fonts, body: font.id } })}
-              >
-                <span className="appearance-font-sample" style={{ fontFamily: font.family }}>
-                  Аа
-                </span>
-                {font.label}
-              </button>
-            ))}
-          </div>
-        </div>
+      <section className="appearance-card">
+        <h3 className="appearance-card-title">Кастомные настройки</h3>
         <p className="appearance-hint">
-          Интересующий вариант: заголовки — {displayFont?.label ?? '—'}, текст —{' '}
-          {bodyFont?.label ?? '—'}
+          Тонкая подстройка отдельных свойств — обычно не нужна, если палитра подобрана.
         </p>
-      </fieldset>
+        <div className="appearance-accordion">
+          {APPEARANCE_COLOR_GROUPS.map((group) => (
+            <Accordion
+              key={group.title}
+              title={group.title}
+              changed={group.fields.some(
+                (field) => draft.colors[field.key] !== baseline.colors[field.key],
+              )}
+            >
+              <div className="appearance-colors">
+                {group.fields.map((field) => (
+                  <label className="field appearance-color" key={field.key}>
+                    <span className="field-label">{field.label}</span>
+                    <input
+                      type="color"
+                      className="appearance-color-input"
+                      value={draft.colors[field.key]}
+                      onChange={(e) => updateColors({ [field.key]: e.target.value })}
+                    />
+                    <span className="appearance-color-hex">{draft.colors[field.key]}</span>
+                  </label>
+                ))}
+              </div>
+              {group.fields.some(
+                (field) => draft.colors[field.key] !== DEFAULT_APPEARANCE.colors[field.key],
+              ) && (
+                <button
+                  type="button"
+                  className="btn-ghost appearance-reset"
+                  onClick={() => updateColors(DEFAULT_APPEARANCE.colors)}
+                >
+                  Сбросить цвета к стандартным
+                </button>
+              )}
+            </Accordion>
+          ))}
 
-      <div className="appearance-pairs">
-        <fieldset className="appearance-group">
-          <legend className="appearance-group-title">Скругления</legend>
-          <div className="appearance-chip-row">
-            {RADIUS_OPTIONS.map((option) => (
-              <button
-                type="button"
-                key={option.value}
-                className="appearance-chip"
-                data-radius={option.value}
-                aria-pressed={draft.radius === option.value}
-                onClick={() => update({ radius: option.value })}
-              >
-                <i className="appearance-radius-swatch" aria-hidden="true" />
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-        <fieldset className="appearance-group">
-          <legend className="appearance-group-title">Анимации</legend>
-          <div className="appearance-chip-row">
-            {MOTION_OPTIONS.map((option) => (
-              <button
-                type="button"
-                key={option.value}
-                className="appearance-chip"
-                aria-pressed={draft.motion === option.value}
-                onClick={() => update({ motion: option.value })}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <p className="appearance-hint">
-            В режиме «Минимальные» анимации отключаются во всём доме — мигающая точка в примере ниже
-            застынет.
-          </p>
-        </fieldset>
-      </div>
+          <Accordion
+            title="Шрифты"
+            changed={
+              draft.fonts.display !== baseline.fonts.display ||
+              draft.fonts.body !== baseline.fonts.body
+            }
+          >
+            <div className="appearance-font-row">
+              <span className="appearance-mini-title">Заголовки</span>
+              <div className="appearance-chip-row">
+                {APPEARANCE_FONT_DISPLAY.map((font) => (
+                  <button
+                    type="button"
+                    key={font.id}
+                    className="appearance-font-chip"
+                    aria-pressed={draft.fonts.display === font.id}
+                    onClick={() => update({ fonts: { ...draft.fonts, display: font.id } })}
+                  >
+                    <span className="appearance-font-sample" style={{ fontFamily: font.family }}>
+                      Аа
+                    </span>
+                    {font.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="appearance-font-row">
+              <span className="appearance-mini-title">Текст</span>
+              <div className="appearance-chip-row">
+                {APPEARANCE_FONT_BODY.map((font) => (
+                  <button
+                    type="button"
+                    key={font.id}
+                    className="appearance-font-chip"
+                    aria-pressed={draft.fonts.body === font.id}
+                    onClick={() => update({ fonts: { ...draft.fonts, body: font.id } })}
+                  >
+                    <span className="appearance-font-sample" style={{ fontFamily: font.family }}>
+                      Аа
+                    </span>
+                    {font.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="appearance-hint">
+              Интересующий вариант: заголовки — {displayFont?.label ?? '—'}, текст —{' '}
+              {bodyFont?.label ?? '—'}
+            </p>
+          </Accordion>
+
+          <Accordion title="Скругления" changed={draft.radius !== baseline.radius}>
+            <div className="appearance-chip-row">
+              {RADIUS_OPTIONS.map((option) => (
+                <button
+                  type="button"
+                  key={option.value}
+                  className="appearance-chip"
+                  data-radius={option.value}
+                  aria-pressed={draft.radius === option.value}
+                  onClick={() => update({ radius: option.value })}
+                >
+                  <i className="appearance-radius-swatch" aria-hidden="true" />
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </Accordion>
+
+          <Accordion title="Анимации" changed={draft.motion !== baseline.motion}>
+            <div className="appearance-chip-row">
+              {MOTION_OPTIONS.map((option) => (
+                <button
+                  type="button"
+                  key={option.value}
+                  className="appearance-chip"
+                  aria-pressed={draft.motion === option.value}
+                  onClick={() => update({ motion: option.value })}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <p className="appearance-hint">
+              В режиме «Минимальные» анимации отключаются во всём доме — мигающая точка в примере
+              ниже застынет.
+            </p>
+          </Accordion>
+        </div>
+      </section>
 
       {/* Мини-макет карточки модуля: перекрашивается всеми токенами черновика вживую. */}
       <div className="appearance-preview" aria-hidden="true">
@@ -324,5 +340,31 @@ export function AppearanceSection() {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Сворачиваемый подраздел «Кастомных настроек». Нативный `details` — без своего
+ * состояния и без ловушек клавиатуры: раскрытие/сворачивание бесплатно.
+ * Метка «изменено» показывает, что значения группы отличаются от сохранённых.
+ */
+function Accordion({
+  title,
+  changed,
+  children,
+}: {
+  title: string;
+  changed: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <details className="appearance-acc">
+      <summary>
+        <span className="appearance-acc-title">{title}</span>
+        {changed && <span className="appearance-acc-badge">изменено</span>}
+        <ChevronDown size={18} strokeWidth={1.8} className="appearance-acc-chevron" />
+      </summary>
+      <div className="appearance-acc-body">{children}</div>
+    </details>
   );
 }

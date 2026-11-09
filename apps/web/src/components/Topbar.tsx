@@ -27,11 +27,6 @@ export function Topbar({
       </div>
       <div className="topbar-right">
         {children}
-        {me !== null && me.user.isAdmin && (
-          <Link className="topbar-link" to="/settings">
-            Настройки
-          </Link>
-        )}
         {user && (
           <Link className="topbar-identity" to="/profile">
             <span className="topbar-user">{user.username}</span>
